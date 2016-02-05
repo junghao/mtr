@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -63,7 +65,7 @@ func fieldMetricHandler(w http.ResponseWriter, r *http.Request) {
 		// Make sure there is not a metric in this hour already
 		var f int
 
-		if err = db.QueryRow(`SELECT count(*) from field.metric 
+		if err = db.QueryRow(`SELECT count(*) FROM field.metric 
 			WHERE 
 			localityPK = (SELECT localityPK from field.locality WHERE localityID = $1)
 			AND 
@@ -135,6 +137,82 @@ func fieldMetricHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+	case "GET":
+		var localityID, modelID, typeID, code string
+
+		localityID = r.URL.Query().Get("localityID")
+		code = r.URL.Query().Get("code")
+
+		if code == "" && localityID == "" {
+			http.Error(w, "specifiy code or locality", http.StatusBadRequest)
+			return
+		}
+
+		if code != "" && localityID != "" {
+			http.Error(w, "specifiy only one of code or locality", http.StatusBadRequest)
+			return
+		}
+
+		if modelID = r.URL.Query().Get("modelID"); modelID == "" {
+			http.Error(w, "modelID is a required parameter", http.StatusBadRequest)
+			return
+		}
+
+		if typeID = r.URL.Query().Get("typeID"); typeID == "" {
+			http.Error(w, "typeID is a required parameter", http.StatusBadRequest)
+			return
+		}
+
+		var rows *sql.Rows
+		var err error
+
+		switch "" {
+		case code:
+			rows, err = dbR.Query(`SELECT format('%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), value) as csv FROM field.metric 
+			WHERE 
+			localityPK = (SELECT localityPK from field.locality WHERE localityID = $1)
+			AND 
+			modelPK = (SELECT modelPK from field.model WHERE modelID = $2)
+			AND
+			metricTypePK = (SELECT metricTypePK from field.metricType where metricTypeID = $3)
+			ORDER BY time ASC`,
+				localityID, modelID, typeID)
+		case localityID:
+			rows, err = dbR.Query(`SELECT format('%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), value) as csv FROM field.metric 
+			WHERE 
+			sitePK = (SELECT sitePK from field.site WHERE code = $1)
+			AND 
+			modelPK = (SELECT modelPK from field.model WHERE modelID = $2)
+			AND
+			metricTypePK = (SELECT metricTypePK from field.metricType where metricTypeID = $3)
+			ORDER BY time ASC`,
+				code, modelID, typeID)
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var d string
+		var b bytes.Buffer
+		b.Write([]byte("date-time," + typeID))
+		b.Write(eol)
+		for rows.Next() {
+			err = rows.Scan(&d)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			b.Write([]byte(d))
+			b.Write(eol)
+		}
+		rows.Close()
+
+		w.Header().Set("Content-Disposition", `attachment; filename="MTR-`+strings.Replace(localityID+`-`+modelID+`-`+typeID, " ", "-", -1)+`.csv"`)
+		w.Header().Set("Content-Type", "text/csv")
+
+		b.WriteTo(w)
 	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 	}
