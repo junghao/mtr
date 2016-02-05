@@ -81,6 +81,7 @@ func auth(f func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWr
 			if user, password, ok := r.BasicAuth(); ok && userR == user && keyR == password {
 				f(w, r)
 			} else {
+				w.Header().Set("WWW-Authenticate", "Basic realm=\"MTR\"")
 				http.Error(w, "Access denied", http.StatusUnauthorized)
 				return
 			}
