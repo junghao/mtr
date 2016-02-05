@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+var maxAge = time.Duration(-672 * time.Hour)
+var future = time.Duration(10 * time.Second)
+
 func fieldMetricHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
@@ -40,7 +43,17 @@ func fieldMetricHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// TODO error if old
+		now := time.Now().UTC()
+
+		if t.Before(now.Add(maxAge)) {
+			http.Error(w, "old metric", http.StatusBadRequest)
+			return
+		}
+
+		if now.Add(future).Before(t) {
+			http.Error(w, "future metric", http.StatusBadRequest)
+			return
+		}
 
 		if v, err = strconv.Atoi(r.URL.Query().Get("value")); err != nil {
 			http.Error(w, "invalid value: "+err.Error(), http.StatusBadRequest)
