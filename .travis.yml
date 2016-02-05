@@ -1,0 +1,14 @@
+language: go
+go:
+- 1.5
+install:
+- export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
+- export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
+script: go test ./...  -v
+notifications:
+  hipchat:
+    rooms:
+      secure: s1DQrj7CvMTb0k9wJWPjhxPY4Gg2u1vbpnd9akHQDVJgTAinEwrP1thv5hlDN6XhnzJLz/5jHQqjj6apvKc0t38Jzt+cZA82DnZ4IkM5wblVkhnpcZjg7H55v/yaEJObGueFwtMg1y4rSnQIiGMr7aKA7ZzX7bF5Oojuws9mK5G8W5US91u9lClSZROJ5bD39CX//3NFjzKmCCZV7bAEd+Jc8MplsDHy2NQI7z+nFpOqfj4rIR9jLU9iVkyteGiTGYeOo7UW2mmGmKGwyfXwlmK8zEBnMqszOEfMI13UFgIPxjyQaM0tIunNG0CznT1r1F7WJ8w3PO3Qeuva9N9UnwGDqer8ywUBVAv18IwJRgIv4Qz74kLqj6nXuhghAQ908xBoAS6fxOC4e0uT5XdMDaxmIqSCkrd2VnNfGi+Con3H9CJ8Kz0MIfJAwuoCsdcWpxbIXeWBcyZjFPejCC8NaSjRq4JfJnWqj9p3+MstAf/2qNwPXiXApnzyFNi4MPPFY/TTfp+P75GlM8drP3/tvTRiy+uBwxiZ0D6T+9ZCOWHHkNv/pTf4rO5p9WEVR9gt3Q6LKnckkjHb1WhxybScO1LI9hLbtIJdI9/h3hH4ptsv4O3hSAH3/XmjKG01s/wVVtC+M4LwNPCxYpGz3fP3JsCn0OB+bmYGvTslc1k+PiI=
+    notify: true
+    on_success: always
+    on_failure: always
