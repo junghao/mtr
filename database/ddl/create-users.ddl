@@ -1,0 +1,4 @@
+DROP ROLE if exists mtradmin;
+DROP ROLE if exists mtr_w;
+CREATE ROLE mtradmin WITH CREATEDB CREATEROLE LOGIN PASSWORD 'test';
+CREATE ROLE mtr_w WITH LOGIN PASSWORD 'test';
