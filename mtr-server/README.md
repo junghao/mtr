@@ -2,7 +2,11 @@
 
 A server for metrics.
 
-For development - compile, set env, and run the server:
+## Development
+
+Needs a Postgis DB.
+
+Compile, set env, and run the server:
 
 ```
 go build && (export $(cat env.list | grep = | xargs) && ./mtr-server )
