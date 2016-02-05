@@ -10,15 +10,15 @@ curl -u test:test -X PUT "http://localhost:8080/field/site?code=TAUP"
 # Metrics cannot be repeated.  code is optional.
 # voltage is mV
 curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=taupoairport&code=TAUP&modelID=Trimble+NetR9&typeID=voltage&time=2016-02-03T08:00:16Z&value=14100"
-curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=taupoairport&code=TAUP&modelID=Trimble+NetR9&typeID=voltage&time=2016-02-03T08:15:16Z&value=14200"
-curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=taupoairport&code=TAUP&modelID=Trimble+NetR9&typeID=voltage&time=2016-02-03T08:30:16Z&value=14400"
-curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=taupoairport&code=TAUP&modelID=Trimble+NetR9&typeID=voltage&time=2016-02-03T08:45:16Z&value=14900"
+curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=taupoairport&code=TAUP&modelID=Trimble+NetR9&typeID=voltage&time=2016-02-03T09:15:16Z&value=14200"
+curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=taupoairport&code=TAUP&modelID=Trimble+NetR9&typeID=voltage&time=2016-02-03T10:30:16Z&value=14400"
+curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=taupoairport&code=TAUP&modelID=Trimble+NetR9&typeID=voltage&time=2016-02-03T11:45:16Z&value=14900"
 
 # locality with no code.
 curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=ahititi&modelID=MikroTik+RouterOS&typeID=voltage&time=2016-02-03T08:00:16Z&value=12100"
-curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=ahititi&modelID=MikroTik+RouterOS&typeID=voltage&time=2016-02-03T08:15:16Z&value=12200"
-curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=ahititi&modelID=MikroTik+RouterOS&typeID=voltage&time=2016-02-03T08:30:16Z&value=12400"
-curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=ahititi&modelID=MikroTik+RouterOS&typeID=voltage&time=2016-02-03T08:45:16Z&value=12900"
+curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=ahititi&modelID=MikroTik+RouterOS&typeID=voltage&time=2016-02-03T09:15:16Z&value=12200"
+curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=ahititi&modelID=MikroTik+RouterOS&typeID=voltage&time=2016-02-03T10:30:16Z&value=12400"
+curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=ahititi&modelID=MikroTik+RouterOS&typeID=voltage&time=2016-02-03T11:45:16Z&value=12900"
 
 # Deleteing a locality also deletes any metrics for the locality.
 #curl -u test:test -X DELETE "http://localhost:8080/field/locality?localityID=ahititi"

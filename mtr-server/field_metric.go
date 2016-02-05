@@ -33,6 +33,11 @@ func fieldMetricHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if v, err = strconv.Atoi(r.URL.Query().Get("value")); err != nil {
+			http.Error(w, "invalid value: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		// code is optional
 		if code = r.URL.Query().Get("code"); code == "" {
 			code = "NO-CODE"
@@ -55,11 +60,28 @@ func fieldMetricHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if v, err = strconv.Atoi(r.URL.Query().Get("value")); err != nil {
-			http.Error(w, "invalid value: "+err.Error(), http.StatusBadRequest)
+		// Make sure there is not a metric in this hour already
+		var f int
+
+		if err = db.QueryRow(`SELECT count(*) from field.metric 
+			WHERE 
+			localityPK = (SELECT localityPK from field.locality WHERE localityID = $1)
+			AND 
+			modelPK = (SELECT modelPK from field.model WHERE modelID = $2)
+			AND
+			metricTypePK = (SELECT metricTypePK from field.metricType where metricTypeID = $3)
+			AND 
+			date_trunc('hour', time) = $4`, localityID, modelID, typeID, t.Truncate(time.Hour)).Scan(&f); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
+		if f != 0 {
+			http.Error(w, "metric exists for this hour already", http.StatusBadRequest)
+			return
+		}
+
+		// Insert the metric
 		var c sql.Result
 		if c, err = db.Exec(`INSERT INTO field.metric(localityPK, modelPK, sitePK, metricTypePK, time, value) 
 			select localityPK, modelPK, sitePK, metricTypePK, $4, $5 

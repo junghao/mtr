@@ -69,7 +69,7 @@ curl -u test:test -X DELETE "http://localhost:8080/field/site?code=TAUP"
 
 ### Metrics
 
-Creates a metric.  `code` is optional.  It is an error to send a metric again.
+Creates a metric.  `code` is optional.  It is an error to send a metric again.  It is an error to send more than one metric per hour.
 
 ```
 curl -u test:test -X PUT "http://localhost:8080/field/metric?localityID=taupoairport&code=TAUP&modelID=Trimble+NetR9&typeID=voltage&time=2016-02-03T08:00:16Z&value=14100"
