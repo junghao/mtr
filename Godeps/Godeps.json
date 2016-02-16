@@ -6,6 +6,14 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/GeoNet/cfg/cfgenv",
+			"Rev": "a5051d09da517eb7c4ed82eae99b29ae4d9f49cc"
+		},
+		{
+			"ImportPath": "github.com/GeoNet/map180/nzmap",
+			"Rev": "51a82f9f5d493c5e947dd34a5a67df68425f535e"
+		},
+		{
 			"ImportPath": "github.com/lib/pq",
 			"Rev": "fbed41b4c063a307ab21bf37ae6705519fb34ca3"
 		}
