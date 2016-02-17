@@ -33,6 +33,7 @@ func init() {
 	mux.HandleFunc("/field/metric/threshold", auth(thresholdHandler))
 	mux.HandleFunc("/field/metric/tag", auth(tagHandler))
 	mux.HandleFunc("/field/metric/type", auth(typeHandler))
+	mux.HandleFunc("/health", health)
 }
 
 func main() {
@@ -96,6 +97,13 @@ func auth(f func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWr
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		}
 	}
+}
+
+/*
+health does not require auth - for use with AWS EB load balancer checks.
+*/
+func health(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("ok"))
 }
 
 /*
