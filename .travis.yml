@@ -1,14 +1,11 @@
 language: go
 go:
-- 1.5
+- 1.6
 addons:
   postgresql: '9.4'
 before_script:
 - psql -U postgres -c "create extension postgis"
 - ./database/scripts/initdb.sh
-install:
-- export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
-- export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
 script: go test ./...  -v
 notifications:
   hipchat:

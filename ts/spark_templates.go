@@ -5,6 +5,8 @@ import (
 	"text/template"
 )
 
+// Use human time to lable latest values
+
 type SVGSpark struct {
 	template      *template.Template // the name for the template must be "plot"
 	width, height int                // for the data on the plot, not the overall size.
@@ -37,7 +39,7 @@ const sparkLatestBaseTemplate = `<?xml version="1.0"?>
 `
 
 const sparkThresholdTemplate = `{{define "threshold"}}{{if .Show}}
-<rect x="0" y="{{.Y}}" width="100" height="{{.H}}" fill="lime" opacity="0.2"/>
+<rect x="0" y="{{.Y}}" width="100" height="{{.H}}" fill="whitesmoke"/>
 {{end}}{{end}}`
 
 const sparkScatterTemplate = `{{define "data"}}{{range .}}

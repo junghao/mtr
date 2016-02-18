@@ -37,25 +37,63 @@ INSERT INTO field.type(typePK, typeID, description, unit) VALUES(1, 'voltage', '
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(2, 'clock', 'clock quality', 'c'); 
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(3, 'satellites', 'number of statellites tracked', 'n'); 
 
-CREATE TABLE field.metric (
+CREATE TABLE field.metric_minute (
+	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
+	sourcePK SMALLINT REFERENCES field.source(sourcePK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	min INTEGER NOT NULL,
+	max INTEGER NOT NULL,
+	PRIMARY KEY(localityPK, sourcePK, typePK, time)
+);
+
+CREATE INDEX on field.metric_minute (localityPK);
+CREATE INDEX on field.metric_minute (sourcePK);
+CREATE INDEX on field.metric_minute (typePK);
+
+CREATE TABLE field.metric_hour (
+	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
+	sourcePK SMALLINT REFERENCES field.source(sourcePK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	min INTEGER NOT NULL,
+	max INTEGER NOT NULL,
+	PRIMARY KEY(localityPK, sourcePK, typePK, time)
+);
+
+CREATE INDEX on field.metric_hour (localityPK);
+CREATE INDEX on field.metric_hour (sourcePK);
+CREATE INDEX on field.metric_hour (typePK);
+
+CREATE TABLE field.metric_day (
+	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
+	sourcePK SMALLINT REFERENCES field.source(sourcePK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	min INTEGER NOT NULL,
+	max INTEGER NOT NULL,
+	PRIMARY KEY(localityPK, sourcePK, typePK, time)
+);
+
+CREATE INDEX on field.metric_day (localityPK);
+CREATE INDEX on field.metric_day (sourcePK);
+CREATE INDEX on field.metric_day (typePK);
+
+CREATE TABLE field.metric_latest (
 	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
 	sourcePK SMALLINT REFERENCES field.source(sourcePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	value INTEGER NOT NULL,
-	PRIMARY KEY(localityPK, sourcePK, typePK, time)
+	PRIMARY KEY(localityPK, sourcePK, typePK)
 );
-
-CREATE INDEX on field.metric (localityPK);
-CREATE INDEX on field.metric (sourcePK);
-CREATE INDEX on field.metric (typePK);
 
 CREATE TABLE field.threshold (
 	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
 	sourcePK SMALLINT REFERENCES field.source(sourcePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
-	min INTEGER NOT NULL,
-	max INTEGER NOT NULL,
+	lower INTEGER NOT NULL,
+	upper INTEGER NOT NULL,
 	PRIMARY KEY(localityPK, sourcePK, typePK)
 );
 
@@ -80,23 +118,3 @@ CREATE INDEX on field.metric_tag (localityPK);
 CREATE INDEX on field.metric_tag (sourcePK);
 CREATE INDEX on field.metric_tag (typePK);
 CREATE INDEX on field.metric_tag (tagPK);
-
-
--- field.metric_summary is a materialized view of the metrics for each localityPK, sourcePK, typePK.  
--- it is currently the latest value.  This could be changed.  The time value can be used to see if
--- the metric has stopped sending (purple).
--- The view is refreshed using:
---
--- REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary;
---
--- The data is stale until refreshed, if this causes issues then use an eagerly materialized view using triggers etc.
--- The user that will refresh the view must own it.
-CREATE MATERIALIZED VIEW field.metric_summary 
-AS SELECT localityPK, sourcePK, typePK, time, value 
-FROM 
-(SELECT localityPK, sourcePK, typePK, time, value, rank() 
-	OVER ( PARTITION BY localityPK, sourcePK, typePK ORDER BY time DESC) FROM field.metric) s 
-WHERE rank = 1;
-
--- UNIQUE index is needed for refresh CONCURRENTLY
-CREATE UNIQUE INDEX on field.metric_summary (localityPK, sourcePK, typePk, time);
