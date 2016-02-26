@@ -2,14 +2,51 @@ package ts
 
 import (
 	"bytes"
-	"strings"
+	"fmt"
 	"text/template"
 	"time"
 )
 
 var funcMap = template.FuncMap{
 	"date": func(t time.Time) string {
-		return strings.Split(t.Format(time.RFC3339), "T")[0]
+		dur := time.Now().UTC().Sub(t)
+
+		d := int(dur.Hours() / 24)
+
+		switch {
+		case d > 730:
+			return "years ago"
+		case d <= 730 && d > 365:
+			return "a year ago"
+		case d > 14:
+			return "weeks ago"
+		case d <= 14 && d > 7:
+			return "a week ago"
+		case d > 1:
+			return fmt.Sprintf("%d days ago", d)
+		case d == 1:
+			return "1 day ago"
+		}
+
+		h := int(dur.Minutes() / 60)
+
+		switch {
+		case h > 1:
+			return fmt.Sprintf("%d hours ago", h)
+		case h == 1:
+			return "1 hour ago"
+		}
+
+		m := int(dur.Minutes())
+
+		switch {
+		case m > 1:
+			return fmt.Sprintf("%d mins ago", m)
+		case m == 1:
+			return "1 min ago"
+		}
+
+		return "just now"
 	},
 }
 
@@ -27,8 +64,55 @@ func (s *SVGPlot) Draw(p Plot, b *bytes.Buffer) error {
 	return s.template.ExecuteTemplate(b, "plot", p.plt)
 }
 
+func (s *SVGPlot) DrawBars(p Plot, b *bytes.Buffer) error {
+	p.plt.width = s.width
+	p.plt.height = s.height
+	p.scaleData()
+	p.setAxes()
+
+	if err := p.setBars(); err != nil {
+		return err
+	}
+
+	return s.template.ExecuteTemplate(b, "plot", p.plt)
+}
+
+func (p *Plot) setBars() error {
+	if len(p.plt.Data) != 2 {
+		return fmt.Errorf("drawing bars requires 2 data series.")
+	}
+
+	for i, _ := range p.plt.Data[0].Pts {
+		// If the min max line is zero length it won't draw so add a little length.
+		if p.plt.Data[0].Pts[i].Y == p.plt.Data[1].Pts[i].Y {
+			p.plt.Lines = append(p.plt.Lines, line{
+				X:      p.plt.Data[0].Pts[i].X,
+				Y:      p.plt.Data[0].Pts[i].Y - 1,
+				XX:     p.plt.Data[1].Pts[i].X,
+				YY:     p.plt.Data[1].Pts[i].Y + 1,
+				Colour: p.plt.Data[0].Pts[i].Colour,
+			})
+		} else {
+			p.plt.Lines = append(p.plt.Lines, line{
+				X:      p.plt.Data[0].Pts[i].X,
+				Y:      p.plt.Data[0].Pts[i].Y,
+				XX:     p.plt.Data[1].Pts[i].X,
+				YY:     p.plt.Data[1].Pts[i].Y,
+				Colour: p.plt.Data[0].Pts[i].Colour,
+			})
+		}
+	}
+	return nil
+}
+
 var Scatter = SVGPlot{
 	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotScatterTemplate)),
+	width:    600,
+	height:   170,
+}
+
+var Bars = SVGPlot{
+	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotBarsTemplate)),
 	width:    600,
 	height:   170,
 }
@@ -42,7 +126,7 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 <g transform="translate(70,40)">
 {{if .RangeAlert}}<rect x="0" y="0" width="600" height="170" fill="mistyrose"/>{{end}}
 {{if .Threshold.Show}}
-<rect x="0" y="{{.Threshold.Y}}" width="600" height="{{.Threshold.H}}" fill="whitesmoke"/>
+<rect x="0" y="{{.Threshold.Y}}" width="600" height="{{.Threshold.H}}" fill="chartreuse" fill-opacity="0.2"/>
 {{end}}
 {{/* Grid, axes, title */}}
 {{range .Axes.X}}
@@ -86,13 +170,12 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 {{/* end grid, axes, title */}}
 
 {{template "data" .}}
-<circle cx="{{.LastPt.X}}" cy="{{.LastPt.Y}}" r="4" stroke="blue" fill="none" />
+<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="{{.LatestPt.Colour}}" fill="{{.LatestPt.Colour}}" />
 </g>
-{{if not .Last.DateTime.IsZero}}
-<text x="670" y="268" text-anchor="end" font-style="italic">
-latest: <tspan fill="blue">{{ printf "%.1f" .Last.Value}} {{.Unit}}</tspan> ({{date .Last.DateTime}}) 
+<circle cx="500" cy="264" r="3" stroke="{{.LatestPt.Colour}}" fill="{{.LatestPt.Colour}}" />
+<text x="510" y="268" text-anchor="start" font-style="italic">
+latest: {{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}}) 
 </text>
-{{end}}
 </svg>
 `
 
@@ -101,6 +184,14 @@ const plotScatterTemplate = `
 {{range .Data}}
 {{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="{{.Colour}}" stroke="{{.Colour}}"/>{{end}}{{end}}
 {{end}}
+
+{{define "keyMarker"}}
+<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="{{.L}}"/> 
+{{end}}
+`
+const plotBarsTemplate = `
+{{define "data"}}
+{{range .Lines}}<polyline fill="{{.Colour}}" stroke="{{.Colour}}" stroke-width="2" points="{{.X}},{{.Y}} {{.XX}},{{.YY}}"/>{{end}}{{end}}
 
 {{define "keyMarker"}}
 <circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="{{.L}}"/> 

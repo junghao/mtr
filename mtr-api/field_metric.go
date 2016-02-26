@@ -58,11 +58,6 @@ func (f *fieldMetric) loadID(r *http.Request) *result {
 	return &statusOK
 }
 
-//  TODO - what to do about the latest values shown on the plot - read it from latest and add it seprately as the last value
-//  TODO checkQuery on all the things.
-//  TODO resolution parameter on plot and also CSV.
-//  TODO lines on plots when min and max are different. Will have to drop color on points
-
 func (f *fieldMetric) save(r *http.Request) *result {
 	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID", "time", "value"}, []string{}); !res.ok {
 		return res
@@ -225,7 +220,7 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 }
 
 func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID"}, []string{"plot"}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID"}, []string{"plot", "resolution"}); !res.ok {
 		return res
 	}
 
@@ -235,17 +230,36 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	var p ts.Plot
 
-	if res := f.loadPlot(&p); !res.ok {
-		return res
+	resolution := r.URL.Query().Get("resolution")
+
+	switch resolution {
+	case "":
+		resolution = "minute"
+		p.SetXAxis(time.Now().UTC().Add(time.Minute*-1440), time.Now().UTC())
+	case "minute":
+		p.SetXAxis(time.Now().UTC().Add(time.Minute*-1440), time.Now().UTC())
+	case "hour":
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-1440), time.Now().UTC())
+	case "day":
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*1440), time.Now().UTC())
+	default:
+		badRequest("invalid value for resolution")
 	}
 
-	p.SetXAxis(time.Now().UTC().Add(time.Hour*-24), time.Now().UTC())
+	if res := f.loadPlot(resolution, &p); !res.ok {
+		return res
+	}
 
 	var err error
 
 	switch r.URL.Query().Get("plot") {
 	case "spark":
-		err = ts.SparkScatterLatest.Draw(p, b)
+		switch f.typeID {
+		case "voltage":
+			p.SetUnit("V")
+		}
+
+		err = ts.SparkBarsLatest.DrawBars(p, b)
 	case "":
 		p.SetTitle(fmt.Sprintf("%s - %s - %s", f.localityName, f.sourceID, strings.Title(f.typeID)))
 
@@ -256,7 +270,8 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 			p.SetYAxis(0.0, 25.0)
 		}
 
-		err = ts.Scatter.Draw(p, b)
+		// err = ts.Scatter.Draw(p, b)
+		err = ts.Bars.DrawBars(p, b)
 	}
 	if err != nil {
 		return internalServerError(err)
@@ -284,7 +299,7 @@ func (f *fieldMetric) loadThreshold() *result {
 /*
 loadPlot loads plot data.  Assumes f.load has been called first.
 */
-func (f *fieldMetric) loadPlot(p *ts.Plot) *result {
+func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	if res := f.loadThreshold(); !res.ok {
 		return res
 	}
@@ -298,11 +313,40 @@ func (f *fieldMetric) loadPlot(p *ts.Plot) *result {
 		}
 	}
 
-	var rows *sql.Rows
 	var err error
 
-	if rows, err = dbR.Query(`SELECT time, min,max FROM field.metric_minute
-		WHERE localityPK = $1 AND sourcePK = $2 AND typePK = $3
+	var latest ts.Point
+	var latestValue int32
+
+	if err = dbR.QueryRow(`SELECT time, value FROM field.metric_latest 
+		WHERE localityPK = $1 AND sourcePK = $2 AND typePK = $3`,
+		f.localityPK, f.sourcePK, f.typePK).Scan(&latest.DateTime, &latestValue); err != nil {
+		return internalServerError(err)
+	}
+
+	switch {
+	case latest.DateTime.Before(time.Now().UTC().Add(time.Hour * -48)):
+		latest.Colour = late
+	case f.lower == 0 && f.upper == 0:
+		latest.Colour = unknown
+	case latestValue <= f.upper && latestValue >= f.lower:
+		latest.Colour = good
+	default:
+		latest.Colour = bad
+	}
+
+	if f.typeID == "voltage" {
+		latest.Value = float64(latestValue) * 0.001
+	} else {
+		latest.Value = float64(latestValue)
+	}
+
+	p.SetLatest(latest)
+
+	var rows *sql.Rows
+
+	if rows, err = dbR.Query(`SELECT time, min,max FROM field.metric_`+resolution+` WHERE 
+		localityPK = $1 AND sourcePK = $2 AND typePK = $3
 		ORDER BY time ASC`,
 		f.localityPK, f.sourcePK, f.typePK); err != nil {
 		return internalServerError(err)
@@ -312,24 +356,30 @@ func (f *fieldMetric) loadPlot(p *ts.Plot) *result {
 
 	var t time.Time
 	var min, max int32
-	var pts []ts.Point
+	var ptsMin []ts.Point
+	var ptsMax []ts.Point
 
-	for rows.Next() {
-		if err = rows.Scan(&t, &min, &max); err != nil {
-			return internalServerError(err)
+	if f.typeID == "voltage" {
+		for rows.Next() {
+			if err = rows.Scan(&t, &min, &max); err != nil {
+				return internalServerError(err)
+			}
+			ptsMin = append(ptsMin, ts.Point{DateTime: t, Value: float64(min) * 0.001, Colour: "darkcyan"})
+			ptsMax = append(ptsMax, ts.Point{DateTime: t, Value: float64(max) * 0.001, Colour: "darkcyan"})
 		}
-		pts = append(pts, ts.Point{DateTime: t, Value: float64(min), Colour: "darkcyan"})
-		pts = append(pts, ts.Point{DateTime: t, Value: float64(max), Colour: "darkcyan"})
+	} else {
+		for rows.Next() {
+			if err = rows.Scan(&t, &min, &max); err != nil {
+				return internalServerError(err)
+			}
+			ptsMin = append(ptsMin, ts.Point{DateTime: t, Value: float64(min), Colour: "darkcyan"})
+			ptsMax = append(ptsMax, ts.Point{DateTime: t, Value: float64(max), Colour: "darkcyan"})
+		}
 	}
 	rows.Close()
 
-	if f.typeID == "voltage" {
-		for i, _ := range pts {
-			pts[i].Value = pts[i].Value * 0.001
-		}
-	}
-
-	p.AddSeries(ts.Series{Label: f.sourceID, Points: pts})
+	p.AddSeries(ts.Series{Label: f.sourceID, Points: ptsMin})
+	p.AddSeries(ts.Series{Label: f.sourceID, Points: ptsMax})
 
 	return &statusOK
 }
