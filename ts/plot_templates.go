@@ -41,7 +41,9 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 <svg viewBox="0,0,800,270" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="darkslategrey">
 <g transform="translate(70,40)">
 {{if .RangeAlert}}<rect x="0" y="0" width="600" height="170" fill="mistyrose"/>{{end}}
-
+{{if .Threshold.Show}}
+<rect x="0" y="{{.Threshold.Y}}" width="600" height="{{.Threshold.H}}" fill="whitesmoke"/>
+{{end}}
 {{/* Grid, axes, title */}}
 {{range .Axes.X}}
 {{if .L}}
@@ -82,9 +84,7 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 <text x="0" y="85" transform="rotate(90) translate(85,-25)" text-anchor="middle"  fill="black">{{.Axes.Ylabel}}</text>
 <text x="320" y="208" text-anchor="middle"  font-size="14px" fill="black">Date</text>
 {{/* end grid, axes, title */}}
-{{if .Threshold.Show}}
-<rect x="0" y="{{.Threshold.Y}}" width="600" height="{{.Threshold.H}}" fill="lime" opacity="0.2"/>
-{{end}}
+
 {{template "data" .}}
 <circle cx="{{.LastPt.X}}" cy="{{.LastPt.Y}}" r="4" stroke="blue" fill="none" />
 </g>
@@ -99,7 +99,7 @@ latest: <tspan fill="blue">{{ printf "%.1f" .Last.Value}} {{.Unit}}</tspan> ({{d
 const plotScatterTemplate = `
 {{define "data"}}
 {{range .Data}}
-{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="{{.Colour}}"/>{{end}}{{end}}
+{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="{{.Colour}}" stroke="{{.Colour}}"/>{{end}}{{end}}
 {{end}}
 
 {{define "keyMarker"}}
