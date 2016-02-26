@@ -32,8 +32,8 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 			sourceID AS "SourceID", time AS "Time", value AS "Value",
 			typeID AS "TypeID", 
 			unit AS "Unit",
-			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "Min",  
-			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "Max"
+			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "Lower",  
+			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "Upper"
 			FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (localityPK, sourcePK, typePK)
 			JOIN field.locality USING (localityPK) 
 			JOIN field.source USING (sourcepk) 
@@ -46,8 +46,8 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 			sourceID AS "SourceID", time AS "Time", value AS "Value",
 			typeID AS "TypeID", 
 			unit AS "Unit",
-			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "Min",  
-			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "Max"
+			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "Lower",  
+			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "Upper"
 			FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (localityPK, sourcePK, typePK)
 			JOIN field.locality USING (localityPK) 
 			JOIN field.source USING (sourcepk) 
@@ -88,8 +88,8 @@ func (f *fieldLatest) geojsonV1(r *http.Request, h http.Header, b *bytes.Buffer)
 						sourceID AS "sourceID", time AS "time", value AS "value",
 						typeID AS "typeID", 
 						unit AS "unit",
-						CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "min",  
-						CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "max"
+						CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",  
+						CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
 						) as l
 	)) as properties FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (localityPK, sourcePK, typePK)
 	JOIN field.locality as q USING (localityPK) 
@@ -107,8 +107,8 @@ func (f *fieldLatest) geojsonV1(r *http.Request, h http.Header, b *bytes.Buffer)
 						sourceID AS "sourceID", time AS "time", value AS "value",
 						typeID AS "typeID", 
 						unit AS "unit",
-						CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "min",  
-						CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "max"
+						CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",  
+						CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
 						) as l
 	)) as properties FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (localityPK, sourcePK, typePK)
 	JOIN field.locality as q USING (localityPK) 
@@ -141,14 +141,14 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	switch f.typeID {
 	case "":
 		rows, err = dbR.Query(`SELECT longitude, latitude, time, value,
-			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "min",
-			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "max"
+			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
+			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
 			FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (localityPK, sourcePK, typePK)
 			JOIN field.locality USING (localityPK)`)
 	default:
 		rows, err = dbR.Query(`SELECT longitude, latitude, time, value,
-			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "min",
-			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "max"
+			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
+			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
 			FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (localityPK, sourcePK, typePK)
 			JOIN field.locality USING (localityPK) 
 			WHERE typePK = (SELECT typePK FROM field.type WHERE typeID = $1)`, f.typeID)

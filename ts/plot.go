@@ -24,9 +24,12 @@ type plt struct {
 	XMin, XMax                    time.Time
 	YMin, YMax                    float64 // fixed y axis range
 	YRange                        float64 // y axis fixed range on data
-	Data                          []data
-	Min, Max, First, Last         Point // min, max, first, and last Data Point
-	MinPt, MaxPt, FirstPt, LastPt pt    // min, max, first, and last Data pt
+	Data                          []data  // for points
+	Lines                         []line  // for lines e.g., vertical bars between min and max
+	Min, Max, First, Last         Point   // min, max, first, and last Data Point
+	MinPt, MaxPt, FirstPt, LastPt pt      // min, max, first, and last Data pt
+	Latest                        Point   // use for showing the last value explicity e.g., on min max bar plots.
+	LatestPt                      pt
 	RangeAlert                    bool
 	Threshold                     threshold
 	Axes                          axes
@@ -54,9 +57,17 @@ type Point struct {
  pt is for points with labels in svg space.
 */
 type pt struct {
-	X, Y, E int
-	L       string
-	Colour  string
+	X, Y   int
+	L      string
+	Colour string
+}
+
+/*
+line is for lines in SVG apce.
+*/
+type line struct {
+	X, Y, XX, YY int
+	Colour       string
 }
 
 type threshold struct {
@@ -75,7 +86,6 @@ type Series struct {
 
 type data struct {
 	Series Series
-	Colour string // svg colour name
 	Pts    pts
 }
 
@@ -116,6 +126,13 @@ func (p *Plot) SetThreshold(min, max float64) {
 
 func (p *Plot) AddSeries(s Series) {
 	p.plt.Data = append(p.plt.Data, data{Series: s})
+}
+
+/*
+use to explicitly set the latest value on min max bar charts.
+*/
+func (p *Plot) SetLatest(pt Point) {
+	p.plt.Latest = pt
 }
 
 func (p *Plot) scaleData() {
@@ -202,6 +219,11 @@ func (p *Plot) scaleData() {
 	p.plt.LastPt = pt{
 		X: int((p.plt.Last.DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
 		Y: p.plt.height - int(((p.plt.Last.Value-p.plt.YMin)*p.plt.dy)+0.5),
+	}
+	p.plt.LatestPt = pt{
+		X:      int((p.plt.Latest.DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
+		Y:      p.plt.height - int(((p.plt.Latest.Value-p.plt.YMin)*p.plt.dy)+0.5),
+		Colour: p.plt.Latest.Colour,
 	}
 
 	if p.plt.MinPt.Y > p.plt.height {

@@ -108,8 +108,11 @@ func TestFieldMetrics(t *testing.T) {
 	// Sources
 	doRequest("GET", "application/json;version=1", "/field/metric/latest", 200, t)
 
-	// Metrics
+	// Metrics.  Resolution is optional on plots and sparks
 	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&sourceID=Trimble+NetR9&typeID=voltage", 200, t)
+	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&sourceID=Trimble+NetR9&typeID=voltage&resolution=minute", 200, t)
+	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&sourceID=Trimble+NetR9&typeID=voltage&resolution=hour", 200, t)
+	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&sourceID=Trimble+NetR9&typeID=voltage&resolution=day", 200, t)
 	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&sourceID=Trimble+NetR9&typeID=voltage&plot=spark", 200, t)
 	doRequest("GET", "text/csv", "/field/metric?localityID=taupoairport&sourceID=Trimble+NetR9&typeID=voltage", 200, t)
 
