@@ -197,7 +197,7 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 	var rows *sql.Rows
 	var err error
 
-	if rows, err = dbR.Query(`SELECT format('%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), min, max) as csv FROM field.metric_minute 
+	if rows, err = dbR.Query(`SELECT format('%s,%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), min, max) as csv FROM field.metric_minute 
 		WHERE localityPK = $1 AND sourcePK = $2 AND typePK = $3
 		ORDER BY time ASC`,
 		f.localityPK, f.sourcePK, f.typePK); err != nil && err != sql.ErrNoRows {
