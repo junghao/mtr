@@ -216,7 +216,9 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	sort.Sort(pts)
 
-	wm.Map(bbox, width, pts, insetBbox, b)
+	if err = wm.Map(bbox, width, pts, insetBbox, b); err != nil {
+		return internalServerError(err)
+	}
 
 	for _, p := range pts {
 		b.WriteString(fmt.Sprintf("<path d=\"M%d %d l5 0 l-5 -10 l-5 10 Z\" stroke-width=\"2\" fill=\"%s\" stroke=\"%s\" opacity=\"0.9\"></path>",
