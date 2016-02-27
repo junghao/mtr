@@ -117,13 +117,21 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&sourceID=Trimble+NetR9&typeID=voltage&plot=spark", 200, t)
 	doRequest("GET", "text/csv", "/field/metric?localityID=taupoairport&sourceID=Trimble+NetR9&typeID=voltage", 200, t)
 
-	// latest metrics - all typeIDs.
-	doRequest("GET", "*/*", "/field/metric/latest", 200, t) // SVG medium size map.
+	// Latest metrics as SVG map
+	//  These only pass with the map180 data in the DB.
+	// Values for bbox and insetBbox are ChathamIsland LakeTaupo NewZealand NewZealandRegion
+	// RaoulIsland WhiteIsland
+	// or lhe bounding box for the map defining the lower left and upper right longitude
+	// latitude (EPSG:4327) corners e.g., <code>165,-48,179,-34</code>.  Latitude must be in the range -85 to 85.  Maps can be 180 centric and bbox
+	// definitions for longitude can be -180 to 180 or 0 to 360
+	//
+	// doRequest("GET", "*/*", "/field/metric/latest?bbox=NewZealand&width=800", 200, t)
+	// doRequest("GET", "*/*", "/field/metric/latest?bbox=WhiteIsland&width=800&insetBbox=NewZealand", 200, t)
+	// doRequest("GET", "*/*", "/field/metric/latest?bbox=NewZealand&width=800&typeID=voltage", 200, t) // SVG medium size map.
+
 	doRequest("GET", "application/json;version=1", "/field/metric/latest", 200, t)
 	doRequest("GET", "application/vnd.geo+json;version=1", "/field/metric/latest", 200, t)
 
-	// latest metrics - specific typeID
-	doRequest("GET", "*/*", "/field/metric/latest?typeID=voltage", 200, t) // SVG medium size map.
 	doRequest("GET", "application/json;version=1", "/field/metric/latest?typeID=voltage", 200, t)
 	doRequest("GET", "application/vnd.geo+json;version=1", "/field/metric/latest?typeID=voltage", 200, t)
 
