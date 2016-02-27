@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"github.com/GeoNet/map180"
 	_ "github.com/lib/pq"
 	"net/http/httptest"
 	"os"
@@ -31,6 +32,11 @@ func setup(t *testing.T) {
 
 	if err = dbR.Ping(); err != nil {
 		t.Fatal(err)
+	}
+
+	wm, err = map180.Init(dbR, map180.Region(`newzealand`), 256000000)
+	if err != nil {
+		t.Fatalf("ERROR: problem with map180 config: %s", err)
 	}
 
 	testServer = httptest.NewServer(mux)

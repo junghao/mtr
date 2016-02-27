@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"github.com/GeoNet/map180/nzmap"
+	"github.com/GeoNet/map180"
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -128,15 +129,35 @@ func (f *fieldLatest) geojsonV1(r *http.Request, h http.Header, b *bytes.Buffer)
 }
 
 func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{}, []string{"typeID"}); !res.ok {
+	if res := checkQuery(r, []string{"bbox", "width"}, []string{"typeID", "insetBox"}); !res.ok {
 		return res
 	}
 
-	f.typeID = r.URL.Query().Get("typeID")
-
-	var pts nzmap.Points
+	var pts map180.Points
 	var rows *sql.Rows
+	var width int
 	var err error
+
+	f.typeID = r.URL.Query().Get("typeID")
+	bbox := r.URL.Query().Get("bbox")
+
+	if err = map180.ValidBbox(bbox); err != nil {
+		return badRequest(err.Error())
+	}
+
+	if width, err = strconv.Atoi(r.URL.Query().Get("width")); err != nil {
+		return badRequest("invalid width")
+	}
+
+	var insetBbox string
+
+	if r.URL.Query().Get("insetBbox") != "" {
+		insetBbox = r.URL.Query().Get("insetBbox")
+
+		if err = map180.ValidBbox(insetBbox); err != nil {
+			return badRequest(err.Error())
+		}
+	}
 
 	switch f.typeID {
 	case "":
@@ -161,7 +182,7 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	ago := time.Now().UTC().Add(time.Hour * -48)
 
 	for rows.Next() {
-		var p nzmap.Point
+		var p map180.Point
 		var t time.Time
 		var min, max, v int
 
@@ -195,13 +216,13 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	sort.Sort(pts)
 
-	pts.Medium(b)
+	if err = wm.Map(bbox, width, pts, insetBbox, b); err != nil {
+		return internalServerError(err)
+	}
 
 	for _, p := range pts {
-		if p.Visible() {
-			b.WriteString(fmt.Sprintf("<path d=\"M%d %d l5 0 l-5 -10 l-5 10 Z\" stroke-width=\"2\" fill=\"%s\" stroke=\"%s\" opacity=\"0.9\"></path>",
-				p.X(), p.Y(), p.Fill, p.Stroke))
-		}
+		b.WriteString(fmt.Sprintf("<path d=\"M%d %d l5 0 l-5 -10 l-5 10 Z\" stroke-width=\"2\" fill=\"%s\" stroke=\"%s\" opacity=\"0.9\"></path>",
+			p.X(), p.Y(), p.Fill, p.Stroke))
 	}
 
 	b.WriteString("</svg>")

@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	_ "github.com/GeoNet/cfg/cfgenv"
+	"github.com/GeoNet/map180"
 	_ "github.com/lib/pq"
 	"log"
 	"net/http"
@@ -15,6 +16,7 @@ var db *sql.DB
 var dbR *sql.DB // Database connection with read only credentials
 var userW, keyW string
 var userR, keyR string
+var wm *map180.Map180
 
 var eol = []byte("\n")
 
@@ -66,6 +68,12 @@ func main() {
 
 	if err = dbR.Ping(); err != nil {
 		log.Println("ERROR: problem pinging DB - is it up and contactable? 500s will be served")
+	}
+
+	// For map zoom regions other than NZ will need to read some config from somewhere.
+	wm, err = map180.Init(dbR, map180.Region(`newzealand`), 256000000)
+	if err != nil {
+		log.Println("ERROR: problem with map180 config: %s", err)
 	}
 
 	go deleteMetrics()

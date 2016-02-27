@@ -8,9 +8,44 @@
 			"revisionTime": "2016-02-12T16:55:49+13:00"
 		},
 		{
+			"path": "github.com/GeoNet/map180",
+			"revision": "c8bf9c8e13b498f98a66b3d821702d452ccf65e2",
+			"revisionTime": "2016-02-27T17:45:30+13:00"
+		},
+		{
 			"path": "github.com/GeoNet/map180/nzmap",
 			"revision": "51a82f9f5d493c5e947dd34a5a67df68425f535e",
 			"revisionTime": "2016-02-16T21:06:50+13:00"
+		},
+		{
+			"path": "github.com/golang/groupcache",
+			"revision": "604ed5785183e59ae2789449d89e73f3a2a77987",
+			"revisionTime": "2015-01-25T10:08:32-08:00"
+		},
+		{
+			"path": "github.com/golang/groupcache/consistenthash",
+			"revision": "604ed5785183e59ae2789449d89e73f3a2a77987",
+			"revisionTime": "2015-01-25T10:08:32-08:00"
+		},
+		{
+			"path": "github.com/golang/groupcache/groupcachepb",
+			"revision": "604ed5785183e59ae2789449d89e73f3a2a77987",
+			"revisionTime": "2015-01-25T10:08:32-08:00"
+		},
+		{
+			"path": "github.com/golang/groupcache/lru",
+			"revision": "604ed5785183e59ae2789449d89e73f3a2a77987",
+			"revisionTime": "2015-01-25T10:08:32-08:00"
+		},
+		{
+			"path": "github.com/golang/groupcache/singleflight",
+			"revision": "604ed5785183e59ae2789449d89e73f3a2a77987",
+			"revisionTime": "2015-01-25T10:08:32-08:00"
+		},
+		{
+			"path": "github.com/golang/protobuf/proto",
+			"revision": "ab974be44dc3b7b8a1fb306fb32fe9b9f3864b3d",
+			"revisionTime": "2015-07-07T21:13:00-06:00"
 		},
 		{
 			"path": "github.com/lib/pq",

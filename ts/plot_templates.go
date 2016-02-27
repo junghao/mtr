@@ -160,9 +160,9 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 {{end}}
 </g>
 
-<polyline fill="none" stroke="darkslategrey" stroke-width="1.0" points="0,0 0,174"/>
-
 {{end}}
+
+<polyline fill="none" stroke="darkslategrey" stroke-width="1.0" points="0,0 0,174"/>
 
 <text x="320" y="-15" text-anchor="middle"  font-size="16px"  fill="black">{{.Axes.Title}}</text>
 <text x="0" y="85" transform="rotate(90) translate(85,-25)" text-anchor="middle"  fill="black">{{.Axes.Ylabel}}</text>

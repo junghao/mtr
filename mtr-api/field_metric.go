@@ -220,7 +220,7 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 }
 
 func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID"}, []string{"plot", "resolution"}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID"}, []string{"plot", "resolution", "yrange"}); !res.ok {
 		return res
 	}
 
@@ -243,14 +243,31 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	case "day":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*1440), time.Now().UTC())
 	default:
-		badRequest("invalid value for resolution")
+		return badRequest("invalid value for resolution")
+	}
+
+	var err error
+
+	if r.URL.Query().Get("yrange") != "" {
+		y := strings.Split(r.URL.Query().Get("yrange"), `,`)
+
+		var ymin, ymax float64
+
+		if len(y) != 2 {
+			return badRequest("invalid yrange query param.")
+		}
+		if ymin, err = strconv.ParseFloat(y[0], 64); err != nil {
+			return badRequest("invalid yrange query param.")
+		}
+		if ymax, err = strconv.ParseFloat(y[1], 64); err != nil {
+			return badRequest("invalid yrange query param.")
+		}
+		p.SetYAxis(ymin, ymax)
 	}
 
 	if res := f.loadPlot(resolution, &p); !res.ok {
 		return res
 	}
-
-	var err error
 
 	switch r.URL.Query().Get("plot") {
 	case "spark":
@@ -267,10 +284,8 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		case "voltage":
 			p.SetUnit("V")
 			p.SetYLabel("Voltage (V)")
-			p.SetYAxis(0.0, 25.0)
 		}
 
-		// err = ts.Scatter.Draw(p, b)
 		err = ts.Bars.DrawBars(p, b)
 	}
 	if err != nil {
