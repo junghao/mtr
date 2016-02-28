@@ -85,9 +85,9 @@ func checkQuery(r *http.Request, required, optional []string) *result {
 }
 
 /*
-auth adds basic auth to f and returns a handler.
+toHandler adds basic auth to f and returns a handler.
 */
-func auth(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
+func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "PUT", "DELETE":

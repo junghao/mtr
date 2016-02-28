@@ -27,14 +27,14 @@ func init() {
 	keyR = os.Getenv("MTR_KEY_R")
 
 	mux = http.NewServeMux()
-	mux.HandleFunc("/field/locality", auth(fieldLocalityHandler))
-	mux.HandleFunc("/field/locality/dark", auth(fieldLocalityDarkHandler))
-	mux.HandleFunc("/field/source", auth(fieldSourceHandler))
-	mux.HandleFunc("/field/metric", auth(fieldMetricHandler))
-	mux.HandleFunc("/field/metric/latest", auth(fieldMetricLatestHandler))
-	mux.HandleFunc("/field/metric/threshold", auth(fieldThresholdHandler))
-	mux.HandleFunc("/field/metric/tag", auth(fieldTagHandler))
-	mux.HandleFunc("/field/metric/type", auth(fieldTypeHandler))
+	mux.HandleFunc("/field/locality", toHandler(fieldLocalityHandler))
+	mux.HandleFunc("/field/locality/dark", toHandler(fieldLocalityDarkHandler))
+	mux.HandleFunc("/field/source", toHandler(fieldSourceHandler))
+	mux.HandleFunc("/field/metric", toHandler(fieldMetricHandler))
+	mux.HandleFunc("/field/metric/latest", toHandler(fieldMetricLatestHandler))
+	mux.HandleFunc("/field/metric/threshold", toHandler(fieldThresholdHandler))
+	mux.HandleFunc("/field/metric/tag", toHandler(fieldTagHandler))
+	mux.HandleFunc("/field/metric/type", toHandler(fieldTypeHandler))
 	mux.HandleFunc("/health", health)
 }
 
