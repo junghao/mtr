@@ -32,25 +32,43 @@ var duration = [...]time.Duration{
 }
 
 type fieldMetric struct {
-	localityID, sourceID, typeID string
+	localityID, deviceID, typeID string
 	localityName                 string
-	localityPK, sourcePK, typePK int
+	localityPK, devicePK, typePK int
 	lower, upper                 int32
 }
 
-// TODO change to load.
+func (f *fieldMetric) loadPK(r *http.Request) (res *result) {
+	if f.localityPK, res = fieldLocalityPK(r.URL.Query().Get("localityID")); !res.ok {
+		return
+	}
+
+	if f.devicePK, res = fieldDevicePK(r.URL.Query().Get("deviceID")); !res.ok {
+		return
+	}
+
+	if f.typePK, res = fieldTypePK(r.URL.Query().Get("typeID")); !res.ok {
+		return
+	}
+
+	res = &statusOK
+
+	return
+}
+
+// TODO review the use.
 func (f *fieldMetric) loadID(r *http.Request) *result {
 	f.localityID = r.URL.Query().Get("localityID")
-	f.sourceID = r.URL.Query().Get("sourceID")
+	f.deviceID = r.URL.Query().Get("deviceID")
 	f.typeID = r.URL.Query().Get("typeID")
 
-	if err := db.QueryRow(`SELECT localityPK,sourcePK, typePK, locality.name 
-		FROM field.locality, field.type, field.source 
+	if err := db.QueryRow(`SELECT localityPK,devicePK, typePK, locality.name 
+		FROM field.locality, field.type, field.device 
 		WHERE localityID = $1 
-		AND sourceID=$2
-		AND typeID=$3`, f.localityID, f.sourceID, f.typeID).Scan(&f.localityPK, &f.sourcePK, &f.typePK, &f.localityName); err != nil {
+		AND deviceID=$2
+		AND typeID=$3`, f.localityID, f.deviceID, f.typeID).Scan(&f.localityPK, &f.devicePK, &f.typePK, &f.localityName); err != nil {
 		if err == sql.ErrNoRows {
-			return &result{ok: false, code: http.StatusBadRequest, msg: "one or more of localityID, sourceID or typeID is invalid"}
+			return &result{ok: false, code: http.StatusBadRequest, msg: "one or more of localityID, deviceID or typeID is invalid"}
 		}
 		return internalServerError(err)
 	}
@@ -59,7 +77,7 @@ func (f *fieldMetric) loadID(r *http.Request) *result {
 }
 
 func (f *fieldMetric) save(r *http.Request) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID", "time", "value"}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "deviceID", "typeID", "time", "value"}, []string{}); !res.ok {
 		return res
 	}
 
@@ -76,7 +94,7 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		return badRequest("invalid time")
 	}
 
-	if res := f.loadID(r); !res.ok {
+	if res := f.loadPK(r); !res.ok {
 		return res
 	}
 
@@ -88,14 +106,14 @@ func (f *fieldMetric) save(r *http.Request) *result {
 
 	if _, err = txn.Exec(`DELETE FROM field.metric_latest 
 		WHERE localityPK = $1
-		AND sourcePK = $2
-		AND typePK = $3`, f.localityPK, f.sourcePK, f.typePK); err != nil {
+		AND devicePK = $2
+		AND typePK = $3`, f.localityPK, f.devicePK, f.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
 
-	if _, err = txn.Exec(`INSERT INTO field.metric_latest(localityPK, sourcePK, typePK, time, value) VALUES($1, $2, $3, $4, $5)`,
-		f.localityPK, f.sourcePK, f.typePK, t.Truncate(time.Minute), int32(v)); err != nil {
+	if _, err = txn.Exec(`INSERT INTO field.metric_latest(localityPK, devicePK, typePK, time, value) VALUES($1, $2, $3, $4, $5)`,
+		f.localityPK, f.devicePK, f.typePK, t.Truncate(time.Minute), int32(v)); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
@@ -107,8 +125,8 @@ func (f *fieldMetric) save(r *http.Request) *result {
 	// insert and update the values in the minute, hour, and day tables
 	for i, _ := range resolution {
 		// Insert the value (which may already exist)
-		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(localityPK, sourcePK, typePK, time, min, max) VALUES($1, $2, $3, $4, $5, $6)`,
-			f.localityPK, f.sourcePK, f.typePK, t.Truncate(duration[i]), int32(v), int32(v)); err != nil {
+		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(localityPK, devicePK, typePK, time, min, max) VALUES($1, $2, $3, $4, $5, $6)`,
+			f.localityPK, f.devicePK, f.typePK, t.Truncate(duration[i]), int32(v), int32(v)); err != nil {
 			if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
 				// ignore unique errors and then update.
 			} else {
@@ -119,11 +137,11 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		// update the min value
 		if _, err = db.Exec(`UPDATE field.metric_`+resolution[i]+` SET min = $5
 		WHERE localityPK = $1
-		AND sourcePK = $2
+		AND devicePK = $2
 		AND typePK = $3
 		AND time = $4
 		and min > $5`,
-			f.localityPK, f.sourcePK, f.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
+			f.localityPK, f.devicePK, f.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
 			return internalServerError(err)
 
 		}
@@ -131,11 +149,11 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		// update the max value
 		if _, err = db.Exec(`UPDATE field.metric_`+resolution[i]+` SET max = $5
 		WHERE localityPK = $1
-		AND sourcePK = $2
+		AND devicePK = $2
 		AND typePK = $3
 		AND time = $4
 		and max < $5`,
-			f.localityPK, f.sourcePK, f.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
+			f.localityPK, f.devicePK, f.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
 			return internalServerError(err)
 		}
 	}
@@ -144,11 +162,11 @@ func (f *fieldMetric) save(r *http.Request) *result {
 }
 
 func (f *fieldMetric) delete(r *http.Request) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID"}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "deviceID", "typeID"}, []string{}); !res.ok {
 		return res
 	}
 
-	if res := f.loadID(r); !res.ok {
+	if res := f.loadPK(r); !res.ok {
 		return res
 	}
 
@@ -160,15 +178,15 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 	}
 
 	for _, v := range resolution {
-		if _, err = txn.Exec(`DELETE FROM field.metric_`+v+` WHERE localityPK = $1 AND sourcePK = $2 AND typePK = $3`,
-			f.localityPK, f.sourcePK, f.typePK); err != nil {
+		if _, err = txn.Exec(`DELETE FROM field.metric_`+v+` WHERE localityPK = $1 AND devicePK = $2 AND typePK = $3`,
+			f.localityPK, f.devicePK, f.typePK); err != nil {
 			txn.Rollback()
 			return internalServerError(err)
 		}
 	}
 
-	if _, err = txn.Exec(`DELETE FROM field.metric_latest WHERE localityPK = $1 AND sourcePK = $2 AND typePK = $3`,
-		f.localityPK, f.sourcePK, f.typePK); err != nil {
+	if _, err = txn.Exec(`DELETE FROM field.metric_latest WHERE localityPK = $1 AND devicePK = $2 AND typePK = $3`,
+		f.localityPK, f.devicePK, f.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
@@ -181,7 +199,7 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 }
 
 func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID"}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "deviceID", "typeID"}, []string{}); !res.ok {
 		return res
 	}
 
@@ -193,9 +211,9 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 	var err error
 
 	if rows, err = dbR.Query(`SELECT format('%s,%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), min, max) as csv FROM field.metric_minute 
-		WHERE localityPK = $1 AND sourcePK = $2 AND typePK = $3
+		WHERE localityPK = $1 AND devicePK = $2 AND typePK = $3
 		ORDER BY time ASC`,
-		f.localityPK, f.sourcePK, f.typePK); err != nil && err != sql.ErrNoRows {
+		f.localityPK, f.devicePK, f.typePK); err != nil && err != sql.ErrNoRows {
 		return internalServerError(err)
 	}
 	defer rows.Close()
@@ -213,14 +231,14 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 	}
 	rows.Close()
 
-	h.Set("Content-Disposition", `attachment; filename="MTR-`+strings.Replace(f.localityID+`-`+f.sourceID+`-`+f.typeID, " ", "-", -1)+`.csv"`)
+	h.Set("Content-Disposition", `attachment; filename="MTR-`+strings.Replace(f.localityID+`-`+f.deviceID+`-`+f.typeID, " ", "-", -1)+`.csv"`)
 	h.Set("Content-Type", "text/csv")
 
 	return &statusOK
 }
 
 func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID"}, []string{"plot", "resolution", "yrange"}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "deviceID", "typeID"}, []string{"plot", "resolution", "yrange"}); !res.ok {
 		return res
 	}
 
@@ -278,7 +296,7 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 		err = ts.SparkBarsLatest.DrawBars(p, b)
 	case "":
-		p.SetTitle(fmt.Sprintf("%s - %s - %s", f.localityName, f.sourceID, strings.Title(f.typeID)))
+		p.SetTitle(fmt.Sprintf("%s - %s - %s", f.localityName, f.deviceID, strings.Title(f.typeID)))
 
 		switch f.typeID {
 		case "voltage":
@@ -303,8 +321,8 @@ loadThreshold loads thresholds for the metric.  Assumes f.load has been called f
 func (f *fieldMetric) loadThreshold() *result {
 	//  there might be no threshold
 	if err := dbR.QueryRow(`SELECT lower,upper FROM field.threshold
-		WHERE localityPK = $1 AND sourcePK = $2 AND typePK = $3`,
-		f.localityPK, f.sourcePK, f.typePK).Scan(&f.lower, &f.upper); err != nil && err != sql.ErrNoRows {
+		WHERE localityPK = $1 AND devicePK = $2 AND typePK = $3`,
+		f.localityPK, f.devicePK, f.typePK).Scan(&f.lower, &f.upper); err != nil && err != sql.ErrNoRows {
 		return internalServerError(err)
 	}
 
@@ -334,8 +352,8 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	var latestValue int32
 
 	if err = dbR.QueryRow(`SELECT time, value FROM field.metric_latest 
-		WHERE localityPK = $1 AND sourcePK = $2 AND typePK = $3`,
-		f.localityPK, f.sourcePK, f.typePK).Scan(&latest.DateTime, &latestValue); err != nil {
+		WHERE localityPK = $1 AND devicePK = $2 AND typePK = $3`,
+		f.localityPK, f.devicePK, f.typePK).Scan(&latest.DateTime, &latestValue); err != nil {
 		return internalServerError(err)
 	}
 
@@ -361,9 +379,9 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	var rows *sql.Rows
 
 	if rows, err = dbR.Query(`SELECT time, min,max FROM field.metric_`+resolution+` WHERE 
-		localityPK = $1 AND sourcePK = $2 AND typePK = $3
+		localityPK = $1 AND devicePK = $2 AND typePK = $3
 		ORDER BY time ASC`,
-		f.localityPK, f.sourcePK, f.typePK); err != nil {
+		f.localityPK, f.devicePK, f.typePK); err != nil {
 		return internalServerError(err)
 	}
 
@@ -393,8 +411,8 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	}
 	rows.Close()
 
-	p.AddSeries(ts.Series{Label: f.sourceID, Points: ptsMin})
-	p.AddSeries(ts.Series{Label: f.sourceID, Points: ptsMax})
+	p.AddSeries(ts.Series{Label: f.deviceID, Points: ptsMin})
+	p.AddSeries(ts.Series{Label: f.deviceID, Points: ptsMax})
 
 	return &statusOK
 }

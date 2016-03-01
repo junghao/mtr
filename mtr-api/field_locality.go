@@ -16,6 +16,20 @@ type fieldLocality struct {
 	localityPK          int
 }
 
+func fieldLocalityPK(localityID string) (int, *result) {
+	// TODO - if these don't change they could be app layer cached (for success only).
+	var pk int
+
+	if err := dbR.QueryRow(`SELECT localityPK FROM field.locality where localityID = $1`, localityID).Scan(&pk); err != nil {
+		if err == sql.ErrNoRows {
+			return pk, badRequest("unknown localityID")
+		}
+		return pk, internalServerError(err)
+	}
+
+	return pk, &statusOK
+}
+
 func (f *fieldLocality) save(r *http.Request) *result {
 	if res := checkQuery(r, []string{"localityID", "name", "longitude", "latitude"}, []string{}); !res.ok {
 		return res

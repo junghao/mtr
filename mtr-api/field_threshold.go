@@ -12,7 +12,7 @@ type fieldThreshold struct {
 }
 
 func (f *fieldThreshold) save(r *http.Request) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID", "lower", "upper"}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "deviceID", "typeID", "lower", "upper"}, []string{}); !res.ok {
 		return res
 	}
 
@@ -32,9 +32,9 @@ func (f *fieldThreshold) save(r *http.Request) *result {
 		return res
 	}
 
-	if _, err = db.Exec(`INSERT INTO field.threshold(localityPK, sourcePK, typePK, lower, upper) 
+	if _, err = db.Exec(`INSERT INTO field.threshold(localityPK, devicePK, typePK, lower, upper) 
 		VALUES ($1,$2,$3,$4,$5)`,
-		fm.localityPK, fm.sourcePK, fm.typePK, f.lower, f.upper); err != nil {
+		fm.localityPK, fm.devicePK, fm.typePK, f.lower, f.upper); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
 			// ignore unique constraint errors
 		} else {
@@ -46,10 +46,10 @@ func (f *fieldThreshold) save(r *http.Request) *result {
 		WHERE 
 		localityPK = $1
 		AND 
-		sourcePK = $2 
+		devicePK = $2 
 		AND
 		typePK = $3`,
-		fm.localityPK, fm.sourcePK, fm.typePK, f.lower, f.upper); err != nil {
+		fm.localityPK, fm.devicePK, fm.typePK, f.lower, f.upper); err != nil {
 		return internalServerError(err)
 	}
 
@@ -57,7 +57,7 @@ func (f *fieldThreshold) save(r *http.Request) *result {
 }
 
 func (f *fieldThreshold) delete(r *http.Request) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID"}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "deviceID", "typeID"}, []string{}); !res.ok {
 		return res
 	}
 
@@ -71,9 +71,9 @@ func (f *fieldThreshold) delete(r *http.Request) *result {
 
 	if _, err = db.Exec(`DELETE FROM field.threshold 
 		WHERE localityPK = $1
-		AND sourcePK = $2
+		AND devicePK = $2
 		AND typePK = $3 `,
-		fm.localityPK, fm.sourcePK, fm.typePK); err != nil {
+		fm.localityPK, fm.devicePK, fm.typePK); err != nil {
 		return internalServerError(err)
 	}
 
@@ -88,9 +88,9 @@ func (f *fieldThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer)
 	var s string
 
 	if err := dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]')
-		FROM (SELECT localityID as "LocalityID",sourceID as "SourceID", typeID as "TypeID", 
+		FROM (SELECT localityID as "LocalityID",deviceID as "DeviceID", typeID as "TypeID", 
 		lower as "Lower", upper AS "Upper" FROM field.threshold JOIN field.locality USING (localitypk) 
-		JOIN field.source USING (sourcepk) JOIN field.type USING (typepk)) l`).Scan(&s); err != nil {
+		JOIN field.device USING (devicepk) JOIN field.type USING (typepk)) l`).Scan(&s); err != nil {
 		return internalServerError(err)
 	}
 
