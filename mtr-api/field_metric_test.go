@@ -13,18 +13,6 @@ func TestFieldMetrics(t *testing.T) {
 	setup(t)
 	defer teardown()
 
-	// Localities
-
-	// Deleting a locality also deletes any metrics for the locality.
-	doRequest("DELETE", "*/*", "/field/locality?localityID=taupoairport", 200, t)
-	doRequest("DELETE", "*/*", "/field/locality?localityID=seatounschoolwellington", 200, t)
-	doRequest("DELETE", "*/*", "/field/locality?localityID=temaari", 200, t)
-
-	// Creates a locality.  Repeated requests update the non localityID parameters
-	doRequest("PUT", "*/*", "/field/locality?localityID=taupoairport&name=Taupo+Airport&latitude=-38.74270&longitude=176.08100", 200, t)
-	doRequest("PUT", "*/*", "/field/locality?localityID=seatounschoolwellington&name=Seatoun+School+Wellington&latitude=-41.32645&longitude=174.83764", 200, t)
-	doRequest("PUT", "*/*", "/field/locality?localityID=temaari&name=Te+Maari&latitude=-39.11561&longitude=175.70406", 200, t)
-
 	// Device model
 
 	// Creates a device model.  Repeated requests noop.
@@ -34,12 +22,14 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("DELETE", "*/*", "/field/model?modelID=Trimble+NetR9", 200, t)
 	doRequest("PUT", "*/*", "/field/model?modelID=Trimble+NetR9", 200, t)
 
-	// Devices
-	doRequest("PUT", "*/*", "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9", 200, t)
+	// Devices are at a lat long
+	doRequest("PUT", "*/*", "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9&latitude=-38.74270&longitude=176.08100", 200, t)
 	doRequest("DELETE", "*/*", "/field/device?deviceID=gps-taupoairport", 200, t)
-	doRequest("PUT", "*/*", "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9", 200, t)
+	doRequest("PUT", "*/*", "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9&latitude=-38.74270&longitude=176.08100", 200, t)
 
 	// Metrics
+
+	doRequest("DELETE", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 
 	// Load some metrics (every 5 mins)
 	now := time.Now().UTC()
@@ -52,63 +42,37 @@ func TestFieldMetrics(t *testing.T) {
 			}
 		}
 
-		doRequest("PUT", "*/*", fmt.Sprintf("/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&time=%s&value=%d",
-			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v), 200, t)
-		doRequest("PUT", "*/*", fmt.Sprintf("/field/metric?localityID=seatounschoolwellington&deviceID=gps-taupoairport&typeID=voltage&time=%s&value=%d",
-			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v), 200, t)
-		doRequest("PUT", "*/*", fmt.Sprintf("/field/metric?localityID=seatounschoolwellington&deviceID=gps-taupoairport&typeID=satellites&time=%s&value=%d",
+		doRequest("PUT", "*/*", fmt.Sprintf("/field/metric?deviceID=gps-taupoairport&typeID=voltage&time=%s&value=%d",
 			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v), 200, t)
 	}
 
-	// It is not an error to send more than one metric in an minute.  The last value sent is saved
-	doRequest("PUT", "*/*", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=10000", 200, t)
-	doRequest("PUT", "*/*", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 200, t)
-
-	// Delete all metrics for a device type at a locality
-	doRequest("DELETE", "*/*", "/field/metric?localityID=seatounschoolwellington&deviceID=gps-taupoairport&typeID=satellites", 200, t)
+	// This min and max value is saved in each minute.
+	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=10000", 200, t)
+	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 200, t)
 
 	// Thresholds
 
 	// Create a threshold on a metric
-	doRequest("PUT", "*/*", "/field/metric/threshold?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=15000", 200, t)
+	doRequest("PUT", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=15000", 200, t)
 
 	// Update a threshold on a metric
-	doRequest("PUT", "*/*", "/field/metric/threshold?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&lower=13000&upper=15000", 200, t)
+	doRequest("PUT", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=13000&upper=15000", 200, t)
 
 	// Delete a threshold on a metric then create it again
-	doRequest("DELETE", "*/*", "/field/metric/threshold?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage", 200, t)
-	doRequest("PUT", "*/*", "/field/metric/threshold?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=15000", 200, t)
+	doRequest("DELETE", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage", 200, t)
+	doRequest("PUT", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=15000", 200, t)
 
 	// Tags
 
 	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
-	doRequest("PUT", "*/*", "/field/metric/tag?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 200, t)
-	doRequest("PUT", "*/*", "/field/metric/tag?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 200, t)
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
 
 	// Delete a tag on a metric
-	doRequest("DELETE", "*/*", "/field/metric/tag?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
+	doRequest("DELETE", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
 
 	// GET requests
 	// Non specific Accept headers return svg.
-
-	// All localities
-	doRequest("GET", "application/vnd.geo+json;version=1", "/field/locality", 200, t) // SVG icon map
-	doRequest("GET", "application/json;version=1", "/field/locality", 200, t)
-
-	// Single locality
-	doRequest("GET", "*/*", "/field/locality?localityID=taupoairport", 200, t)
-	doRequest("GET", "application/json;version=1", "/field/locality?localityID=taupoairport", 200, t)
-	doRequest("GET", "application/vnd.geo+json;version=1", "/field/locality?localityID=taupoairport", 200, t)
-
-	// Non exisent locality
-	doRequest("GET", "*/*", "/field/locality?localityID=nope", 404, t)
-	doRequest("GET", "application/json;version=1", "/field/locality?localityID=nope", 404, t)
-	doRequest("GET", "application/vnd.geo+json;version=1", "/field/locality?localityID=nope", 404, t)
-
-	// Dark localities - no metrics.
-	doRequest("GET", "*/*", "/field/locality/dark", 200, t)
-	doRequest("GET", "application/json;version=1", "/field/locality/dark", 200, t)
-	doRequest("GET", "application/vnd.geo+json;version=1", "/field/locality/dark", 200, t)
 
 	// Model
 	doRequest("GET", "application/json;version=1", "/field/model", 200, t)
@@ -117,13 +81,13 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("GET", "application/json;version=1", "/field/device", 200, t)
 
 	// Metrics.  Resolution is optional on plots and sparks.  yrange is also optional.  If not set autoranges on the data.
-	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage", 200, t)
-	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&yrange=0.0,25.0", 200, t)
-	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)
-	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&resolution=hour", 200, t)
-	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&resolution=day", 200, t)
-	doRequest("GET", "*/*", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage&plot=spark", 200, t)
-	doRequest("GET", "text/csv", "/field/metric?localityID=taupoairport&deviceID=gps-taupoairport&typeID=voltage", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&yrange=0.0,25.0", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&plot=spark", 200, t)
+	doRequest("GET", "text/csv", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 
 	// Latest metrics as SVG map
 	//  These only pass with the map180 data in the DB.

@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"github.com/lib/pq"
 	"net/http"
+	"strconv"
 )
 
 type fieldDevice struct {
-	deviceID string
-	devicePK int
+	deviceID            string
+	longitude, latitude float64
 }
 
 func fieldDevicePK(deviceID string) (int, *result) {
@@ -27,20 +28,31 @@ func fieldDevicePK(deviceID string) (int, *result) {
 }
 
 func (f *fieldDevice) save(r *http.Request) *result {
-	var res *result
-	var modelPK int
-
-	if res = checkQuery(r, []string{"deviceID", "modelID"}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{"deviceID", "modelID", "latitude", "longitude"}, []string{}); !res.ok {
 		return res
 	}
 
 	f.deviceID = r.URL.Query().Get("deviceID")
 
+	var res *result
+	var modelPK int
+
 	if modelPK, res = fieldModelPK(r.URL.Query().Get("modelID")); !res.ok {
 		return res
 	}
 
-	if _, err := db.Exec(`INSERT INTO field.device(deviceID, modelPK) VALUES($1, $2)`, f.deviceID, modelPK); err != nil {
+	var err error
+
+	if f.latitude, err = strconv.ParseFloat(r.URL.Query().Get("latitude"), 64); err != nil {
+		return badRequest("latitude invalid")
+	}
+
+	if f.longitude, err = strconv.ParseFloat(r.URL.Query().Get("longitude"), 64); err != nil {
+		return badRequest("longitude invalid")
+	}
+
+	if _, err := db.Exec(`INSERT INTO field.device(deviceID, modelPK, latitude, longitude) VALUES($1, $2, $3, $4)`,
+		f.deviceID, modelPK, f.latitude, f.longitude); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
 			// ignore unique constraint errors
 		} else {
@@ -73,7 +85,8 @@ func (f *fieldDevice) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	var s string
 
 	if err := dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]')
-		FROM (SELECT deviceid AS "DeviceID", modelid AS "ModelID" FROM field.device JOIN field.model USING(modelpk)) l`).Scan(&s); err != nil {
+		FROM (SELECT deviceid AS "DeviceID", modelid AS "ModelID", latitude AS "Latitude",
+			longitude AS "Longitude" FROM field.device JOIN field.model USING(modelpk)) l`).Scan(&s); err != nil {
 		return internalServerError(err)
 	}
 
