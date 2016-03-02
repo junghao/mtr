@@ -29,11 +29,11 @@ func (f *fieldTag) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		err = dbR.QueryRow(`SELECT row_to_json(l) 
 		FROM (
 			SELECT localityID AS "LocalityID",
-			sourceID AS "SourceID", 
+			deviceID AS "DeviceID", 
 			typeID AS "TypeID" FROM 
 			field.tag JOIN field.metric_tag USING(tagpk) 
 			JOIN field.locality USING (localitypk) 
-			JOIN field.source USING (sourcepk) 
+			JOIN field.device USING (devicepk) 
 			JOIN field.type USING (typepk) WHERE tag = $1) l`, f.tag).Scan(&s)
 	}
 	if err != nil {
@@ -51,7 +51,7 @@ func (f *fieldTag) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 }
 
 func (f *fieldTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID", "tag"}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "deviceID", "typeID", "tag"}, []string{}); !res.ok {
 		return res
 	}
 
@@ -72,10 +72,10 @@ func (f *fieldTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result
 	}
 
 	// Tag the metric
-	if _, err := db.Exec(`INSERT INTO field.metric_tag(localityPK, sourcePK, typePK, tagPK) 
+	if _, err := db.Exec(`INSERT INTO field.metric_tag(localityPK, devicePK, typePK, tagPK) 
 			SELECT $1, $2, $3, tagPK 
 			FROM field.tag WHERE tag = $4`,
-		fm.localityPK, fm.sourcePK, fm.typePK, f.tag); err != nil {
+		fm.localityPK, fm.devicePK, fm.typePK, f.tag); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
 			// ignore unique constraint errors
 		} else {
@@ -87,7 +87,7 @@ func (f *fieldTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result
 }
 
 func (f *fieldTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"localityID", "sourceID", "typeID", "tag"}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{"localityID", "deviceID", "typeID", "tag"}, []string{}); !res.ok {
 		return res
 	}
 
@@ -101,10 +101,10 @@ func (f *fieldTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	if _, err := db.Exec(`DELETE FROM field.metric_tag USING field.tag
 			WHERE localityPK = $1
-			AND sourcePK = $2
+			AND devicePK = $2
 			AND typePK = $3
 			AND metric_tag.tagPK = tag.tagPK
-			AND tag.tag = $4`, fm.localityPK, fm.sourcePK, fm.typePK, f.tag); err != nil {
+			AND tag.tag = $4`, fm.localityPK, fm.devicePK, fm.typePK, f.tag); err != nil {
 		return internalServerError(err)
 	}
 

@@ -100,7 +100,7 @@ func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				case http.StatusInternalServerError:
 					http.Error(w, res.msg, res.code)
-					log.Printf("500 serving %s %s", r.URL, res.msg)
+					log.Printf("500 serving %s %s %s", r.Method, r.URL, res.msg)
 				default:
 					http.Error(w, res.msg, res.code)
 				}
@@ -120,7 +120,7 @@ func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 					b.WriteTo(w)
 				case http.StatusInternalServerError:
 					http.Error(w, res.msg, res.code)
-					log.Printf("500 serving %s %s", r.URL, res.msg)
+					log.Printf("500 serving GET %s %s", r.URL, res.msg)
 				default:
 					http.Error(w, res.msg, res.code)
 				}

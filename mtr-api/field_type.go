@@ -2,10 +2,25 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"net/http"
 )
 
 type fieldType struct{}
+
+func fieldTypePK(typeID string) (int, *result) {
+	// TODO - if these don't change they could be app layer cached (for success only).
+	var pk int
+
+	if err := dbR.QueryRow(`SELECT typePK FROM field.type where typeID = $1`, typeID).Scan(&pk); err != nil {
+		if err == sql.ErrNoRows {
+			return pk, badRequest("unknown typeID")
+		}
+		return pk, internalServerError(err)
+	}
+
+	return pk, &statusOK
+}
 
 func (f *fieldType) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	if res := checkQuery(r, []string{}, []string{}); !res.ok {
