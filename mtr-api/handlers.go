@@ -46,48 +46,6 @@ func fieldTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	}
 }
 
-func fieldLocalityHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	var f fieldLocality
-
-	switch r.Method {
-	case "PUT":
-		return f.save(r)
-	case "DELETE":
-		return f.delete(r)
-	case "GET":
-		switch r.Header.Get("Accept") {
-		case "application/vnd.geo+json;version=1":
-			return f.geojsonV1(r, h, b)
-		case "application/json;version=1":
-			return f.jsonV1(r, h, b)
-		default:
-			return f.svg(r, h, b)
-		}
-
-	default:
-		return &methodNotAllowed
-	}
-}
-
-func fieldLocalityDarkHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	var f fieldLocalityDark
-
-	switch r.Method {
-	case "GET":
-		switch r.Header.Get("Accept") {
-		case "application/vnd.geo+json;version=1":
-			return f.geojsonV1(r, h, b)
-		case "application/json;version=1":
-			return f.jsonV1(r, h, b)
-		default:
-			return f.svg(r, h, b)
-		}
-
-	default:
-		return &methodNotAllowed
-	}
-}
-
 func fieldModelHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	var f fieldModel
 

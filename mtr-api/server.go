@@ -27,8 +27,6 @@ func init() {
 	keyR = os.Getenv("MTR_KEY_R")
 
 	mux = http.NewServeMux()
-	mux.HandleFunc("/field/locality", toHandler(fieldLocalityHandler))
-	mux.HandleFunc("/field/locality/dark", toHandler(fieldLocalityDarkHandler))
 	mux.HandleFunc("/field/model", toHandler(fieldModelHandler))
 	mux.HandleFunc("/field/device", toHandler(fieldDeviceHandler))
 	mux.HandleFunc("/field/metric", toHandler(fieldMetricHandler))

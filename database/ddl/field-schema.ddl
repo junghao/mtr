@@ -1,26 +1,5 @@
 CREATE SCHEMA field;
 
-CREATE TABLE field.locality (
-	localityPK SERIAL PRIMARY KEY,
-	localityID TEXT NOT NULL UNIQUE,
-	name TEXT NOT NULL,
-	latitude              NUMERIC(8,5) NOT NULL,
-    	longitude             NUMERIC(8,5) NOT NULL,
-	geom GEOGRAPHY(POINT, 4326) NOT NULL -- added via locality_geom_trigger
-);
-
-CREATE FUNCTION field.locality_geom() 
-RETURNS  TRIGGER AS 
-$$
-BEGIN 
-NEW.geom = ST_GeogFromWKB(st_AsEWKB(st_setsrid(st_makepoint(NEW.longitude, NEW.latitude), 4326)));
-RETURN NEW;  END; 
-$$
-LANGUAGE plpgsql;
-
-CREATE TRIGGER locality_geom_trigger BEFORE INSERT OR UPDATE ON field.locality
-  FOR EACH ROW EXECUTE PROCEDURE field.locality_geom();
-
 CREATE TABLE field.model (
 	modelPK SMALLSERIAL PRIMARY KEY,
 	modelID TEXT NOT NULL UNIQUE
@@ -29,8 +8,23 @@ CREATE TABLE field.model (
 CREATE TABLE field.device (
 	devicePK SMALLSERIAL PRIMARY KEY,
 	deviceID TEXT NOT NULL UNIQUE,
-	modelPK SMALLINT REFERENCES field.model(modelPK) ON DELETE CASCADE NOT NULL
+	modelPK SMALLINT REFERENCES field.model(modelPK) ON DELETE CASCADE NOT NULL,
+	latitude              NUMERIC(8,5) NOT NULL,
+    	longitude             NUMERIC(8,5) NOT NULL,
+	geom GEOGRAPHY(POINT, 4326) NOT NULL -- added via device_geom_trigger
 );
+
+CREATE FUNCTION field.device_geom() 
+RETURNS  TRIGGER AS 
+$$
+BEGIN 
+NEW.geom = ST_GeogFromWKB(st_AsEWKB(st_setsrid(st_makepoint(NEW.longitude, NEW.latitude), 4326)));
+RETURN NEW;  END; 
+$$
+LANGUAGE plpgsql;
+
+CREATE TRIGGER device_geom_trigger BEFORE INSERT OR UPDATE ON field.device
+  FOR EACH ROW EXECUTE PROCEDURE field.device_geom();
 
 CREATE TABLE field.type (
 	typePK SMALLINT PRIMARY KEY,
@@ -45,66 +39,57 @@ INSERT INTO field.type(typePK, typeID, description, unit) VALUES(3, 'satellites'
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(4, 'conn', 'end to end connectivity', 'us'); 
 
 CREATE TABLE field.metric_minute (
-	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	min INTEGER NOT NULL,
 	max INTEGER NOT NULL,
-	PRIMARY KEY(localityPK, devicePK, typePK, time)
+	PRIMARY KEY(devicePK, typePK, time)
 );
 
-CREATE INDEX on field.metric_minute (localityPK);
 CREATE INDEX on field.metric_minute (devicePK);
 CREATE INDEX on field.metric_minute (typePK);
 
 CREATE TABLE field.metric_hour (
-	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	min INTEGER NOT NULL,
 	max INTEGER NOT NULL,
-	PRIMARY KEY(localityPK, devicePK, typePK, time)
+	PRIMARY KEY(devicePK, typePK, time)
 );
 
-CREATE INDEX on field.metric_hour (localityPK);
 CREATE INDEX on field.metric_hour (devicePK);
 CREATE INDEX on field.metric_hour (typePK);
 
 CREATE TABLE field.metric_day (
-	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	min INTEGER NOT NULL,
 	max INTEGER NOT NULL,
-	PRIMARY KEY(localityPK, devicePK, typePK, time)
+	PRIMARY KEY(devicePK, typePK, time)
 );
 
-CREATE INDEX on field.metric_day (localityPK);
 CREATE INDEX on field.metric_day (devicePK);
 CREATE INDEX on field.metric_day (typePK);
 
 CREATE TABLE field.metric_latest (
-	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	value INTEGER NOT NULL,
-	PRIMARY KEY(localityPK, devicePK, typePK)
+	PRIMARY KEY(devicePK, typePK)
 );
 
 CREATE TABLE field.threshold (
-	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
 	lower INTEGER NOT NULL,
 	upper INTEGER NOT NULL,
-	PRIMARY KEY(localityPK, devicePK, typePK)
+	PRIMARY KEY(devicePK, typePK)
 );
 
-CREATE INDEX on field.threshold (localityPK);
 CREATE INDEX on field.threshold (devicePK);
 CREATE INDEX on field.threshold (typePK);
 
@@ -114,14 +99,12 @@ CREATE TABLE field.tag (
 );
 
 CREATE TABLE field.metric_tag(
-	localityPK INTEGER REFERENCES field.locality(localityPK) ON DELETE CASCADE NOT NULL,
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
 	tagPK INTEGER REFERENCES field.tag(tagPK)  ON DELETE CASCADE NOT NULL,
-	PRIMARY KEY(localityPK, devicePK, typePK, tagPK)
+	PRIMARY KEY(devicePK, typePK, tagPK)
 );
 
-CREATE INDEX on field.metric_tag (localityPK);
 CREATE INDEX on field.metric_tag (devicePK);
 CREATE INDEX on field.metric_tag (typePK);
 CREATE INDEX on field.metric_tag (tagPK);
