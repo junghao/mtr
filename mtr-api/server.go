@@ -101,10 +101,10 @@ func deleteMetrics() {
 			if _, err = db.Exec(`DELETE FROM field.metric_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
 				log.Println(err)
 			}
-			if _, err = db.Exec(`DELETE FROM field.metric_hour WHERE time < now() - interval '1440 hours'`); err != nil {
+			if _, err = db.Exec(`DELETE FROM field.metric_hour WHERE time < now() - interval '28 days'`); err != nil {
 				log.Println(err)
 			}
-			if _, err = db.Exec(`DELETE FROM field.metric_day WHERE time < now() - interval '1440 days'`); err != nil {
+			if _, err = db.Exec(`DELETE FROM field.metric_day WHERE time < now() - interval '730 days'`); err != nil {
 				log.Println(err)
 			}
 		}
