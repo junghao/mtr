@@ -33,6 +33,7 @@ CREATE TABLE field.type (
 	unit TEXT NOT NULL
 );
 
+--  These must also be added to mtr-api/field_type.go
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(1, 'voltage', 'voltage', 'mV'); 
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(2, 'clock', 'clock quality', 'c'); 
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(3, 'satellites', 'number of statellites tracked', 'n'); 

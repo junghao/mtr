@@ -2,24 +2,51 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
+	"encoding/json"
 	"net/http"
 )
 
-type fieldType struct{}
+type fieldType struct {
+	typePK int
+	Scale  float64 // used to scale the stored metric for display
+	Name   string
+	Unit   string // display unit after the metric has been multiplied by scale.
+}
 
-func fieldTypePK(typeID string) (int, *result) {
-	// TODO - if these don't change they could be app layer cached (for success only).
-	var pk int
+var fieldTypes = map[string]fieldType{
+	"voltage": fieldType{
+		typePK: 1,
+		Scale:  0.001,
+		Name:   "Voltage",
+		Unit:   "V",
+	},
+	"clock": fieldType{
+		typePK: 2,
+		Scale:  1.0,
+		Name:   "Clock Quality",
+		Unit:   "%",
+	},
+	"satellites": fieldType{
+		typePK: 3,
+		Scale:  1.0,
+		Name:   "Satellites Tracked",
+		Unit:   "n",
+	},
+	"conn": fieldType{
+		typePK: 4,
+		Scale:  0.001,
+		Name:   "Connectivity",
+		Unit:   "ms",
+	},
+}
 
-	if err := dbR.QueryRow(`SELECT typePK FROM field.type where typeID = $1`, typeID).Scan(&pk); err != nil {
-		if err == sql.ErrNoRows {
-			return pk, badRequest("unknown typeID")
-		}
-		return pk, internalServerError(err)
+func loadFieldType(typeID string) (fieldType, *result) {
+
+	if f, ok := fieldTypes[typeID]; ok {
+		return f, &statusOK
 	}
 
-	return pk, &statusOK
+	return fieldType{}, badRequest("invalid type " + typeID)
 }
 
 func (f *fieldType) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
@@ -27,14 +54,11 @@ func (f *fieldType) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *res
 		return res
 	}
 
-	var s string
-
-	if err := dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]')
-		FROM (SELECT typeID AS "TypeID", description AS "Description", unit AS "Unit"  FROM field.type) l`).Scan(&s); err != nil {
+	if by, err := json.Marshal(fieldTypes); err == nil {
+		b.Write(by)
+	} else {
 		return internalServerError(err)
 	}
-
-	b.WriteString(s)
 
 	h.Set("Content-Type", "application/json;version=1")
 

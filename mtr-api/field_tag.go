@@ -73,7 +73,7 @@ func (f *fieldTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result
 	if _, err := db.Exec(`INSERT INTO field.metric_tag(devicePK, typePK, tagPK) 
 			SELECT $1, $2, tagPK 
 			FROM field.tag WHERE tag = $3`,
-		fm.devicePK, fm.typePK, f.tag); err != nil {
+		fm.devicePK, fm.fieldType.typePK, f.tag); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
 			// ignore unique constraint errors
 		} else {
@@ -101,7 +101,7 @@ func (f *fieldTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 			WHERE devicePK = $1
 			AND typePK = $2
 			AND metric_tag.tagPK = tag.tagPK
-			AND tag.tag = $3`, fm.devicePK, fm.typePK, f.tag); err != nil {
+			AND tag.tag = $3`, fm.devicePK, fm.fieldType.typePK, f.tag); err != nil {
 		return internalServerError(err)
 	}
 

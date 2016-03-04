@@ -78,7 +78,7 @@ func checkQuery(r *http.Request, required, optional []string) *result {
 	}
 
 	if len(v) > 0 {
-		badRequest("found additional query parameters")
+		return badRequest("found additional query parameters")
 	}
 
 	return &statusOK
