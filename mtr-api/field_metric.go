@@ -12,13 +12,6 @@ import (
 	"time"
 )
 
-const (
-	late    = "magenta"
-	bad     = "crimson"
-	good    = "lawngreen"
-	unknown = "lightskyblue"
-)
-
 var resolution = [...]string{
 	"minute",
 	"hour",
@@ -32,21 +25,20 @@ var duration = [...]time.Duration{
 }
 
 type fieldMetric struct {
-	deviceID, typeID string
-	devicePK, typePK int
-	lower, upper     int32
+	deviceID  string
+	devicePK  int
+	fieldType fieldType
 }
 
 //  TODO what should this load and also caching?
 func (f *fieldMetric) loadPK(r *http.Request) (res *result) {
 	f.deviceID = r.URL.Query().Get("deviceID")
-	f.typeID = r.URL.Query().Get("typeID")
 
 	if f.devicePK, res = fieldDevicePK(f.deviceID); !res.ok {
 		return
 	}
 
-	if f.typePK, res = fieldTypePK(f.typeID); !res.ok {
+	if f.fieldType, res = loadFieldType(r.URL.Query().Get("typeID")); !res.ok {
 		return
 	}
 
@@ -85,13 +77,13 @@ func (f *fieldMetric) save(r *http.Request) *result {
 
 	if _, err = txn.Exec(`DELETE FROM field.metric_latest 
 		WHERE devicePK = $1
-		AND typePK = $2`, f.devicePK, f.typePK); err != nil {
+		AND typePK = $2`, f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
 
 	if _, err = txn.Exec(`INSERT INTO field.metric_latest(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
-		f.devicePK, f.typePK, t.Truncate(time.Minute), int32(v)); err != nil {
+		f.devicePK, f.fieldType.typePK, t.Truncate(time.Minute), int32(v)); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
@@ -104,7 +96,7 @@ func (f *fieldMetric) save(r *http.Request) *result {
 	for i, _ := range resolution {
 		// Insert the value (which may already exist)
 		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(devicePK, typePK, time, min, max) VALUES($1, $2, $3, $4, $5)`,
-			f.devicePK, f.typePK, t.Truncate(duration[i]), int32(v), int32(v)); err != nil {
+			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v), int32(v)); err != nil {
 			if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
 				// ignore unique errors and then update.
 			} else {
@@ -118,7 +110,7 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		AND typePK = $2
 		AND time = $3
 		and min > $4`,
-			f.devicePK, f.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
+			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
 			return internalServerError(err)
 
 		}
@@ -129,7 +121,7 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		AND typePK = $2
 		AND time = $3
 		and max < $4`,
-			f.devicePK, f.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
+			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
 			return internalServerError(err)
 		}
 	}
@@ -155,26 +147,26 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 
 	for _, v := range resolution {
 		if _, err = txn.Exec(`DELETE FROM field.metric_`+v+` WHERE devicePK = $1 AND typePK = $2`,
-			f.devicePK, f.typePK); err != nil {
+			f.devicePK, f.fieldType.typePK); err != nil {
 			txn.Rollback()
 			return internalServerError(err)
 		}
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.metric_latest WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.typePK); err != nil {
+		f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.metric_tag WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.typePK); err != nil {
+		f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.threshold WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.typePK); err != nil {
+		f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
@@ -201,14 +193,14 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 	if rows, err = dbR.Query(`SELECT format('%s,%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), min, max) as csv FROM field.metric_minute 
 		WHERE devicePK = $1 AND typePK = $2
 		ORDER BY time ASC`,
-		f.devicePK, f.typePK); err != nil && err != sql.ErrNoRows {
+		f.devicePK, f.fieldType.typePK); err != nil && err != sql.ErrNoRows {
 		return internalServerError(err)
 	}
 	defer rows.Close()
 
 	var d string
 
-	b.Write([]byte("date-time," + f.typeID))
+	b.Write([]byte("date-time," + f.fieldType.Name))
 	b.Write(eol)
 	for rows.Next() {
 		if err = rows.Scan(&d); err != nil {
@@ -219,7 +211,7 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 	}
 	rows.Close()
 
-	h.Set("Content-Disposition", `attachment; filename="MTR-`+strings.Replace(f.deviceID+`-`+f.typeID, " ", "-", -1)+`.csv"`)
+	h.Set("Content-Disposition", `attachment; filename="MTR-`+strings.Replace(f.deviceID+`-`+f.fieldType.Name, " ", "-", -1)+`.csv"`)
 	h.Set("Content-Type", "text/csv")
 
 	return &statusOK
@@ -239,15 +231,16 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	resolution := r.URL.Query().Get("resolution")
 
 	switch resolution {
-	case "":
+	case "", "minute":
 		resolution = "minute"
 		p.SetXAxis(time.Now().UTC().Add(time.Minute*-1440), time.Now().UTC())
-	case "minute":
-		p.SetXAxis(time.Now().UTC().Add(time.Minute*-1440), time.Now().UTC())
+		p.SetXLabel("24 hours")
 	case "hour":
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-1440), time.Now().UTC())
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
+		p.SetXLabel("4 weeks")
 	case "day":
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*1440), time.Now().UTC())
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*730), time.Now().UTC())
+		p.SetXLabel("2 years")
 	default:
 		return badRequest("invalid value for resolution")
 	}
@@ -275,22 +268,39 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return res
 	}
 
+	p.SetUnit(f.fieldType.Unit)
+
 	switch r.URL.Query().Get("plot") {
 	case "spark":
-		switch f.typeID {
-		case "voltage":
-			p.SetUnit("V")
-		}
 
 		err = ts.SparkBarsLatest.DrawBars(p, b)
 	case "":
-		p.SetTitle(fmt.Sprintf("%s - %s", f.deviceID, strings.Title(f.typeID)))
+		var lower, upper int
+		var res *result
 
-		switch f.typeID {
-		case "voltage":
-			p.SetUnit("V")
-			p.SetYLabel("Voltage (V)")
+		if lower, upper, res = f.threshold(); !res.ok {
+			return res
 		}
+
+		if !(lower == 0 && upper == 0) {
+			p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
+		}
+
+		var tags []string
+
+		if tags, res = f.tags(); !res.ok {
+			return res
+		}
+
+		p.SetTags(strings.Join(tags, ","))
+
+		var mod string
+
+		if mod, res = f.model(); !res.ok {
+			return res
+		}
+
+		p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
 
 		err = ts.Bars.DrawBars(p, b)
 	}
@@ -306,34 +316,62 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 /*
 loadThreshold loads thresholds for the metric.  Assumes f.load has been called first.
 */
-func (f *fieldMetric) loadThreshold() *result {
-	//  there might be no threshold
+func (f *fieldMetric) threshold() (lower, upper int, res *result) {
+	res = &statusOK
+
 	if err := dbR.QueryRow(`SELECT lower,upper FROM field.threshold
 		WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.typePK).Scan(&f.lower, &f.upper); err != nil && err != sql.ErrNoRows {
-		return internalServerError(err)
+		f.devicePK, f.fieldType.typePK).Scan(&lower, &upper); err != nil && err != sql.ErrNoRows {
+		res = internalServerError(err)
 	}
 
-	return &statusOK
+	return
+}
+
+func (f *fieldMetric) tags() (t []string, res *result) {
+	var rows *sql.Rows
+	var err error
+
+	if rows, err = dbR.Query(`SELECT tag FROM field.metric_tag JOIN field.tag USING (tagpk) WHERE 
+		devicePK = $1 AND typePK = $2
+		ORDER BY tag asc`,
+		f.devicePK, f.fieldType.typePK); err != nil {
+		res = internalServerError(err)
+		return
+	}
+
+	defer rows.Close()
+
+	var s string
+
+	for rows.Next() {
+		if err = rows.Scan(&s); err != nil {
+			res = internalServerError(err)
+			return
+		}
+		t = append(t, s)
+	}
+
+	res = &statusOK
+	return
+}
+
+func (f *fieldMetric) model() (s string, res *result) {
+	res = &statusOK
+
+	if err := dbR.QueryRow(`SELECT modelid FROM field.device JOIN field.model using (modelpk)
+		WHERE devicePK = $1`,
+		f.devicePK).Scan(&s); err != nil && err != sql.ErrNoRows {
+		res = internalServerError(err)
+	}
+
+	return
 }
 
 /*
 loadPlot loads plot data.  Assumes f.load has been called first.
 */
 func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
-	if res := f.loadThreshold(); !res.ok {
-		return res
-	}
-
-	if !(f.lower == 0 && f.upper == 0) {
-		switch f.typeID {
-		case "voltage":
-			p.SetThreshold(float64(f.lower)*0.001, float64(f.upper)*0.001)
-		default:
-			p.SetThreshold(float64(f.lower), float64(f.upper))
-		}
-	}
-
 	var err error
 
 	var latest ts.Point
@@ -341,26 +379,11 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 
 	if err = dbR.QueryRow(`SELECT time, value FROM field.metric_latest 
 		WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.typePK).Scan(&latest.DateTime, &latestValue); err != nil {
+		f.devicePK, f.fieldType.typePK).Scan(&latest.DateTime, &latestValue); err != nil {
 		return internalServerError(err)
 	}
 
-	switch {
-	case latest.DateTime.Before(time.Now().UTC().Add(time.Hour * -48)):
-		latest.Colour = late
-	case f.lower == 0 && f.upper == 0:
-		latest.Colour = unknown
-	case latestValue <= f.upper && latestValue >= f.lower:
-		latest.Colour = good
-	default:
-		latest.Colour = bad
-	}
-
-	if f.typeID == "voltage" {
-		latest.Value = float64(latestValue) * 0.001
-	} else {
-		latest.Value = float64(latestValue)
-	}
+	latest.Value = float64(latestValue) * f.fieldType.Scale
 
 	p.SetLatest(latest)
 
@@ -369,7 +392,7 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	if rows, err = dbR.Query(`SELECT time, min,max FROM field.metric_`+resolution+` WHERE 
 		devicePK = $1 AND typePK = $2
 		ORDER BY time ASC`,
-		f.devicePK, f.typePK); err != nil {
+		f.devicePK, f.fieldType.typePK); err != nil {
 		return internalServerError(err)
 	}
 
@@ -380,22 +403,12 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	var ptsMin []ts.Point
 	var ptsMax []ts.Point
 
-	if f.typeID == "voltage" {
-		for rows.Next() {
-			if err = rows.Scan(&t, &min, &max); err != nil {
-				return internalServerError(err)
-			}
-			ptsMin = append(ptsMin, ts.Point{DateTime: t, Value: float64(min) * 0.001, Colour: "darkcyan"})
-			ptsMax = append(ptsMax, ts.Point{DateTime: t, Value: float64(max) * 0.001, Colour: "darkcyan"})
+	for rows.Next() {
+		if err = rows.Scan(&t, &min, &max); err != nil {
+			return internalServerError(err)
 		}
-	} else {
-		for rows.Next() {
-			if err = rows.Scan(&t, &min, &max); err != nil {
-				return internalServerError(err)
-			}
-			ptsMin = append(ptsMin, ts.Point{DateTime: t, Value: float64(min), Colour: "darkcyan"})
-			ptsMax = append(ptsMax, ts.Point{DateTime: t, Value: float64(max), Colour: "darkcyan"})
-		}
+		ptsMin = append(ptsMin, ts.Point{DateTime: t, Value: float64(min) * f.fieldType.Scale})
+		ptsMax = append(ptsMax, ts.Point{DateTime: t, Value: float64(max) * f.fieldType.Scale})
 	}
 	rows.Close()
 

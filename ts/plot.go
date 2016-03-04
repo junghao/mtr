@@ -16,6 +16,7 @@ type axes struct {
 	XAxisVis bool
 	XAxisY   int
 	Ylabel   string
+	Xlabel   string
 	Title    string
 }
 
@@ -32,6 +33,7 @@ type plt struct {
 	LatestPt                      pt
 	RangeAlert                    bool
 	Threshold                     threshold
+	Tags                          string
 	Axes                          axes
 	width, height                 int // the graph height, smaller than the image height
 	dx, dy                        float64
@@ -50,16 +52,14 @@ type Plot struct {
 type Point struct {
 	DateTime time.Time
 	Value    float64
-	Colour   string
 }
 
 /*
  pt is for points with labels in svg space.
 */
 type pt struct {
-	X, Y   int
-	L      string
-	Colour string
+	X, Y int
+	L    string
 }
 
 /*
@@ -67,7 +67,6 @@ line is for lines in SVG apce.
 */
 type line struct {
 	X, Y, XX, YY int
-	Colour       string
 }
 
 type threshold struct {
@@ -93,12 +92,20 @@ func (p *Plot) SetTitle(title string) {
 	p.plt.Axes.Title = title
 }
 
+func (p *Plot) SetTags(tags string) {
+	p.plt.Tags = tags
+}
+
 func (p *Plot) SetUnit(unit string) {
 	p.plt.Unit = unit
 }
 
 func (p *Plot) SetYLabel(yLabel string) {
 	p.plt.Axes.Ylabel = yLabel
+}
+
+func (p *Plot) SetXLabel(xLabel string) {
+	p.plt.Axes.Xlabel = xLabel
 }
 
 // Auto ranges on data if not set.
@@ -197,9 +204,8 @@ func (p *Plot) scaleData() {
 
 		for j, _ := range p.plt.Data[i].Series.Points {
 			p.plt.Data[i].Pts[j] = pt{
-				X:      int((p.plt.Data[i].Series.Points[j].DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
-				Y:      p.plt.height - int(((p.plt.Data[i].Series.Points[j].Value-p.plt.YMin)*p.plt.dy)+0.5),
-				Colour: p.plt.Data[i].Series.Points[j].Colour,
+				X: int((p.plt.Data[i].Series.Points[j].DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
+				Y: p.plt.height - int(((p.plt.Data[i].Series.Points[j].Value-p.plt.YMin)*p.plt.dy)+0.5),
 			}
 		}
 	}
@@ -221,9 +227,8 @@ func (p *Plot) scaleData() {
 		Y: p.plt.height - int(((p.plt.Last.Value-p.plt.YMin)*p.plt.dy)+0.5),
 	}
 	p.plt.LatestPt = pt{
-		X:      int((p.plt.Latest.DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
-		Y:      p.plt.height - int(((p.plt.Latest.Value-p.plt.YMin)*p.plt.dy)+0.5),
-		Colour: p.plt.Latest.Colour,
+		X: int((p.plt.Latest.DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
+		Y: p.plt.height - int(((p.plt.Latest.Value-p.plt.YMin)*p.plt.dy)+0.5),
 	}
 
 	if p.plt.MinPt.Y > p.plt.height {

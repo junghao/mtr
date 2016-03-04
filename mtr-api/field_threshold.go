@@ -34,7 +34,7 @@ func (f *fieldThreshold) save(r *http.Request) *result {
 
 	if _, err = db.Exec(`INSERT INTO field.threshold(devicePK, typePK, lower, upper) 
 		VALUES ($1,$2,$3,$4)`,
-		fm.devicePK, fm.typePK, f.lower, f.upper); err != nil {
+		fm.devicePK, fm.fieldType.typePK, f.lower, f.upper); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
 			// ignore unique constraint errors
 		} else {
@@ -47,7 +47,7 @@ func (f *fieldThreshold) save(r *http.Request) *result {
 		devicePK = $1 
 		AND
 		typePK = $2`,
-		fm.devicePK, fm.typePK, f.lower, f.upper); err != nil {
+		fm.devicePK, fm.fieldType.typePK, f.lower, f.upper); err != nil {
 		return internalServerError(err)
 	}
 
@@ -70,7 +70,7 @@ func (f *fieldThreshold) delete(r *http.Request) *result {
 	if _, err = db.Exec(`DELETE FROM field.threshold 
 		WHERE devicePK = $1
 		AND typePK = $2 `,
-		fm.devicePK, fm.typePK); err != nil {
+		fm.devicePK, fm.fieldType.typePK); err != nil {
 		return internalServerError(err)
 	}
 

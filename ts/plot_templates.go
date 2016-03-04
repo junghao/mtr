@@ -83,38 +83,20 @@ func (p *Plot) setBars() error {
 	}
 
 	for i, _ := range p.plt.Data[0].Pts {
-		// If the min max line is zero length it won't draw so add a little length.
-		if p.plt.Data[0].Pts[i].Y == p.plt.Data[1].Pts[i].Y {
-			p.plt.Lines = append(p.plt.Lines, line{
-				X:      p.plt.Data[0].Pts[i].X,
-				Y:      p.plt.Data[0].Pts[i].Y - 1,
-				XX:     p.plt.Data[1].Pts[i].X,
-				YY:     p.plt.Data[1].Pts[i].Y + 1,
-				Colour: p.plt.Data[0].Pts[i].Colour,
-			})
-		} else {
-			p.plt.Lines = append(p.plt.Lines, line{
-				X:      p.plt.Data[0].Pts[i].X,
-				Y:      p.plt.Data[0].Pts[i].Y,
-				XX:     p.plt.Data[1].Pts[i].X,
-				YY:     p.plt.Data[1].Pts[i].Y,
-				Colour: p.plt.Data[0].Pts[i].Colour,
-			})
-		}
+		p.plt.Lines = append(p.plt.Lines, line{
+			X:  p.plt.Data[0].Pts[i].X,
+			Y:  p.plt.Data[0].Pts[i].Y,
+			XX: p.plt.Data[1].Pts[i].X,
+			YY: p.plt.Data[1].Pts[i].Y,
+		})
 	}
 	return nil
 }
 
-var Scatter = SVGPlot{
-	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotScatterTemplate)),
-	width:    600,
-	height:   170,
-}
-
 var Bars = SVGPlot{
 	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotBarsTemplate)),
-	width:    600,
-	height:   170,
+	width:    780,
+	height:   210,
 }
 
 /*
@@ -122,78 +104,41 @@ templates are composed.  Any template using base must also define
 'data' for plotting the template and 'keyMarker'.
 */
 const plotBaseTemplate = `<?xml version="1.0"?>
-<svg viewBox="0,0,800,270" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="darkslategrey">
-<g transform="translate(70,40)">
-{{if .RangeAlert}}<rect x="0" y="0" width="600" height="170" fill="mistyrose"/>{{end}}
+<svg viewBox="0,0,800,270" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="lightgray">
+<g transform="translate(10,10)">
+<text x="0" y="0" text-anchor="start" dominant-baseline="hanging" font-size="14px" fill="darkslategray">{{.Axes.Title}}</text>
+<text x="0" y="18" text-anchor="start" dominant-baseline="hanging" font-size="12px" fill="darkslategray">Tags: {{.Tags}}</text>
+<text x="780" y="0" text-anchor="end" dominant-baseline="hanging" fill="darkslategray">
+{{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}}) 
+</text>
+</g>
+
+<g transform="translate(10,60)">
+
 {{if .Threshold.Show}}
-<rect x="0" y="{{.Threshold.Y}}" width="600" height="{{.Threshold.H}}" fill="chartreuse" fill-opacity="0.2"/>
+<rect x="0" y="{{.Threshold.Y}}" width="780" height="{{.Threshold.H}}" fill="lightgrey" fill-opacity="0.3"/>
 {{end}}
-{{/* Grid, axes, title */}}
-{{range .Axes.X}}
-{{if .L}}
-<polyline fill="none" stroke="paleturquoise" stroke-width="2" points="{{.X}},0 {{.X}},170"/>
-<text x="{{.X}}" y="190" text-anchor="middle">{{.L}}</text>
-{{else}}
-<polyline fill="none" stroke="paleturquoise" stroke-width="2" points="{{.X}},0 {{.X}},170"/>
-{{end}}
-{{end}}
+
+<text x="{{400}}" y="220" text-anchor="middle" dominant-baseline="hanging">{{.Axes.Xlabel}}</text>
 
 {{range .Axes.Y}}
 {{if .L}}
-<polyline fill="none" stroke="paleturquoise" stroke-width="1" points="0,{{.Y}} 600,{{.Y}}"/>
-<polyline fill="none" stroke="darkslategrey" stroke-width="1" points="-4,{{.Y}} 4,{{.Y}}"/>
-<text x="-7" y="{{.Y}}" text-anchor="end" dominant-baseline="middle">{{.L}}</text>
-{{else}}
-<polyline fill="none" stroke="darkslategrey" stroke-width="1" points="-2,{{.Y}} 2,{{.Y}}"/>
+<polyline fill="none" stroke="lightgray" stroke-width="1" points="0,{{.Y}} 780,{{.Y}}"/>
+<text x="0" y="{{.Y}}" text-anchor="start" font-size="10px" dominant-baseline="ideographic">{{.L}}</text>
 {{end}}
 {{end}}
-
-{{if .Axes.XAxisVis}}
-<polyline fill="none" stroke="darkslategrey" stroke-width="1.0" points="-5, {{.Axes.XAxisY}}, 600, {{.Axes.XAxisY}}"/>
-<g transform="translate(0,{{.Axes.XAxisY}})">
-{{range .Axes.X}}
-{{if .L}}
-<polyline fill="none" stroke="darkslategrey" stroke-width="1.0" points="{{.X}}, -4, {{.X}}, 4"/>
-{{else}}
-<polyline fill="none" stroke="darkslategrey" stroke-width="1.0" points="{{.X}}, -2, {{.X}}, 2"/>
-{{end}}
-{{end}}
-</g>
-
-{{end}}
-
-<polyline fill="none" stroke="darkslategrey" stroke-width="1.0" points="0,0 0,174"/>
-
-<text x="320" y="-15" text-anchor="middle"  font-size="16px"  fill="black">{{.Axes.Title}}</text>
-<text x="0" y="85" transform="rotate(90) translate(85,-25)" text-anchor="middle"  fill="black">{{.Axes.Ylabel}}</text>
-<text x="320" y="208" text-anchor="middle"  font-size="14px" fill="black">Date</text>
-{{/* end grid, axes, title */}}
 
 {{template "data" .}}
-<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="{{.LatestPt.Colour}}" fill="{{.LatestPt.Colour}}" />
 </g>
-<circle cx="500" cy="264" r="3" stroke="{{.LatestPt.Colour}}" fill="{{.LatestPt.Colour}}" />
-<text x="510" y="268" text-anchor="start" font-style="italic">
-latest: {{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}}) 
-</text>
+
 </svg>
-`
-
-const plotScatterTemplate = `
-{{define "data"}}
-{{range .Data}}
-{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="{{.Colour}}" stroke="{{.Colour}}"/>{{end}}{{end}}
-{{end}}
-
-{{define "keyMarker"}}
-<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="{{.L}}"/> 
-{{end}}
 `
 const plotBarsTemplate = `
 {{define "data"}}
-{{range .Lines}}<polyline fill="{{.Colour}}" stroke="{{.Colour}}" stroke-width="2" points="{{.X}},{{.Y}} {{.XX}},{{.YY}}"/>{{end}}{{end}}
-
-{{define "keyMarker"}}
-<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="{{.L}}"/> 
+{{range .Lines}}
+<polyline fill="deepskyblue" stroke="deepskyblue" stroke-width=".75" points="{{.X}},{{.Y}} {{.XX}},{{.YY}}"/>
+<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="deepskyblue"/>
+<circle cx="{{.XX}}" cy="{{.YY}}" r="2" fill="none" stroke="deepskyblue"/>
 {{end}}
-`
+<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
+{{end}}`
