@@ -186,23 +186,27 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		}
 		switch {
 		case min == 0 && max == 0:
-			p.Fill = "lightskyblue"
-			p.Stroke = "lightskyblue"
+			p.Fill = "none"
+			p.Stroke = "deepskyblue"
 			p.Value = 3.0
+			p.Size = 3
 		case v < min || v > max:
 			p.Fill = "crimson"
 			p.Stroke = "crimson"
 			p.Value = 1.0
+			p.Size = 5
 		default:
 			p.Fill = "lawngreen"
 			p.Stroke = "lawngreen"
 			p.Value = 4.0
+			p.Size = 4
 		}
 
 		// Add a border if the metric is old
 		if t.Before(ago) {
 			p.Stroke = "magenta"
 			p.Value = 2.0
+			p.Size = 5
 		}
 
 		pts = append(pts, p)
@@ -216,8 +220,8 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	}
 
 	for _, p := range pts {
-		b.WriteString(fmt.Sprintf("<path d=\"M%d %d l5 0 l-5 -10 l-5 10 Z\" stroke-width=\"2\" fill=\"%s\" stroke=\"%s\" opacity=\"0.9\"></path>",
-			p.X(), p.Y(), p.Fill, p.Stroke))
+		b.WriteString(fmt.Sprintf("<circle cx=\"%d\" cy=\"%d\" r=\"%d\" stroke=\"%s\" fill=\"%s\" />",
+			p.X(), p.Y(), p.Size, p.Stroke, p.Fill))
 	}
 
 	b.WriteString("</svg>")
