@@ -26,7 +26,6 @@ type plt struct {
 	YMin, YMax                    float64 // fixed y axis range
 	YRange                        float64 // y axis fixed range on data
 	Data                          []data  // for points
-	Lines                         []line  // for lines e.g., vertical bars between min and max
 	Min, Max, First, Last         Point   // min, max, first, and last Data Point
 	MinPt, MaxPt, FirstPt, LastPt pt      // min, max, first, and last Data pt
 	Latest                        Point   // use for showing the last value explicity e.g., on min max bar plots.

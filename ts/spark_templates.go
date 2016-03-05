@@ -21,21 +21,8 @@ func (s *SVGSpark) Draw(p Plot, b *bytes.Buffer) error {
 	return s.template.ExecuteTemplate(b, "plot", p.plt)
 }
 
-func (s *SVGSpark) DrawBars(p Plot, b *bytes.Buffer) error {
-	p.plt.width = s.width
-	p.plt.height = s.height
-
-	p.scaleData()
-
-	if err := p.setBars(); err != nil {
-		return err
-	}
-
-	return s.template.ExecuteTemplate(b, "plot", p.plt)
-}
-
-var SparkBarsLatest = SVGSpark{
-	template: template.Must(template.New("plot").Funcs(funcMap).Parse(sparkLatestBaseTemplate + sparkBarsTemplate)),
+var SparkScatterLatest = SVGSpark{
+	template: template.Must(template.New("plot").Funcs(funcMap).Parse(sparkLatestBaseTemplate + sparkScatterTemplate)),
 	width:    100,
 	height:   20,
 }
@@ -53,12 +40,10 @@ const sparkLatestBaseTemplate = `<?xml version="1.0"?>
 <text font-style="italic" x="110" y="19" text-anchor="start">{{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}})</text>
 </svg>	
 `
-const sparkBarsTemplate = `
+const sparkScatterTemplate = `
 {{define "data"}}
-{{range .Lines}}
-<polyline fill="deepskyblue" stroke="deepskyblue" stroke-width=".5" points="{{.X}},{{.Y}} {{.XX}},{{.YY}}"/>
-<circle cx="{{.X}}" cy="{{.Y}}" r="1" fill="none" stroke="deepskyblue"/>
-<circle cx="{{.XX}}" cy="{{.YY}}" r="1" fill="none" stroke="deepskyblue"/>
+{{range .Data}}
+{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="1" fill="none" stroke="deepskyblue"/>{{end}}
 {{end}}
 <circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
 {{end}}`

@@ -92,37 +92,22 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		return internalServerError(err)
 	}
 
-	// insert and update the values in the minute, hour, and day tables
 	for i, _ := range resolution {
 		// Insert the value (which may already exist)
-		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(devicePK, typePK, time, min, max) VALUES($1, $2, $3, $4, $5)`,
-			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v), int32(v)); err != nil {
+		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(devicePK, typePK, time, avg, n) VALUES($1, $2, $3, $4, $5)`,
+			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v), 1); err != nil {
 			if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
-				// ignore unique errors and then update.
+				// unique error (already a value at this resolution) update the moving average.
+				if _, err := db.Exec(`UPDATE field.metric_`+resolution[i]+` SET avg = ($4 + (avg * n)) / (n+1), n = n + 1
+					WHERE devicePK = $1
+					AND typePK = $2
+					AND time = $3`,
+					f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
+					return internalServerError(err)
+				}
 			} else {
 				return internalServerError(err)
 			}
-		}
-
-		// update the min value
-		if _, err = db.Exec(`UPDATE field.metric_`+resolution[i]+` SET min = $4
-		WHERE devicePK = $1
-		AND typePK = $2
-		AND time = $3
-		and min > $4`,
-			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
-			return internalServerError(err)
-
-		}
-
-		// update the max value
-		if _, err = db.Exec(`UPDATE field.metric_`+resolution[i]+` SET max = $4
-		WHERE devicePK = $1
-		AND typePK = $2
-		AND time = $3
-		and max < $4`,
-			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
-			return internalServerError(err)
 		}
 	}
 
@@ -190,7 +175,7 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 	var rows *sql.Rows
 	var err error
 
-	if rows, err = dbR.Query(`SELECT format('%s,%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), min, max) as csv FROM field.metric_minute 
+	if rows, err = dbR.Query(`SELECT format('%s,%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), avg, n) as csv FROM field.metric_minute 
 		WHERE devicePK = $1 AND typePK = $2
 		ORDER BY time ASC`,
 		f.devicePK, f.fieldType.typePK); err != nil && err != sql.ErrNoRows {
@@ -273,7 +258,7 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	switch r.URL.Query().Get("plot") {
 	case "spark":
 
-		err = ts.SparkBarsLatest.DrawBars(p, b)
+		err = ts.SparkScatterLatest.Draw(p, b)
 	case "":
 		var lower, upper int
 		var res *result
@@ -302,7 +287,7 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 		p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
 
-		err = ts.Bars.DrawBars(p, b)
+		err = ts.Scatter.Draw(p, b)
 	}
 	if err != nil {
 		return internalServerError(err)
@@ -389,7 +374,7 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT time, min,max FROM field.metric_`+resolution+` WHERE 
+	if rows, err = dbR.Query(`SELECT time, avg FROM field.metric_`+resolution+` WHERE 
 		devicePK = $1 AND typePK = $2
 		ORDER BY time ASC`,
 		f.devicePK, f.fieldType.typePK); err != nil {
@@ -399,21 +384,18 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	defer rows.Close()
 
 	var t time.Time
-	var min, max int32
-	var ptsMin []ts.Point
-	var ptsMax []ts.Point
+	var avg int32
+	var pts []ts.Point
 
 	for rows.Next() {
-		if err = rows.Scan(&t, &min, &max); err != nil {
+		if err = rows.Scan(&t, &avg); err != nil {
 			return internalServerError(err)
 		}
-		ptsMin = append(ptsMin, ts.Point{DateTime: t, Value: float64(min) * f.fieldType.Scale})
-		ptsMax = append(ptsMax, ts.Point{DateTime: t, Value: float64(max) * f.fieldType.Scale})
+		pts = append(pts, ts.Point{DateTime: t, Value: float64(avg) * f.fieldType.Scale})
 	}
 	rows.Close()
 
-	p.AddSeries(ts.Series{Label: f.deviceID, Points: ptsMin})
-	p.AddSeries(ts.Series{Label: f.deviceID, Points: ptsMax})
+	p.AddSeries(ts.Series{Label: f.deviceID, Points: pts})
 
 	return &statusOK
 }
