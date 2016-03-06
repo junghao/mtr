@@ -25,46 +25,121 @@ CREATE TABLE app.type (
        unit TEXT NOT NULL
 );
 
-CREATE TABLE app.counter (
+CREATE TABLE app.counter_minute (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
-	instancePK SMALLINT REFERENCES app.instance(instancePK) NOT NULL,
 	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	count INTEGER NOT NULL,
-	PRIMARY KEY(applicationPK, instancePK, typePK, time)
+	PRIMARY KEY(applicationPK, typePK, time)
 );
 
-CREATE INDEX on app.counter (applicationPK);
-CREATE INDEX on app.counter (instancePK);
-CREATE INDEX on app.counter (time);
+CREATE INDEX on app.counter_minute (applicationPK);
+CREATE INDEX on app.counter_minute (time);
 
-CREATE TABLE app.timer (
+CREATE TABLE app.counter_hour (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
-	instancePK SMALLINT REFERENCES app.instance(instancePK) NOT NULL,
+	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	count INTEGER NOT NULL,
+	PRIMARY KEY(applicationPK, typePK, time)
+);
+
+CREATE INDEX on app.counter_hour (applicationPK);
+CREATE INDEX on app.counter_hour (time);
+
+CREATE TABLE app.counter_day (
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
+	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	count INTEGER NOT NULL,
+	PRIMARY KEY(applicationPK, typePK, time)
+);
+
+CREATE INDEX on app.counter_day (applicationPK);
+CREATE INDEX on app.counter_day (time);
+
+CREATE TABLE app.timer_minute (
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
 	sourcePK INTEGER REFERENCES app.source(sourcePK) NOT NULL,
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	total INTEGER NOT NULL,
-	count INTEGER NOT NULL, 
-	PRIMARY KEY(applicationPK, instancePK, sourcePK, time)
+	avg INTEGER NOT NULL,
+	n INTEGER NOT NULL, 
+	PRIMARY KEY(applicationPK, sourcePK, time)
 );
 
-CREATE INDEX on app.timer (applicationPK);
-CREATE INDEX on app.timer (instancePK);
-CREATE INDEX on app.timer (sourcePK);
-CREATE INDEX on app.timer (time);
+CREATE INDEX on app.timer_minute (applicationPK);
+CREATE INDEX on app.timer_minute (sourcePK);
+CREATE INDEX on app.timer_minute (time);
 
-CREATE TABLE app.metric (
+CREATE TABLE app.timer_hour (
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
+	sourcePK INTEGER REFERENCES app.source(sourcePK) NOT NULL,
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	avg INTEGER NOT NULL,
+	n INTEGER NOT NULL, 
+	PRIMARY KEY(applicationPK, sourcePK, time)
+);
+
+CREATE INDEX on app.timer_hour (applicationPK);
+CREATE INDEX on app.timer_hour (sourcePK);
+CREATE INDEX on app.timer_hour (time);
+
+CREATE TABLE app.timer_day (
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
+	sourcePK INTEGER REFERENCES app.source(sourcePK) NOT NULL,
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	avg INTEGER NOT NULL,
+	n INTEGER NOT NULL, 
+	PRIMARY KEY(applicationPK, sourcePK, time)
+);
+
+CREATE INDEX on app.timer_day (applicationPK);
+CREATE INDEX on app.timer_day (sourcePK);
+CREATE INDEX on app.timer_day (time);
+
+CREATE TABLE app.metric_minute (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
 	instancePK SMALLINT REFERENCES app.instance(instancePK) NOT NULL,
 	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	value BIGINT NOT NULL,
+	avg BIGINT NOT NULL,
+	n INTEGER NOT NULL,
 	PRIMARY KEY(applicationPK, instancePK, typePK, time)
 );
 
-CREATE INDEX on app.metric (applicationPK);
-CREATE INDEX on app.metric (instancePK);
-CREATE INDEX on app.metric (time);
+CREATE INDEX on app.metric_minute (applicationPK);
+CREATE INDEX on app.metric_minute (instancePK);
+CREATE INDEX on app.metric_minute (time);
+
+CREATE TABLE app.metric_hour (
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
+	instancePK SMALLINT REFERENCES app.instance(instancePK) NOT NULL,
+	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	avg BIGINT NOT NULL,
+	n INTEGER NOT NULL,
+	PRIMARY KEY(applicationPK, instancePK, typePK, time)
+);
+
+CREATE INDEX on app.metric_hour (applicationPK);
+CREATE INDEX on app.metric_hour (instancePK);
+CREATE INDEX on app.metric_hour (time);
+
+CREATE TABLE app.metric_day (
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
+	instancePK SMALLINT REFERENCES app.instance(instancePK) NOT NULL,
+	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	avg BIGINT NOT NULL,
+	n INTEGER NOT NULL,
+	PRIMARY KEY(applicationPK, instancePK, typePK, time)
+);
+
+CREATE INDEX on app.metric_day (applicationPK);
+CREATE INDEX on app.metric_day (instancePK);
+CREATE INDEX on app.metric_day (time);
+
+
 
 --- HTTP Requests
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1, 'Requests', 'Requests', 'n'); 
@@ -72,6 +147,7 @@ INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1, 'Requests', 'R
 --- HTTP Status codes 100 - 999
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(200, 'StatusOK', 'OK', 'n'); 
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(400, 'StatusBadRequest', 'Bad Request', 'n'); 
+INSERT INTO app.type(typePK, typeID, description, unit) VALUES(401, 'StatusUnauthorized', 'Unauthorized', 'n'); 
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(404, 'StatusNotFound', 'Not Found', 'n'); 
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(500, 'StatusInternalServerError', 'Internal Server Error', 'n'); 
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(503, 'StatusServiceUnavailable', 'Service Unavailable', 'n'); 

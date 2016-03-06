@@ -27,6 +27,7 @@ func init() {
 	keyR = os.Getenv("MTR_KEY_R")
 
 	mux = http.NewServeMux()
+	mux.HandleFunc("/app/metric", toHandler(appMetricHandler))
 	mux.HandleFunc("/field/model", toHandler(fieldModelHandler))
 	mux.HandleFunc("/field/device", toHandler(fieldDeviceHandler))
 	mux.HandleFunc("/field/metric", toHandler(fieldMetricHandler))
@@ -92,19 +93,48 @@ func health(w http.ResponseWriter, r *http.Request) {
 deleteMetics deletes old metrics.
 */
 func deleteMetrics() {
-	ticker := time.NewTicker(time.Minute * 1).C
+	ticker := time.NewTicker(time.Minute).C
 	var err error
-
 	for {
 		select {
 		case <-ticker:
-			if _, err = db.Exec(`DELETE FROM field.metric_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
+			if _, err = db.Exec(`DELETE FROM app.metric_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
 				log.Println(err)
 			}
 			if _, err = db.Exec(`DELETE FROM field.metric_hour WHERE time < now() - interval '28 days'`); err != nil {
 				log.Println(err)
 			}
 			if _, err = db.Exec(`DELETE FROM field.metric_day WHERE time < now() - interval '730 days'`); err != nil {
+				log.Println(err)
+			}
+
+			if _, err = db.Exec(`DELETE FROM app.metric_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
+				log.Println(err)
+			}
+			if _, err = db.Exec(`DELETE FROM app.metric_hour WHERE time < now() - interval '28 days'`); err != nil {
+				log.Println(err)
+			}
+			if _, err = db.Exec(`DELETE FROM app.metric_day WHERE time < now() - interval '730 days'`); err != nil {
+				log.Println(err)
+			}
+
+			if _, err = db.Exec(`DELETE FROM app.counter_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
+				log.Println(err)
+			}
+			if _, err = db.Exec(`DELETE FROM app.counter_hour WHERE time < now() - interval '28 days'`); err != nil {
+				log.Println(err)
+			}
+			if _, err = db.Exec(`DELETE FROM app.counter_day WHERE time < now() - interval '730 days'`); err != nil {
+				log.Println(err)
+			}
+
+			if _, err = db.Exec(`DELETE FROM app.timer_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
+				log.Println(err)
+			}
+			if _, err = db.Exec(`DELETE FROM app.timer_hour WHERE time < now() - interval '28 days'`); err != nil {
+				log.Println(err)
+			}
+			if _, err = db.Exec(`DELETE FROM app.timer_day WHERE time < now() - interval '730 days'`); err != nil {
 				log.Println(err)
 			}
 		}
