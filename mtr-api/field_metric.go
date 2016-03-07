@@ -272,7 +272,7 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return res
 	}
 
-	p.SetTags(strings.Join(tags, ","))
+	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
 
 	var mod string
 
@@ -401,7 +401,7 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 
 	pts = append(pts, latest)
 
-	p.AddSeries(ts.Series{Label: f.deviceID, Points: pts})
+	p.AddSeries(ts.Series{Colour: "deepskyblue", Label: f.deviceID, Points: pts})
 
 	return &statusOK
 }

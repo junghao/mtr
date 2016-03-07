@@ -34,7 +34,7 @@ func TestFieldMetrics(t *testing.T) {
 	// Load some metrics (every 5 mins)
 	now := time.Now().UTC()
 	v := 14000
-	for i := -1440; i < 0; i += 5 {
+	for i := -720; i < 0; i += 5 {
 		if i >= -100 {
 			v = int(14000*(1/(float64(i)+101.0))) + 10000
 			if v > 14000 {
