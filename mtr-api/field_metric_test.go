@@ -81,6 +81,13 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("GET", "application/json;version=1", "/field/device", 200, t)
 
 	// Metrics.  Resolution is optional on plots and sparks.  yrange is also optional.  If not set autoranges on the data.
+	// Options for the plot parameter:
+	// default = line plot.
+	// line
+	// scatter
+	// spark (line)
+	// spark-line
+	// spark-scatter
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&yrange=0.0,25.0", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)

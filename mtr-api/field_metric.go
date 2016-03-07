@@ -255,40 +255,44 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	p.SetUnit(f.fieldType.Unit)
 
+	var lower, upper int
+	var res *result
+
+	if lower, upper, res = f.threshold(); !res.ok {
+		return res
+	}
+
+	if !(lower == 0 && upper == 0) {
+		p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
+	}
+
+	var tags []string
+
+	if tags, res = f.tags(); !res.ok {
+		return res
+	}
+
+	p.SetTags(strings.Join(tags, ","))
+
+	var mod string
+
+	if mod, res = f.model(); !res.ok {
+		return res
+	}
+
+	p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
+
 	switch r.URL.Query().Get("plot") {
-	case "spark":
-
-		err = ts.SparkScatterLatest.Draw(p, b)
-	case "":
-		var lower, upper int
-		var res *result
-
-		if lower, upper, res = f.threshold(); !res.ok {
-			return res
-		}
-
-		if !(lower == 0 && upper == 0) {
-			p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
-		}
-
-		var tags []string
-
-		if tags, res = f.tags(); !res.ok {
-			return res
-		}
-
-		p.SetTags(strings.Join(tags, ","))
-
-		var mod string
-
-		if mod, res = f.model(); !res.ok {
-			return res
-		}
-
-		p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
-
+	case "spark", "spark-line":
+		err = ts.SparkLine.Draw(p, b)
+	case "spark-scatter":
+		err = ts.SparkScatter.Draw(p, b)
+	case "", "line":
+		err = ts.Line.Draw(p, b)
+	case "scatter":
 		err = ts.Scatter.Draw(p, b)
 	}
+
 	if err != nil {
 		return internalServerError(err)
 	}
@@ -394,6 +398,8 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 		pts = append(pts, ts.Point{DateTime: t, Value: float64(avg) * f.fieldType.Scale})
 	}
 	rows.Close()
+
+	pts = append(pts, latest)
 
 	p.AddSeries(ts.Series{Label: f.deviceID, Points: pts})
 

@@ -70,6 +70,12 @@ var Scatter = SVGPlot{
 	height:   210,
 }
 
+var Line = SVGPlot{
+	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotLineTemplate)),
+	width:    780,
+	height:   210,
+}
+
 /*
 templates are composed.  Any template using base must also define
 'data' for plotting the template and 'keyMarker'.
@@ -106,8 +112,18 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 `
 const plotScatterTemplate = `
 {{define "data"}}
+<g style="stroke: deepskyblue; fill: none">
 {{range .Data}}
-{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="deepskyblue"/>{{end}}
+{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" />{{end}}
+{{end}}
+</g>
+<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
+{{end}}`
+
+const plotLineTemplate = `
+{{define "data"}}
+{{range .Data}}
+<polyline style="stroke: deepskyblue; fill: none; stroke-width:1.0" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />
 {{end}}
 <circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
 {{end}}`
