@@ -38,4 +38,5 @@ psql --host=127.0.0.1 -d postgres --username=$db_user --file=${ddl_dir}/create-d
 psql --host=127.0.0.1 -d mtr --username=$db_user -c 'create extension postgis;'
 
 psql --host=127.0.0.1 --quiet --username=$db_user --dbname=mtr --file=${ddl_dir}/field-schema.ddl
+psql --host=127.0.0.1 --quiet --username=$db_user --dbname=mtr --file=${ddl_dir}/app-schema.ddl
 psql --host=127.0.0.1 --quiet --username=$db_user mtr -f ${ddl_dir}/user-permissions.ddl

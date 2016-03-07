@@ -64,37 +64,14 @@ func (s *SVGPlot) Draw(p Plot, b *bytes.Buffer) error {
 	return s.template.ExecuteTemplate(b, "plot", p.plt)
 }
 
-func (s *SVGPlot) DrawBars(p Plot, b *bytes.Buffer) error {
-	p.plt.width = s.width
-	p.plt.height = s.height
-	p.scaleData()
-	p.setAxes()
-
-	if err := p.setBars(); err != nil {
-		return err
-	}
-
-	return s.template.ExecuteTemplate(b, "plot", p.plt)
+var Scatter = SVGPlot{
+	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotScatterTemplate)),
+	width:    780,
+	height:   210,
 }
 
-func (p *Plot) setBars() error {
-	if len(p.plt.Data) != 2 {
-		return fmt.Errorf("drawing bars requires 2 data series.")
-	}
-
-	for i, _ := range p.plt.Data[0].Pts {
-		p.plt.Lines = append(p.plt.Lines, line{
-			X:  p.plt.Data[0].Pts[i].X,
-			Y:  p.plt.Data[0].Pts[i].Y,
-			XX: p.plt.Data[1].Pts[i].X,
-			YY: p.plt.Data[1].Pts[i].Y,
-		})
-	}
-	return nil
-}
-
-var Bars = SVGPlot{
-	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotBarsTemplate)),
+var Line = SVGPlot{
+	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotLineTemplate)),
 	width:    780,
 	height:   210,
 }
@@ -133,12 +110,20 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 
 </svg>
 `
-const plotBarsTemplate = `
+const plotScatterTemplate = `
 {{define "data"}}
-{{range .Lines}}
-<polyline fill="deepskyblue" stroke="deepskyblue" stroke-width=".75" points="{{.X}},{{.Y}} {{.XX}},{{.YY}}"/>
-<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="deepskyblue"/>
-<circle cx="{{.XX}}" cy="{{.YY}}" r="2" fill="none" stroke="deepskyblue"/>
+<g style="stroke: deepskyblue; fill: none">
+{{range .Data}}
+{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" />{{end}}
+{{end}}
+</g>
+<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
+{{end}}`
+
+const plotLineTemplate = `
+{{define "data"}}
+{{range .Data}}
+<polyline style="stroke: deepskyblue; fill: none; stroke-width: 2.0" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />
 {{end}}
 <circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
 {{end}}`

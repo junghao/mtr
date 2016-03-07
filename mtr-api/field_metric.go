@@ -92,37 +92,22 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		return internalServerError(err)
 	}
 
-	// insert and update the values in the minute, hour, and day tables
 	for i, _ := range resolution {
 		// Insert the value (which may already exist)
-		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(devicePK, typePK, time, min, max) VALUES($1, $2, $3, $4, $5)`,
-			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v), int32(v)); err != nil {
+		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(devicePK, typePK, time, avg, n) VALUES($1, $2, $3, $4, $5)`,
+			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v), 1); err != nil {
 			if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
-				// ignore unique errors and then update.
+				// unique error (already a value at this resolution) update the moving average.
+				if _, err := db.Exec(`UPDATE field.metric_`+resolution[i]+` SET avg = ($4 + (avg * n)) / (n+1), n = n + 1
+					WHERE devicePK = $1
+					AND typePK = $2
+					AND time = $3`,
+					f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
+					return internalServerError(err)
+				}
 			} else {
 				return internalServerError(err)
 			}
-		}
-
-		// update the min value
-		if _, err = db.Exec(`UPDATE field.metric_`+resolution[i]+` SET min = $4
-		WHERE devicePK = $1
-		AND typePK = $2
-		AND time = $3
-		and min > $4`,
-			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
-			return internalServerError(err)
-
-		}
-
-		// update the max value
-		if _, err = db.Exec(`UPDATE field.metric_`+resolution[i]+` SET max = $4
-		WHERE devicePK = $1
-		AND typePK = $2
-		AND time = $3
-		and max < $4`,
-			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
-			return internalServerError(err)
 		}
 	}
 
@@ -190,7 +175,7 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 	var rows *sql.Rows
 	var err error
 
-	if rows, err = dbR.Query(`SELECT format('%s,%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), min, max) as csv FROM field.metric_minute 
+	if rows, err = dbR.Query(`SELECT format('%s,%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), avg, n) as csv FROM field.metric_minute 
 		WHERE devicePK = $1 AND typePK = $2
 		ORDER BY time ASC`,
 		f.devicePK, f.fieldType.typePK); err != nil && err != sql.ErrNoRows {
@@ -233,8 +218,8 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	switch resolution {
 	case "", "minute":
 		resolution = "minute"
-		p.SetXAxis(time.Now().UTC().Add(time.Minute*-1440), time.Now().UTC())
-		p.SetXLabel("24 hours")
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
+		p.SetXLabel("12 hours")
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
@@ -270,40 +255,44 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	p.SetUnit(f.fieldType.Unit)
 
-	switch r.URL.Query().Get("plot") {
-	case "spark":
+	var lower, upper int
+	var res *result
 
-		err = ts.SparkBarsLatest.DrawBars(p, b)
-	case "":
-		var lower, upper int
-		var res *result
-
-		if lower, upper, res = f.threshold(); !res.ok {
-			return res
-		}
-
-		if !(lower == 0 && upper == 0) {
-			p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
-		}
-
-		var tags []string
-
-		if tags, res = f.tags(); !res.ok {
-			return res
-		}
-
-		p.SetTags(strings.Join(tags, ","))
-
-		var mod string
-
-		if mod, res = f.model(); !res.ok {
-			return res
-		}
-
-		p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
-
-		err = ts.Bars.DrawBars(p, b)
+	if lower, upper, res = f.threshold(); !res.ok {
+		return res
 	}
+
+	if !(lower == 0 && upper == 0) {
+		p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
+	}
+
+	var tags []string
+
+	if tags, res = f.tags(); !res.ok {
+		return res
+	}
+
+	p.SetTags(strings.Join(tags, ","))
+
+	var mod string
+
+	if mod, res = f.model(); !res.ok {
+		return res
+	}
+
+	p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
+
+	switch r.URL.Query().Get("plot") {
+	case "spark", "spark-line":
+		err = ts.SparkLine.Draw(p, b)
+	case "spark-scatter":
+		err = ts.SparkScatter.Draw(p, b)
+	case "", "line":
+		err = ts.Line.Draw(p, b)
+	case "scatter":
+		err = ts.Scatter.Draw(p, b)
+	}
+
 	if err != nil {
 		return internalServerError(err)
 	}
@@ -389,7 +378,7 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT time, min,max FROM field.metric_`+resolution+` WHERE 
+	if rows, err = dbR.Query(`SELECT time, avg FROM field.metric_`+resolution+` WHERE 
 		devicePK = $1 AND typePK = $2
 		ORDER BY time ASC`,
 		f.devicePK, f.fieldType.typePK); err != nil {
@@ -399,21 +388,20 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	defer rows.Close()
 
 	var t time.Time
-	var min, max int32
-	var ptsMin []ts.Point
-	var ptsMax []ts.Point
+	var avg int32
+	var pts []ts.Point
 
 	for rows.Next() {
-		if err = rows.Scan(&t, &min, &max); err != nil {
+		if err = rows.Scan(&t, &avg); err != nil {
 			return internalServerError(err)
 		}
-		ptsMin = append(ptsMin, ts.Point{DateTime: t, Value: float64(min) * f.fieldType.Scale})
-		ptsMax = append(ptsMax, ts.Point{DateTime: t, Value: float64(max) * f.fieldType.Scale})
+		pts = append(pts, ts.Point{DateTime: t, Value: float64(avg) * f.fieldType.Scale})
 	}
 	rows.Close()
 
-	p.AddSeries(ts.Series{Label: f.deviceID, Points: ptsMin})
-	p.AddSeries(ts.Series{Label: f.deviceID, Points: ptsMax})
+	pts = append(pts, latest)
+
+	p.AddSeries(ts.Series{Label: f.deviceID, Points: pts})
 
 	return &statusOK
 }

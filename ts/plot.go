@@ -26,7 +26,6 @@ type plt struct {
 	YMin, YMax                    float64 // fixed y axis range
 	YRange                        float64 // y axis fixed range on data
 	Data                          []data  // for points
-	Lines                         []line  // for lines e.g., vertical bars between min and max
 	Min, Max, First, Last         Point   // min, max, first, and last Data Point
 	MinPt, MaxPt, FirstPt, LastPt pt      // min, max, first, and last Data pt
 	Latest                        Point   // use for showing the last value explicity e.g., on min max bar plots.
@@ -191,8 +190,8 @@ func (p *Plot) scaleData() {
 		p.plt.YMin = p.plt.Min.Value
 		p.plt.YMax = p.plt.Max.Value
 
-		// include the x axis at y=0 if this doesn't change the range to much
-		if p.plt.YMin > 0 && (p.plt.YMin/math.Abs(p.plt.YMax-p.plt.YMin)) < 0.1 {
+		// Always set y min to zero when autoranging
+		if p.plt.YMin > 0 {
 			p.plt.YMin = 0.0
 		}
 
