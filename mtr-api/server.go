@@ -98,7 +98,7 @@ func deleteMetrics() {
 	for {
 		select {
 		case <-ticker:
-			if _, err = db.Exec(`DELETE FROM app.metric_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
+			if _, err = db.Exec(`DELETE FROM field.metric_minute WHERE time < now() - interval '12 hours'`); err != nil {
 				log.Println(err)
 			}
 			if _, err = db.Exec(`DELETE FROM field.metric_hour WHERE time < now() - interval '28 days'`); err != nil {
@@ -108,7 +108,7 @@ func deleteMetrics() {
 				log.Println(err)
 			}
 
-			if _, err = db.Exec(`DELETE FROM app.metric_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
+			if _, err = db.Exec(`DELETE FROM app.metric_minute WHERE time < now() - interval '12 hours'`); err != nil {
 				log.Println(err)
 			}
 			if _, err = db.Exec(`DELETE FROM app.metric_hour WHERE time < now() - interval '28 days'`); err != nil {
@@ -118,7 +118,7 @@ func deleteMetrics() {
 				log.Println(err)
 			}
 
-			if _, err = db.Exec(`DELETE FROM app.counter_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
+			if _, err = db.Exec(`DELETE FROM app.counter_minute WHERE time < now() - interval '12 hours'`); err != nil {
 				log.Println(err)
 			}
 			if _, err = db.Exec(`DELETE FROM app.counter_hour WHERE time < now() - interval '28 days'`); err != nil {
@@ -128,7 +128,7 @@ func deleteMetrics() {
 				log.Println(err)
 			}
 
-			if _, err = db.Exec(`DELETE FROM app.timer_minute WHERE time < now() - interval '1440 minutes'`); err != nil {
+			if _, err = db.Exec(`DELETE FROM app.timer_minute WHERE time < now() - interval '12 hours'`); err != nil {
 				log.Println(err)
 			}
 			if _, err = db.Exec(`DELETE FROM app.timer_hour WHERE time < now() - interval '28 days'`); err != nil {

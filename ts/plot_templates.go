@@ -123,7 +123,7 @@ const plotScatterTemplate = `
 const plotLineTemplate = `
 {{define "data"}}
 {{range .Data}}
-<polyline style="stroke: deepskyblue; fill: none; stroke-width:1.0" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />
+<polyline style="stroke: deepskyblue; fill: none; stroke-width: 2.0" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />
 {{end}}
 <circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
 {{end}}`

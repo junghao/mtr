@@ -190,8 +190,8 @@ func (p *Plot) scaleData() {
 		p.plt.YMin = p.plt.Min.Value
 		p.plt.YMax = p.plt.Max.Value
 
-		// include the x axis at y=0 if this doesn't change the range to much
-		if p.plt.YMin > 0 && (p.plt.YMin/math.Abs(p.plt.YMax-p.plt.YMin)) < 0.1 {
+		// Always set y min to zero when autoranging
+		if p.plt.YMin > 0 {
 			p.plt.YMin = 0.0
 		}
 

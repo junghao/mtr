@@ -88,6 +88,8 @@ func TestFieldMetrics(t *testing.T) {
 	// spark (line)
 	// spark-line
 	// spark-scatter
+	//
+	// if yrange is not set then the yaxis autoranges between 0 and ymax.
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&yrange=0.0,25.0", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)

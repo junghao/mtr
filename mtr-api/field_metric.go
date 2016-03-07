@@ -218,8 +218,8 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	switch resolution {
 	case "", "minute":
 		resolution = "minute"
-		p.SetXAxis(time.Now().UTC().Add(time.Minute*-1440), time.Now().UTC())
-		p.SetXLabel("24 hours")
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
+		p.SetXLabel("12 hours")
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
