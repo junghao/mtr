@@ -66,7 +66,7 @@ func (a *appMetric) save(r *http.Request) *result {
 		for i, _ := range resolution {
 			if _, err = db.Exec(`INSERT INTO app.metric_`+resolution[i]+`(applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`,
 				applicationPK, instancePK, v.MetricID, v.Time.Truncate(duration[i]), v.Value, 1); err != nil {
-				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == `23505` {
+				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
 					if _, err = db.Exec(`UPDATE app.metric_`+resolution[i]+` SET avg = ($5 + (avg * n)) / (n+1), n = n + 1
 					WHERE applicationPK = $1
@@ -87,7 +87,7 @@ func (a *appMetric) save(r *http.Request) *result {
 		for i, _ := range resolution {
 			if _, err = db.Exec(`INSERT INTO app.counter_`+resolution[i]+`(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
 				applicationPK, v.CounterID, v.Time.Truncate(duration[i]), v.Count); err != nil {
-				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == `23505` {
+				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
 					if _, err = db.Exec(`UPDATE app.counter_`+resolution[i]+` SET count = count + $4
 					WHERE applicationPK = $1
@@ -125,7 +125,7 @@ func (a *appMetric) save(r *http.Request) *result {
 		for i, _ := range resolution {
 			if _, err = db.Exec(`INSERT INTO app.timer_`+resolution[i]+`(applicationPK, sourcePK, time, avg, n) VALUES($1,$2,$3,$4,$5)`,
 				applicationPK, sourcePK, v.Time.Truncate(duration[i]), v.Total/v.Count, v.Count); err != nil {
-				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == `23505` {
+				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
 					if _, err = db.Exec(`UPDATE app.timer_`+resolution[i]+` SET avg = ($4 + (avg * n)) / (n+$5), n = n + $5
 					WHERE applicationPK = $1

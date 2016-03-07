@@ -35,7 +35,7 @@ func (f *fieldThreshold) save(r *http.Request) *result {
 	if _, err = db.Exec(`INSERT INTO field.threshold(devicePK, typePK, lower, upper) 
 		VALUES ($1,$2,$3,$4)`,
 		fm.devicePK, fm.fieldType.typePK, f.lower, f.upper); err != nil {
-		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
+		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
 			return internalServerError(err)

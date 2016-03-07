@@ -53,7 +53,7 @@ func (f *fieldDevice) save(r *http.Request) *result {
 
 	if _, err := db.Exec(`INSERT INTO field.device(deviceID, modelPK, latitude, longitude) VALUES($1, $2, $3, $4)`,
 		f.deviceID, modelPK, f.latitude, f.longitude); err != nil {
-		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
+		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
 			return internalServerError(err)
