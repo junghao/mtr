@@ -186,7 +186,7 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		}
 		switch {
 		case min == 0 && max == 0:
-			p.Fill = "none"
+			p.Fill = "deepskyblue"
 			p.Stroke = "deepskyblue"
 			p.Value = 3.0
 			p.Size = 3
