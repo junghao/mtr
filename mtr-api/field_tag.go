@@ -62,7 +62,7 @@ func (f *fieldTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result
 	}
 
 	if _, err := db.Exec(`INSERT INTO field.tag(tag) VALUES($1)`, f.tag); err != nil {
-		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
+		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
 			return internalServerError(err)
@@ -74,7 +74,7 @@ func (f *fieldTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result
 			SELECT $1, $2, tagPK 
 			FROM field.tag WHERE tag = $3`,
 		fm.devicePK, fm.fieldType.typePK, f.tag); err != nil {
-		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
+		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
 			return internalServerError(err)

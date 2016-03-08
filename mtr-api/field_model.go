@@ -33,7 +33,7 @@ func (f *fieldModel) save(r *http.Request) *result {
 	f.modelID = r.URL.Query().Get("modelID")
 
 	if _, err := db.Exec(`INSERT INTO field.model(modelID) VALUES($1)`, f.modelID); err != nil {
-		if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
+		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
 			return internalServerError(err)

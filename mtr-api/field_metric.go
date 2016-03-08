@@ -96,7 +96,7 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		// Insert the value (which may already exist)
 		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(devicePK, typePK, time, avg, n) VALUES($1, $2, $3, $4, $5)`,
 			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v), 1); err != nil {
-			if err, ok := err.(*pq.Error); ok && err.Code == `23505` {
+			if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 				// unique error (already a value at this resolution) update the moving average.
 				if _, err := db.Exec(`UPDATE field.metric_`+resolution[i]+` SET avg = ($4 + (avg * n)) / (n+1), n = n + 1
 					WHERE devicePK = $1
@@ -272,7 +272,7 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return res
 	}
 
-	p.SetTags(strings.Join(tags, ","))
+	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
 
 	var mod string
 
@@ -401,7 +401,7 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 
 	pts = append(pts, latest)
 
-	p.AddSeries(ts.Series{Label: f.deviceID, Points: pts})
+	p.AddSeries(ts.Series{Colour: "deepskyblue", Label: f.deviceID, Points: pts})
 
 	return &statusOK
 }

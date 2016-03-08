@@ -84,7 +84,7 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 <svg viewBox="0,0,800,270" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="lightgray">
 <g transform="translate(10,10)">
 <text x="0" y="0" text-anchor="start" dominant-baseline="hanging" font-size="14px" fill="darkslategray">{{.Axes.Title}}</text>
-<text x="0" y="18" text-anchor="start" dominant-baseline="hanging" font-size="12px" fill="darkslategray">Tags: {{.Tags}}</text>
+<text x="0" y="18" text-anchor="start" dominant-baseline="hanging" font-size="12px" fill="darkslategray">{{.Axes.SubTitle}}</text>
 <text x="780" y="0" text-anchor="end" dominant-baseline="hanging" fill="darkslategray">
 {{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}}) 
 </text>
@@ -112,18 +112,16 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 `
 const plotScatterTemplate = `
 {{define "data"}}
-<g style="stroke: deepskyblue; fill: none">
 {{range .Data}}
+<g style="stroke: {{.Series.Colour}}; fill: none">
 {{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" />{{end}}
-{{end}}
 </g>
-<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
+{{end}}
 {{end}}`
 
 const plotLineTemplate = `
 {{define "data"}}
 {{range .Data}}
-<polyline style="stroke: deepskyblue; fill: none; stroke-width: 2.0" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />
+<polyline style="stroke: {{.Series.Colour}}; fill: none; stroke-width: 2.0" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />
 {{end}}
-<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
 {{end}}`

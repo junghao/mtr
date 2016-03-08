@@ -49,11 +49,9 @@ const sparkScatterTemplate = `
 <g style="stroke: deepskyblue; fill: none">
 {{range .Data}}{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="1" fill="none" stroke="deepskyblue"/>{{end}}{{end}}
 </g>
-<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
 {{end}}`
 
 const sparkLineTemplate = `
 {{define "data"}}
 {{range .Data}}<polyline style="stroke: deepskyblue; fill: none; stroke-width: 1.0" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />{{end}}
-<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" stroke="deepskyblue" fill="deepskyblue" />
 {{end}}`

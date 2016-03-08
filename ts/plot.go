@@ -18,6 +18,7 @@ type axes struct {
 	Ylabel   string
 	Xlabel   string
 	Title    string
+	SubTitle string
 }
 
 type plt struct {
@@ -28,11 +29,9 @@ type plt struct {
 	Data                          []data  // for points
 	Min, Max, First, Last         Point   // min, max, first, and last Data Point
 	MinPt, MaxPt, FirstPt, LastPt pt      // min, max, first, and last Data pt
-	Latest                        Point   // use for showing the last value explicity e.g., on min max bar plots.
-	LatestPt                      pt
+	Latest                        Point
 	RangeAlert                    bool
 	Threshold                     threshold
-	Tags                          string
 	Axes                          axes
 	width, height                 int // the graph height, smaller than the image height
 	dx, dy                        float64
@@ -80,6 +79,7 @@ type pts []pt
 type Series struct {
 	Points []Point
 	Label  string
+	Colour string
 }
 
 type data struct {
@@ -91,8 +91,8 @@ func (p *Plot) SetTitle(title string) {
 	p.plt.Axes.Title = title
 }
 
-func (p *Plot) SetTags(tags string) {
-	p.plt.Tags = tags
+func (p *Plot) SetSubTitle(subTitle string) {
+	p.plt.Axes.SubTitle = subTitle
 }
 
 func (p *Plot) SetUnit(unit string) {
@@ -135,7 +135,7 @@ func (p *Plot) AddSeries(s Series) {
 }
 
 /*
-use to explicitly set the latest value on min max bar charts.
+use to explicitly set the latest value to display on the top right of the plot
 */
 func (p *Plot) SetLatest(pt Point) {
 	p.plt.Latest = pt
@@ -224,10 +224,6 @@ func (p *Plot) scaleData() {
 	p.plt.LastPt = pt{
 		X: int((p.plt.Last.DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
 		Y: p.plt.height - int(((p.plt.Last.Value-p.plt.YMin)*p.plt.dy)+0.5),
-	}
-	p.plt.LatestPt = pt{
-		X: int((p.plt.Latest.DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
-		Y: p.plt.height - int(((p.plt.Latest.Value-p.plt.YMin)*p.plt.dy)+0.5),
 	}
 
 	if p.plt.MinPt.Y > p.plt.height {
