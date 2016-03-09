@@ -24,11 +24,15 @@ func (f *fieldTag) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	switch f.tag {
 	case "":
 		err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]')
-		FROM (select tag AS "Tag" from field.tag order by tag asc) l`).Scan(&s)
+		FROM (SELECT tag as "Tag", deviceID AS "DeviceID", 
+			typeID AS "TypeID" FROM 
+			field.tag JOIN field.metric_tag USING(tagpk) 
+			JOIN field.device USING (devicepk) 
+			JOIN field.type USING (typepk)) l`).Scan(&s)
 	default:
-		err = dbR.QueryRow(`SELECT row_to_json(l) 
+		err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]') 
 		FROM (
-			SELECT deviceID AS "DeviceID", 
+			SELECT tag as "Tag", deviceID AS "DeviceID", 
 			typeID AS "TypeID" FROM 
 			field.tag JOIN field.metric_tag USING(tagpk) 
 			JOIN field.device USING (devicepk) 
