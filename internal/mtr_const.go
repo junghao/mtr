@@ -34,25 +34,25 @@ const (
 )
 
 var idColours = map[int]string{
-	1:   "lawngreen",
+	1:   "#4daf4a",
 	200: "deepskyblue",
-	400: "sandybrown",
-	401: "tan",
-	404: "lightcoral",
-	500: "tomato",
-	503: "tomato",
+	400: "#984ea3",
+	401: "#a65628",
+	404: "#ff7f00",
+	500: "#e41a1c",
+	503: "#e41a1c",
 
-	1000: "lawngreen",
-	1001: "deepskyblue",
-	1002: "tan",
+	1000: "#a6cee3",
+	1001: "#1f78b4",
+	1002: "#b2df8a",
 	1003: "deepskyblue",
 
 	1100: "deepskyblue",
 
-	1201: "deepskyblue",
-	1202: "gold",
+	1201: "#4daf4a",
+	1202: "#984ea3",
 	1203: "deepskyblue",
-	1204: "tomato",
+	1204: "#e41a1c",
 }
 
 var idLables = map[int]string{
