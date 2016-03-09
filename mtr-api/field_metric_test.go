@@ -120,8 +120,7 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("GET", "application/json;version=1", "/field/metric/threshold", 200, t)
 
 	// Tags
-	doRequest("GET", "application/json;version=1", "/field/metric/tag", 200, t)          // All tags
-	doRequest("GET", "application/json;version=1", "/field/metric/tag?tag=nope", 404, t) // tag that doesn't exist.
+	doRequest("GET", "application/json;version=1", "/field/metric/tag", 200, t) // All tags
 
 	// Metric types
 	doRequest("GET", "application/json;version=1", "/field/metric/type", 200, t) // All metrics type
