@@ -138,7 +138,7 @@ const plotAppMetricsTemplate = `<?xml version="1.0"?>
 {{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}})
 </text>{{end}}
 {{if .Lables}}
-<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Lables}}<tspan fill="{{.Colour}}" dy="10px" x="780">{{.Lable}}</tspan> {{end}}</text>
+<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Lables}}<tspan fill="{{.Colour}}" dy="10px" x="780">{{.Lable}}</tspan>{{end}}</text>
 {{end}}
 </g>
 

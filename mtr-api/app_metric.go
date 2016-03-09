@@ -185,7 +185,7 @@ func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *result {
 
 	for _, k := range keys {
 		p.AddSeries(ts.Series{Colour: internal.Colour(k), Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: internal.Colour(k), Lable: fmt.Sprintf("%s (%d)", internal.Lable(k), total[k])})
+		lables = append(lables, ts.Lable{Colour: internal.Colour(k), Lable: fmt.Sprintf("%s (n=%d)", internal.Lable(k), total[k])})
 	}
 
 	p.SetLables(lables)
@@ -253,7 +253,7 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *result {
 			i = 0
 		}
 		p.AddSeries(ts.Series{Colour: colours[i], Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: colours[i], Lable: fmt.Sprintf("%s (%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
+		lables = append(lables, ts.Lable{Colour: colours[i], Lable: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
 	}
 
 	p.SetLables(lables)
