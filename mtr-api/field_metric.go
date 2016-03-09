@@ -30,7 +30,6 @@ type fieldMetric struct {
 	fieldType fieldType
 }
 
-//  TODO what should this load and also caching?
 func (f *fieldMetric) loadPK(r *http.Request) (res *result) {
 	f.deviceID = r.URL.Query().Get("deviceID")
 
@@ -401,7 +400,7 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 
 	pts = append(pts, latest)
 
-	p.AddSeries(ts.Series{Colour: "deepskyblue", Label: f.deviceID, Points: pts})
+	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
 	return &statusOK
 }

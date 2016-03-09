@@ -11,15 +11,11 @@ func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	switch r.Method {
 	case "PUT":
 		return a.save(r)
-	// case "DELETE":
-	// 	return f.delete(r)
-	// case "GET":
-	// 	switch r.Header.Get("Accept") {
-	// 	case "text/csv":
-	// 		return f.metricCSV(r, h, b)
-	// 	default:
-	// 		return f.svg(r, h, b)
-	// 	}
+	case "GET":
+		switch r.Header.Get("Accept") {
+		default:
+			return a.svg(r, h, b)
+		}
 	default:
 		return &methodNotAllowed
 	}

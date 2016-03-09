@@ -6,6 +6,7 @@ package ts
 import (
 	"fmt"
 	"math"
+	"sort"
 	"time"
 )
 
@@ -36,6 +37,8 @@ type plt struct {
 	width, height                 int // the graph height, smaller than the image height
 	dx, dy                        float64
 	xShift                        int
+	Lables                        []Lable
+	ShowLatest                    bool
 }
 
 type plotKey struct {
@@ -78,9 +81,19 @@ type pts []pt
 
 type Series struct {
 	Points []Point
-	Label  string
 	Colour string
 }
+
+type Lable struct {
+	Lable  string
+	Colour string
+}
+
+type Lables []Lable
+
+func (l Lables) Len() int           { return len(l) }
+func (l Lables) Less(i, j int) bool { return l[i].Lable < l[j].Lable }
+func (l Lables) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
 type data struct {
 	Series Series
@@ -139,6 +152,12 @@ use to explicitly set the latest value to display on the top right of the plot
 */
 func (p *Plot) SetLatest(pt Point) {
 	p.plt.Latest = pt
+	p.plt.ShowLatest = true
+}
+
+func (p *Plot) SetLables(l Lables) {
+	sort.Sort(l)
+	p.plt.Lables = l
 }
 
 func (p *Plot) scaleData() {
