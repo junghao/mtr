@@ -47,17 +47,6 @@ CREATE TABLE app.counter_hour (
 CREATE INDEX on app.counter_hour (applicationPK);
 CREATE INDEX on app.counter_hour (time);
 
-CREATE TABLE app.counter_day (
-	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
-	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
-	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	count INTEGER NOT NULL,
-	PRIMARY KEY(applicationPK, typePK, time)
-);
-
-CREATE INDEX on app.counter_day (applicationPK);
-CREATE INDEX on app.counter_day (time);
-
 CREATE TABLE app.timer_minute (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
 	sourcePK INTEGER REFERENCES app.source(sourcePK) NOT NULL,
@@ -83,19 +72,6 @@ CREATE TABLE app.timer_hour (
 CREATE INDEX on app.timer_hour (applicationPK);
 CREATE INDEX on app.timer_hour (sourcePK);
 CREATE INDEX on app.timer_hour (time);
-
-CREATE TABLE app.timer_day (
-	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
-	sourcePK INTEGER REFERENCES app.source(sourcePK) NOT NULL,
-	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	avg INTEGER NOT NULL,
-	n INTEGER NOT NULL, 
-	PRIMARY KEY(applicationPK, sourcePK, time)
-);
-
-CREATE INDEX on app.timer_day (applicationPK);
-CREATE INDEX on app.timer_day (sourcePK);
-CREATE INDEX on app.timer_day (time);
 
 CREATE TABLE app.metric_minute (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
@@ -124,22 +100,6 @@ CREATE TABLE app.metric_hour (
 CREATE INDEX on app.metric_hour (applicationPK);
 CREATE INDEX on app.metric_hour (instancePK);
 CREATE INDEX on app.metric_hour (time);
-
-CREATE TABLE app.metric_day (
-	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
-	instancePK SMALLINT REFERENCES app.instance(instancePK) NOT NULL,
-	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
-	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	avg BIGINT NOT NULL,
-	n INTEGER NOT NULL,
-	PRIMARY KEY(applicationPK, instancePK, typePK, time)
-);
-
-CREATE INDEX on app.metric_day (applicationPK);
-CREATE INDEX on app.metric_day (instancePK);
-CREATE INDEX on app.metric_day (time);
-
-
 
 --- HTTP Requests
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1, 'Requests', 'Requests', 'n'); 

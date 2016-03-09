@@ -15,6 +15,16 @@ import (
 	"time"
 )
 
+var appResolution = [...]string{
+	"minute",
+	"hour",
+}
+
+var appDuration = [...]time.Duration{
+	time.Minute,
+	time.Hour,
+}
+
 var colours = [...]string{
 	"deepskyblue",
 	"darkcyan",
@@ -58,6 +68,8 @@ Handles requests like
 /app/metric?applicationID=mtr-api&group=memory
 /app/metric?applicationID=mtr-api&group=objects
 /app/metric?applicationID=mtr-api&group=routines
+
+Metrics are available at minute (default) and hour resolution.
 */
 func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	var res *result
@@ -81,9 +93,6 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
-	case "day":
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*730), time.Now().UTC())
-		p.SetXLabel("2 years")
 	default:
 		return badRequest("invalid value for resolution")
 	}
@@ -433,17 +442,17 @@ func (a *appMetric) save(r *http.Request) *result {
 	}
 
 	for _, v := range m.Metrics {
-		for i, _ := range resolution {
-			if _, err = db.Exec(`INSERT INTO app.metric_`+resolution[i]+`(applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`,
-				applicationPK, instancePK, v.MetricID, v.Time.Truncate(duration[i]), v.Value, 1); err != nil {
+		for i, _ := range appResolution {
+			if _, err = db.Exec(`INSERT INTO app.metric_`+appResolution[i]+`(applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`,
+				applicationPK, instancePK, v.MetricID, v.Time.Truncate(appDuration[i]), v.Value, 1); err != nil {
 				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
-					if _, err = db.Exec(`UPDATE app.metric_`+resolution[i]+` SET avg = ($5 + (avg * n)) / (n+1), n = n + 1
+					if _, err = db.Exec(`UPDATE app.metric_`+appResolution[i]+` SET avg = ($5 + (avg * n)) / (n+1), n = n + 1
 					WHERE applicationPK = $1
 					AND instancePK = $2
 					AND typePK = $3
 					AND time = $4`,
-						applicationPK, instancePK, v.MetricID, v.Time.Truncate(duration[i]), v.Value); err != nil {
+						applicationPK, instancePK, v.MetricID, v.Time.Truncate(appDuration[i]), v.Value); err != nil {
 						return internalServerError(err)
 					}
 				} else {
@@ -454,16 +463,16 @@ func (a *appMetric) save(r *http.Request) *result {
 	}
 
 	for _, v := range m.Counters {
-		for i, _ := range resolution {
-			if _, err = db.Exec(`INSERT INTO app.counter_`+resolution[i]+`(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
-				applicationPK, v.CounterID, v.Time.Truncate(duration[i]), v.Count); err != nil {
+		for i, _ := range appResolution {
+			if _, err = db.Exec(`INSERT INTO app.counter_`+appResolution[i]+`(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
+				applicationPK, v.CounterID, v.Time.Truncate(appDuration[i]), v.Count); err != nil {
 				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
-					if _, err = db.Exec(`UPDATE app.counter_`+resolution[i]+` SET count = count + $4
+					if _, err = db.Exec(`UPDATE app.counter_`+appResolution[i]+` SET count = count + $4
 					WHERE applicationPK = $1
 					AND typePK = $2
 					AND time = $3`,
-						applicationPK, v.CounterID, v.Time.Truncate(duration[i]), v.Count); err != nil {
+						applicationPK, v.CounterID, v.Time.Truncate(appDuration[i]), v.Count); err != nil {
 						return internalServerError(err)
 					}
 				} else {
@@ -492,16 +501,16 @@ func (a *appMetric) save(r *http.Request) *result {
 			return internalServerError(err)
 		}
 
-		for i, _ := range resolution {
-			if _, err = db.Exec(`INSERT INTO app.timer_`+resolution[i]+`(applicationPK, sourcePK, time, avg, n) VALUES($1,$2,$3,$4,$5)`,
-				applicationPK, sourcePK, v.Time.Truncate(duration[i]), v.Total/v.Count, v.Count); err != nil {
+		for i, _ := range appResolution {
+			if _, err = db.Exec(`INSERT INTO app.timer_`+appResolution[i]+`(applicationPK, sourcePK, time, avg, n) VALUES($1,$2,$3,$4,$5)`,
+				applicationPK, sourcePK, v.Time.Truncate(appDuration[i]), v.Total/v.Count, v.Count); err != nil {
 				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
-					if _, err = db.Exec(`UPDATE app.timer_`+resolution[i]+` SET avg = ($4 + (avg * n)) / (n+$5), n = n + $5
+					if _, err = db.Exec(`UPDATE app.timer_`+appResolution[i]+` SET avg = ($4 + (avg * n)) / (n+$5), n = n + $5
 					WHERE applicationPK = $1
 					AND sourcePK = $2
 					AND time = $3`,
-						applicationPK, sourcePK, v.Time.Truncate(duration[i]), v.Total, v.Count); err != nil {
+						applicationPK, sourcePK, v.Time.Truncate(appDuration[i]), v.Total, v.Count); err != nil {
 						return internalServerError(err)
 					}
 				} else {

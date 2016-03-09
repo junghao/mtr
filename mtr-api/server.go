@@ -116,9 +116,6 @@ func deleteMetrics() {
 			if _, err = db.Exec(`DELETE FROM app.metric_hour WHERE time < now() - interval '28 days'`); err != nil {
 				log.Println(err)
 			}
-			if _, err = db.Exec(`DELETE FROM app.metric_day WHERE time < now() - interval '730 days'`); err != nil {
-				log.Println(err)
-			}
 
 			if _, err = db.Exec(`DELETE FROM app.counter_minute WHERE time < now() - interval '12 hours'`); err != nil {
 				log.Println(err)
@@ -126,17 +123,11 @@ func deleteMetrics() {
 			if _, err = db.Exec(`DELETE FROM app.counter_hour WHERE time < now() - interval '28 days'`); err != nil {
 				log.Println(err)
 			}
-			if _, err = db.Exec(`DELETE FROM app.counter_day WHERE time < now() - interval '730 days'`); err != nil {
-				log.Println(err)
-			}
 
 			if _, err = db.Exec(`DELETE FROM app.timer_minute WHERE time < now() - interval '12 hours'`); err != nil {
 				log.Println(err)
 			}
 			if _, err = db.Exec(`DELETE FROM app.timer_hour WHERE time < now() - interval '28 days'`); err != nil {
-				log.Println(err)
-			}
-			if _, err = db.Exec(`DELETE FROM app.timer_day WHERE time < now() - interval '730 days'`); err != nil {
 				log.Println(err)
 			}
 		}
