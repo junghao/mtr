@@ -47,9 +47,15 @@ type appMetric struct {
 	applicationPK int
 }
 
-type instanceMetric struct {
+type InstanceMetric struct {
 	instancePK, typePK int
 }
+
+type InstanceMetrics []InstanceMetric
+
+func (l InstanceMetrics) Len() int           { return len(l) }
+func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].instancePK }
+func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
 func (a *appMetric) loadPK(r *http.Request) (res *result) {
 	a.applicationID = r.URL.Query().Get("applicationID")
@@ -110,35 +116,37 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		}
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Counters", a.applicationID))
+		err = ts.MixedAppMetrics.Draw(p, b)
 	case "timers":
 		if res := a.loadTimers(resolution, &p); !res.ok {
 			return res
 		}
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Timers (ms)", a.applicationID))
+		err = ts.MixedAppMetrics.Draw(p, b)
 	case "memory":
 		if res := a.loadMemory(resolution, &p); !res.ok {
 			return res
 		}
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Memory (bytes)", a.applicationID))
+		err = ts.LineAppMetrics.Draw(p, b)
 	case "objects":
 		if res := a.loadAppMetrics(resolution, internal.MemHeapObjects, &p); !res.ok {
 			return res
 		}
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Memory Heap Objects (n)", a.applicationID))
+		err = ts.LineAppMetrics.Draw(p, b)
 	case "routines":
 		if res := a.loadAppMetrics(resolution, internal.Routines, &p); !res.ok {
 			return res
 		}
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Routines (n)", a.applicationID))
-
+		err = ts.LineAppMetrics.Draw(p, b)
 	default:
 		return badRequest("invalid value for type")
 	}
-
-	err = ts.LineAppMetrics.Draw(p, b)
 
 	if err != nil {
 		return internalServerError(err)
@@ -282,22 +290,16 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 	var t time.Time
 	var typePK, instancePK, avg int
 	var instanceID string
-	pts := make(map[instanceMetric][]ts.Point)
+	pts := make(map[InstanceMetric][]ts.Point)
 
 	for rows.Next() {
 		if err = rows.Scan(&instancePK, &typePK, &t, &avg); err != nil {
 			return internalServerError(err)
 		}
-		key := instanceMetric{instancePK: instancePK, typePK: typePK}
+		key := InstanceMetric{instancePK: instancePK, typePK: typePK}
 		pts[key] = append(pts[key], ts.Point{DateTime: t, Value: float64(avg)})
 	}
 	rows.Close()
-
-	var keys []int
-	for k := range pts {
-		keys = append(keys, k.instancePK)
-
-	}
 
 	instanceIDs := make(map[int]string)
 
@@ -314,8 +316,6 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 		instanceIDs[instancePK] = instanceID
 	}
 	rows.Close()
-
-	sort.Ints(keys)
 
 	var lables ts.Lables
 
@@ -346,22 +346,16 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 	var t time.Time
 	var typePK, instancePK, avg int
 	var instanceID string
-	pts := make(map[instanceMetric][]ts.Point)
+	pts := make(map[InstanceMetric][]ts.Point)
 
 	for rows.Next() {
 		if err = rows.Scan(&instancePK, &typePK, &t, &avg); err != nil {
 			return internalServerError(err)
 		}
-		key := instanceMetric{instancePK: instancePK, typePK: typePK}
+		key := InstanceMetric{instancePK: instancePK, typePK: typePK}
 		pts[key] = append(pts[key], ts.Point{DateTime: t, Value: float64(avg)})
 	}
 	rows.Close()
-
-	var keys []int
-	for k := range pts {
-		keys = append(keys, k.instancePK)
-
-	}
 
 	instanceIDs := make(map[int]string)
 
@@ -379,13 +373,22 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 	}
 	rows.Close()
 
-	sort.Ints(keys)
+	var keys InstanceMetrics
+
+	for k, _ := range pts {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(keys)
 
 	var lables ts.Lables
 
-	for k, _ := range pts {
-		p.AddSeries(ts.Series{Colour: internal.Colour(k.typePK), Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: internal.Colour(k.typePK), Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Lable(k.typePK))})
+	for i, k := range keys {
+		if i > numColours {
+			i = 0
+		}
+		p.AddSeries(ts.Series{Colour: colours[i], Points: pts[k]})
+		lables = append(lables, ts.Lable{Colour: colours[i], Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Lable(k.typePK))})
 	}
 
 	p.SetLables(lables)

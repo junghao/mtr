@@ -83,8 +83,14 @@ var Line = SVGPlot{
 	height:   210,
 }
 
-var LineAppMetrics = SVGPlot{
+var MixedAppMetrics = SVGPlot{
 	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotAppMetricsTemplate + plotAppMixedTemplate)),
+	width:    640,
+	height:   210,
+}
+
+var LineAppMetrics = SVGPlot{
+	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotAppMetricsTemplate + plotLineTemplate)),
 	width:    640,
 	height:   210,
 }

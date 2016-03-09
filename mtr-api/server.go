@@ -48,8 +48,8 @@ func main() {
 	}
 	defer db.Close()
 
-	db.SetMaxIdleConns(30)
-	db.SetMaxOpenConns(30)
+	db.SetMaxIdleConns(50)
+	db.SetMaxOpenConns(50)
 
 	if err = db.Ping(); err != nil {
 		log.Println("ERROR: problem pinging DB - is it up and contactable? 500s will be served")
