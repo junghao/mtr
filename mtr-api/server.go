@@ -89,6 +89,8 @@ func health(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
+// TODO delete app instance and time source that have no metrics?
+
 /*
 deleteMetics deletes old metrics.
 */
