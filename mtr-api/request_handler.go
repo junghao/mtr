@@ -30,10 +30,6 @@ var (
 	notAcceptable    = result{ok: false, code: http.StatusNotAcceptable, msg: "specify accept"}
 )
 
-func init() {
-	mtrapp.Init()
-}
-
 func internalServerError(err error) *result {
 	return &result{ok: false, code: http.StatusInternalServerError, msg: err.Error()}
 }
