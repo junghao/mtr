@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "github.com/GeoNet/log/logentries"
 	"github.com/GeoNet/mtr/mtrapp"
 	"log"
 	"net/http"

@@ -3,6 +3,11 @@
 	"ignore": "test",
 	"package": [
 		{
+			"path": "github.com/GeoNet/log/logentries",
+			"revision": "7bbd7d2bd0cce3d205e635efb42ff1d5bd8172c3",
+			"revisionTime": "2016-02-26T14:54:54+13:00"
+		},
+		{
 			"path": "github.com/GeoNet/map180",
 			"revision": "c8bf9c8e13b498f98a66b3d821702d452ccf65e2",
 			"revisionTime": "2016-02-27T17:45:30+13:00"
