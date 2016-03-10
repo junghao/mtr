@@ -1,5 +1,12 @@
 /*
 mtrapp for gathering application metrics.
+
+init initalizes the collection and sending of metrics once per minute if the environment var
+MTR_SERVER MTR_USER and MTR_KEY are all non zero.
+ApplicationID and InstanceID default to the executable and host names.  These can be set with
+the environment var MTR_APPLICATIONID and MTR_INSTANCEID.
+
+Import for side effects  to collect memory and runtime metrics only.
 */
 package mtrapp
 
@@ -19,17 +26,7 @@ var (
 	once       sync.Once
 )
 
-/*
-Init initalizes the collection and sending of metrics once per minute if the environment var
-MTR_SERVER MTR_USER and MTR_KEY are all non zero the first time it is called.
-ApplicationID and InstanceID default to the executable and host names.  These can be set with
-the environment var MTR_APPLICATIONID and MTR_INSTANCEID.
-*/
-func Init() {
-	once.Do(func() { collect() })
-}
-
-func collect() {
+func init() {
 	appName = os.Getenv("MTR_APPLICATIONID")
 	instanceID = os.Getenv("MTR_INSTANCEID")
 
@@ -39,8 +36,6 @@ func collect() {
 	}
 
 	if instanceID == "" {
-		// Not yet clear that this will be enough in a container.
-		// Could use an env var or a uuid (would need /dev/random for this)
 		var err error
 		instanceID, err = os.Hostname()
 		if err != nil {

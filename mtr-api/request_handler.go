@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "github.com/GeoNet/log/logentries"
 	"github.com/GeoNet/mtr/mtrapp"
 	"log"
 	"net/http"
@@ -29,10 +30,6 @@ var (
 	notFound         = result{ok: false, code: http.StatusNotFound, msg: ""}
 	notAcceptable    = result{ok: false, code: http.StatusNotAcceptable, msg: "specify accept"}
 )
-
-func init() {
-	mtrapp.Init()
-}
 
 func internalServerError(err error) *result {
 	return &result{ok: false, code: http.StatusInternalServerError, msg: err.Error()}
