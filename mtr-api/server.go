@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	_ "github.com/GeoNet/cfg/cfgenv"
 	"github.com/GeoNet/map180"
 	_ "github.com/lib/pq"
 	"log"
