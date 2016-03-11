@@ -144,8 +144,6 @@ func fieldMetricLatestHandler(r *http.Request, h http.Header, b *bytes.Buffer) *
 	switch r.Method {
 	case "GET":
 		switch r.Header.Get("Accept") {
-		case "application/vnd.geo+json;version=1":
-			return f.geojsonV1(r, h, b)
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
 		default:

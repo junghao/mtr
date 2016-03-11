@@ -68,29 +68,6 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		return res
 	}
 
-	var txn *sql.Tx
-
-	if txn, err = db.Begin(); err != nil {
-		return internalServerError(err)
-	}
-
-	if _, err = txn.Exec(`DELETE FROM field.metric_latest 
-		WHERE devicePK = $1
-		AND typePK = $2`, f.devicePK, f.fieldType.typePK); err != nil {
-		txn.Rollback()
-		return internalServerError(err)
-	}
-
-	if _, err = txn.Exec(`INSERT INTO field.metric_latest(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
-		f.devicePK, f.fieldType.typePK, t.Truncate(time.Minute), int32(v)); err != nil {
-		txn.Rollback()
-		return internalServerError(err)
-	}
-
-	if err = txn.Commit(); err != nil {
-		return internalServerError(err)
-	}
-
 	for i, _ := range resolution {
 		// Insert the value (which may already exist)
 		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(devicePK, typePK, time, avg, n) VALUES($1, $2, $3, $4, $5)`,
@@ -135,12 +112,6 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 			txn.Rollback()
 			return internalServerError(err)
 		}
-	}
-
-	if _, err = txn.Exec(`DELETE FROM field.metric_latest WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.fieldType.typePK); err != nil {
-		txn.Rollback()
-		return internalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.metric_tag WHERE devicePK = $1 AND typePK = $2`,
@@ -362,19 +333,6 @@ loadPlot loads plot data.  Assumes f.load has been called first.
 func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	var err error
 
-	var latest ts.Point
-	var latestValue int32
-
-	if err = dbR.QueryRow(`SELECT time, value FROM field.metric_latest 
-		WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.fieldType.typePK).Scan(&latest.DateTime, &latestValue); err != nil {
-		return internalServerError(err)
-	}
-
-	latest.Value = float64(latestValue) * f.fieldType.Scale
-
-	p.SetLatest(latest)
-
 	var rows *sql.Rows
 
 	if rows, err = dbR.Query(`SELECT time, avg FROM field.metric_`+resolution+` WHERE 
@@ -398,7 +356,9 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	}
 	rows.Close()
 
-	pts = append(pts, latest)
+	if len(pts) > 0 {
+		p.SetLatest(pts[len(pts)-1])
+	}
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 

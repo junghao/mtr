@@ -30,28 +30,20 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 		err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]') 
 			FROM (
 				SELECT latitude AS "Latitude", longitude AS "Longitude", 
-				deviceID AS "DeviceID", time AS "Time", value AS "Value",
-				typeID AS "TypeID", 
-				unit AS "Unit",
-				CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "Lower",  
-				CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "Upper"
-				FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (devicePK, typePK)
-				JOIN field.device USING (devicepk) 
-				JOIN field.type USING (typepk)
-				) l`).Scan(&s)
+				deviceID AS "DeviceID", time AS "Time", avg AS "Value",
+				typeID AS "TypeID",
+				lower as "Lower",
+				upper as "Upper"
+				FROM field.metric_summary_hour) l`).Scan(&s)
 	default:
 		err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]') 
 			FROM (
 				SELECT latitude AS "Latitude", longitude AS "Longitude", 
-				deviceID AS "DeviceID", time AS "Time", value AS "Value",
-				typeID AS "TypeID", 
-				unit AS "Unit",
-				CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "Lower",  
-				CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "Upper"
-				FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (devicePK, typePK)
-				JOIN field.device USING (devicepk) 
-				JOIN field.type USING (typepk)
-				WHERE typepk= (select typePK from field.type where typeID = $1)) l`, f.typeID).Scan(&s)
+				deviceID AS "DeviceID", time AS "Time", avg AS "Value",
+				typeID AS "TypeID",
+				lower as "Lower",
+				upper as "Upper"
+				FROM field.metric_summary_hour where typeID = $1) l`, f.typeID).Scan(&s)
 	}
 	if err != nil {
 		return internalServerError(err)
@@ -60,64 +52,6 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	b.WriteString(s)
 
 	h.Set("Content-Type", "application/json;version=1")
-
-	return &statusOK
-}
-
-func (f *fieldLatest) geojsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{}, []string{"typeID"}); !res.ok {
-		return res
-	}
-
-	f.typeID = r.URL.Query().Get("typeID")
-
-	var s string
-	var err error
-
-	switch f.typeID {
-	case "":
-		err = dbR.QueryRow(`SELECT row_to_json(fc)
-			FROM ( SELECT 'FeatureCollection' as type, COALESCE(array_to_json(array_agg(f)), '[]') as features
-			FROM (SELECT 'Feature' as type,
-			ST_AsGeoJSON(q.geom)::json as geometry,
-			row_to_json((SELECT l FROM
-				(
-					SELECT
-					deviceID AS "DeviceID", time AS "time", value AS "value",
-					typeID AS "typeID", 
-					unit AS "unit",
-					CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",  
-					CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
-					) as l
-					)) as properties FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (devicePK, typePK)
-					JOIN field.device as q USING (devicepk) 
-					JOIN field.type USING (typepk)) as f ) as fc`).Scan(&s)
-	default:
-		err = dbR.QueryRow(`SELECT row_to_json(fc)
-			FROM ( SELECT 'FeatureCollection' as type, COALESCE(array_to_json(array_agg(f)), '[]') as features
-			FROM (SELECT 'Feature' as type,
-			ST_AsGeoJSON(q.geom)::json as geometry,
-			row_to_json((SELECT l FROM
-				(
-					SELECT
-					deviceID AS "DeviceID", time AS "time", value AS "value",
-					typeID AS "typeID", 
-					unit AS "unit",
-					CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",  
-					CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
-					) as l
-					)) as properties FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (devicePK, typePK)
-					JOIN field.device as q USING (devicepk) 
-					JOIN field.type USING (typepk)
-					WHERE type.typePK = (select typePK from field.type where typeID = $1)) as f ) as fc`, f.typeID).Scan(&s)
-	}
-	if err != nil {
-		return internalServerError(err)
-	}
-
-	b.WriteString(s)
-
-	h.Set("Content-Type", "application/vnd.geo+json;version=1")
 
 	return &statusOK
 }
@@ -155,11 +89,7 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	switch f.typeID {
 	case "":
-		rows, err = dbR.Query(`SELECT longitude, latitude, time, value,
-			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
-			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
-			FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (devicePK, typePK)
-			JOIN field.device USING (devicePK)`)
+		rows, err = dbR.Query(`SELECT longitude, latitude, time, avg, lower, upper FROM field.metric_summary_hour`)
 
 	default:
 		rows, err = dbR.Query(`SELECT longitude, latitude, time, value,
