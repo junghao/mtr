@@ -5,14 +5,19 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/GeoNet/map180"
+	"math"
 	"net/http"
-	"sort"
 	"strconv"
 	"time"
 )
 
 type fieldLatest struct {
 	typeID string
+}
+
+type point struct {
+	latitude, longitude float64
+	x, y                float64
 }
 
 func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
@@ -57,11 +62,10 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 }
 
 func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"bbox", "width"}, []string{"typeID", "insetBox"}); !res.ok {
+	if res := checkQuery(r, []string{"bbox", "width"}, []string{"typeID"}); !res.ok {
 		return res
 	}
 
-	var pts map180.Points
 	var rows *sql.Rows
 	var width int
 	var err error
@@ -77,78 +81,96 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return badRequest("invalid width")
 	}
 
-	var insetBbox string
-
-	if r.URL.Query().Get("insetBbox") != "" {
-		insetBbox = r.URL.Query().Get("insetBbox")
-
-		if err = map180.ValidBbox(insetBbox); err != nil {
-			return badRequest(err.Error())
-		}
+	var raw map180.Raw
+	if raw, err = wm.MapRaw(bbox, width); err != nil {
+		return internalServerError(err)
 	}
 
 	switch f.typeID {
 	case "":
-		rows, err = dbR.Query(`SELECT longitude, latitude, time, avg, lower, upper FROM field.metric_summary_hour`)
-
+		rows, err = dbR.Query(`with p as (select longitude,latitude, time, avg, lower,upper, 
+			st_transform(geom::geometry, 3857) as pt
+			from field.metric_summary_hour)
+			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, avg, lower,upper from p`)
 	default:
-		rows, err = dbR.Query(`SELECT longitude, latitude, time, avg, lower, upper 
-			FROM field.metric_summary_hour WHERE typeID = $1)`, f.typeID)
+		rows, err = dbR.Query(`with p as (select longitude,latitude, time, avg, lower,upper,
+			st_transform(geom::geometry, 3857) as pt
+			from field.metric_summary_hour where typeID = $1)
+			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, avg, lower,upper from p`, f.typeID)
 	}
 	if err != nil {
 		return internalServerError(err)
 	}
 	defer rows.Close()
 
-	ago := time.Now().UTC().Add(time.Hour * -48)
+	ago := time.Now().UTC().Add(time.Hour * -3)
+
+	var late []point
+	var good []point
+	var bad []point
+	var dunno []point
 
 	for rows.Next() {
-		var p map180.Point
+		var p point
 		var t time.Time
 		var min, max, v int
 
-		if err = rows.Scan(&p.Longitude, &p.Latitude, &t, &v, &min, &max); err != nil {
+		if err = rows.Scan(&p.x, &p.y, &p.longitude, &p.latitude, &t, &v, &min, &max); err != nil {
 			return internalServerError(err)
 		}
+
+		switch raw.CrossesCentral && p.longitude > -180.0 && p.longitude < 0.0 {
+		case true:
+			p.x = (p.x + map180.Width3857 - raw.LLX) * raw.DX
+			p.y = (p.y - math.Abs(raw.YShift)) * raw.DX
+		case false:
+			p.x = (p.x - math.Abs(raw.XShift)) * raw.DX
+			p.y = (p.y - math.Abs(raw.YShift)) * raw.DX
+
+		}
 		switch {
+		case t.Before(ago):
+			late = append(late, p)
 		case min == 0 && max == 0:
-			p.Fill = "deepskyblue"
-			p.Stroke = "deepskyblue"
-			p.Value = 3.0
-			p.Size = 3
+			dunno = append(dunno, p)
 		case v < min || v > max:
-			p.Fill = "crimson"
-			p.Stroke = "crimson"
-			p.Value = 1.0
-			p.Size = 5
+			bad = append(bad, p)
 		default:
-			p.Fill = "lawngreen"
-			p.Stroke = "lawngreen"
-			p.Value = 4.0
-			p.Size = 4
+			good = append(good, p)
 		}
-
-		// Add a border if the metric is old
-		if t.Before(ago) {
-			p.Stroke = "magenta"
-			p.Value = 2.0
-			p.Size = 5
-		}
-
-		pts = append(pts, p)
 	}
 	rows.Close()
 
-	sort.Sort(pts)
+	b.WriteString(`<?xml version="1.0"?>`)
+	b.WriteString(fmt.Sprintf("<svg  viewBox=\"0 0 %d %d\"  xmlns=\"http://www.w3.org/2000/svg\">",
+		raw.Width, raw.Height))
+	b.WriteString(fmt.Sprintf("<rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" style=\"fill: azure\"/>", raw.Width, raw.Height))
+	b.WriteString(fmt.Sprintf("<path style=\"fill: wheat; stroke-width: 1; stroke-linejoin: round; stroke: lightslategrey\" d=\"%s\"/>", raw.Land))
+	b.WriteString(fmt.Sprintf("<path style=\"fill: azure; stroke-width: 1; stroke-linejoin: round; stroke: lightslategrey\" d=\"%s\"/>", raw.Lakes))
 
-	if err = wm.Map(bbox, width, pts, insetBbox, b); err != nil {
-		return internalServerError(err)
+	b.WriteString("<g style=\"stroke: #377eb8; fill: #377eb8; \">") // blueish
+	for _, p := range dunno {
+		b.WriteString(fmt.Sprintf("<circle cx=\"%.1f\" cy=\"%.1f\" r=\"%d\"/>", p.x, p.y, 5))
 	}
+	b.WriteString("</g>")
 
-	for _, p := range pts {
-		b.WriteString(fmt.Sprintf("<circle cx=\"%d\" cy=\"%d\" r=\"%d\" stroke=\"%s\" fill=\"%s\" />",
-			p.X(), p.Y(), p.Size, p.Stroke, p.Fill))
+	b.WriteString("<g style=\"stroke: #4daf4a; fill: #4daf4a; \">") // greenish
+	for _, p := range good {
+		b.WriteString(fmt.Sprintf("<circle cx=\"%.1f\" cy=\"%.1f\" r=\"%d\"/>", p.x, p.y, 5))
 	}
+	b.WriteString("</g>")
+
+	b.WriteString("<g style=\"stroke: #e41a1c; fill: #e41a1c; \">") //red
+	for _, p := range bad {
+		b.WriteString(fmt.Sprintf("<circle cx=\"%.1f\" cy=\"%.1f\" r=\"%d\"/>", p.x, p.y, 6))
+	}
+	b.WriteString("</g>")
+
+	b.WriteString("<g style=\"stroke: #984ea3; fill: #984ea3; \">") // purple
+	for _, p := range late {
+		b.WriteString(fmt.Sprintf("<circle cx=\"%.1f\" cy=\"%.1f\" r=\"%d\"/>", p.x, p.y, 6))
+	}
+	b.WriteString("</g>")
 
 	b.WriteString("</svg>")
 
