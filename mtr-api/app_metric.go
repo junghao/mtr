@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -83,7 +84,7 @@ Metrics are available at minute (default) and hour resolution.
 */
 func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	var res *result
-	if res = checkQuery(r, []string{"applicationID", "group"}, []string{"resolution"}); !res.ok {
+	if res = checkQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.ok {
 		return res
 	}
 
@@ -108,6 +109,23 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 	}
 
 	var err error
+
+	if r.URL.Query().Get("yrange") != "" {
+		y := strings.Split(r.URL.Query().Get("yrange"), `,`)
+
+		var ymin, ymax float64
+
+		if len(y) != 2 {
+			return badRequest("invalid yrange query param.")
+		}
+		if ymin, err = strconv.ParseFloat(y[0], 64); err != nil {
+			return badRequest("invalid yrange query param.")
+		}
+		if ymax, err = strconv.ParseFloat(y[1], 64); err != nil {
+			return badRequest("invalid yrange query param.")
+		}
+		p.SetYAxis(ymin, ymax)
+	}
 
 	switch r.URL.Query().Get("group") {
 	case "counters":
