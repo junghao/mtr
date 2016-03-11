@@ -92,12 +92,8 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		rows, err = dbR.Query(`SELECT longitude, latitude, time, avg, lower, upper FROM field.metric_summary_hour`)
 
 	default:
-		rows, err = dbR.Query(`SELECT longitude, latitude, time, value,
-			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
-			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
-			FROM field.metric_latest LEFT OUTER JOIN field.threshold USING (devicePK, typePK)
-			JOIN field.device USING (devicePK)
-			WHERE typePK = (SELECT typePK FROM field.type WHERE typeID = $1)`, f.typeID)
+		rows, err = dbR.Query(`SELECT longitude, latitude, time, avg, lower, upper 
+			FROM field.metric_summary_hour WHERE typeID = $1)`, f.typeID)
 	}
 	if err != nil {
 		return internalServerError(err)
