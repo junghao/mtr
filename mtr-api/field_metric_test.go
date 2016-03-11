@@ -111,10 +111,7 @@ func TestFieldMetrics(t *testing.T) {
 	// doRequest("GET", "*/*", "/field/metric/latest?bbox=NewZealand&width=800&typeID=voltage", 200, t) // SVG medium size map.
 
 	doRequest("GET", "application/json;version=1", "/field/metric/latest", 200, t)
-	doRequest("GET", "application/vnd.geo+json;version=1", "/field/metric/latest", 200, t)
-
 	doRequest("GET", "application/json;version=1", "/field/metric/latest?typeID=voltage", 200, t)
-	doRequest("GET", "application/vnd.geo+json;version=1", "/field/metric/latest?typeID=voltage", 200, t)
 
 	// Thresholds
 	doRequest("GET", "application/json;version=1", "/field/metric/threshold", 200, t)
