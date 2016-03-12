@@ -493,29 +493,18 @@ func insertAppMetrics(applicationPK, instancePK int, tableResolution string, res
 	go func() {
 		defer close(out)
 		var err error
-		var insert *sql.Stmt
-		if insert, err = db.Prepare(`INSERT INTO app.metric_` + tableResolution + ` (applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`); err != nil {
-			out <- internalServerError(err)
-			return
-		}
-		defer insert.Close()
-
-		var update *sql.Stmt
-		if update, err = db.Prepare(`UPDATE app.metric_` + tableResolution + ` SET avg = ($5 + (avg * n)) / (n+1), n = n + 1
-					WHERE applicationPK = $1
-					AND instancePK = $2
-					AND typePK = $3
-					AND time = $4`); err != nil {
-			out <- internalServerError(err)
-			return
-		}
-		defer update.Close()
 
 		for _, v := range metrics {
-			if _, err = insert.Exec(applicationPK, instancePK, v.MetricID, v.Time.Truncate(resolution), v.Value, 1); err != nil {
+			if _, err = db.Exec(`INSERT INTO app.metric_`+tableResolution+` (applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`,
+				applicationPK, instancePK, v.MetricID, v.Time.Truncate(resolution), v.Value, 1); err != nil {
 				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
-					if _, err = update.Exec(applicationPK, instancePK, v.MetricID, v.Time.Truncate(resolution), v.Value); err != nil {
+					if _, err = db.Exec(`UPDATE app.metric_`+tableResolution+` SET avg = ($5 + (avg * n)) / (n+1), n = n + 1
+						WHERE applicationPK = $1
+						AND instancePK = $2
+						AND typePK = $3
+						AND time = $4`,
+						applicationPK, instancePK, v.MetricID, v.Time.Truncate(resolution), v.Value); err != nil {
 						out <- internalServerError(err)
 						return
 					}
@@ -537,28 +526,17 @@ func insertAppCounters(applicationPK int, tableResolution string, resolution tim
 	go func() {
 		defer close(out)
 		var err error
-		var insert *sql.Stmt
-		if insert, err = db.Prepare(`INSERT INTO app.counter_` + tableResolution + `(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`); err != nil {
-			out <- internalServerError(err)
-			return
-		}
-		defer insert.Close()
-
-		var update *sql.Stmt
-		if update, err = db.Prepare(`UPDATE app.counter_` + tableResolution + ` SET count = count + $4
-					WHERE applicationPK = $1
-					AND typePK = $2
-					AND time = $3`); err != nil {
-			out <- internalServerError(err)
-			return
-		}
-		defer update.Close()
 
 		for _, v := range counters {
-			if _, err = insert.Exec(applicationPK, v.CounterID, v.Time.Truncate(resolution), v.Count); err != nil {
+			if _, err = db.Exec(`INSERT INTO app.counter_`+tableResolution+`(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
+				applicationPK, v.CounterID, v.Time.Truncate(resolution), v.Count); err != nil {
 				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
-					if _, err = update.Exec(applicationPK, v.CounterID, v.Time.Truncate(resolution), v.Count); err != nil {
+					if _, err = db.Exec(`UPDATE app.counter_`+tableResolution+` SET count = count + $4
+							WHERE applicationPK = $1
+							AND typePK = $2
+							AND time = $3`,
+						applicationPK, v.CounterID, v.Time.Truncate(resolution), v.Count); err != nil {
 						out <- internalServerError(err)
 						return
 					}
@@ -579,23 +557,7 @@ func insertAppTimers(applicationPK int, tableResolution string, resolution time.
 	out := make(chan *result)
 	go func() {
 		defer close(out)
-		var insert *sql.Stmt
 		var err error
-		if insert, err = db.Prepare(`INSERT INTO app.timer_` + tableResolution + ` (applicationPK, sourcePK, time, avg, n) VALUES($1,$2,$3,$4,$5)`); err != nil {
-			out <- internalServerError(err)
-			return
-		}
-		defer insert.Close()
-
-		var update *sql.Stmt
-		if update, err = db.Prepare(`UPDATE app.timer_` + tableResolution + ` SET avg = ($4 + (avg * n)) / (n+$5), n = n + $5
-					WHERE applicationPK = $1
-					AND sourcePK = $2
-					AND time = $3`); err != nil {
-			out <- internalServerError(err)
-			return
-		}
-		defer update.Close()
 
 		for _, v := range timers {
 			// Find  (and possibly create) the sourcePK for the sourceID
@@ -618,10 +580,15 @@ func insertAppTimers(applicationPK int, tableResolution string, resolution time.
 				return
 			}
 
-			if _, err = insert.Exec(applicationPK, sourcePK, v.Time.Truncate(resolution), v.Total/v.Count, v.Count); err != nil {
+			if _, err = db.Exec(`INSERT INTO app.timer_`+tableResolution+` (applicationPK, sourcePK, time, avg, n) VALUES($1,$2,$3,$4,$5)`,
+				applicationPK, sourcePK, v.Time.Truncate(resolution), v.Total/v.Count, v.Count); err != nil {
 				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
 					// unique error (already a value at this resolution) update the moving average.
-					if _, err = update.Exec(applicationPK, sourcePK, v.Time.Truncate(resolution), v.Total, v.Count); err != nil {
+					if _, err = db.Exec(`UPDATE app.timer_`+tableResolution+` SET avg = ($4 + (avg * n)) / (n+$5), n = n + $5
+								WHERE applicationPK = $1
+								AND sourcePK = $2
+								AND time = $3`,
+						applicationPK, sourcePK, v.Time.Truncate(resolution), v.Total, v.Count); err != nil {
 						out <- internalServerError(err)
 						return
 					}
