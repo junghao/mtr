@@ -119,12 +119,16 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 			return internalServerError(err)
 		}
 
-		switch raw.CrossesCentral && p.longitude > -180.0 && p.longitude < 0.0 {
-		case true:
+		// Does not handle crossing the equator.
+		switch {
+		case raw.CrossesCentral && p.longitude > -180.0 && p.longitude < 0.0:
 			p.x = (p.x + map180.Width3857 - raw.LLX) * raw.DX
 			p.y = (p.y - math.Abs(raw.YShift)) * raw.DX
-		case false:
+		case p.longitude > 0.0:
 			p.x = (p.x - math.Abs(raw.XShift)) * raw.DX
+			p.y = (p.y - math.Abs(raw.YShift)) * raw.DX
+		default:
+			p.x = (p.x + math.Abs(raw.XShift)) * raw.DX
 			p.y = (p.y - math.Abs(raw.YShift)) * raw.DX
 
 		}
