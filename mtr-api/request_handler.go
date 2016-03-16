@@ -107,7 +107,7 @@ func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 		// TODO review return codes from handlers - missing things should 404, not 400.
 
 		switch r.Method {
-		case "PUT", "DELETE":
+		case "PUT", "DELETE", "POST":
 			if user, password, ok := r.BasicAuth(); ok && userW == user && keyW == password {
 				// PUT and DELETE do not have a response body for the client so pass a nil buffer.
 				res := f(r, w.Header(), nil)

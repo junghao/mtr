@@ -26,7 +26,7 @@ func sendMetrics(send <-chan internal.AppMetrics) {
 	var buf bytes.Buffer
 	var err error
 
-	req, err = http.NewRequest("PUT", os.Getenv("MTR_SERVER")+"/app/metric", &buf)
+	req, err = http.NewRequest("POST", os.Getenv("MTR_SERVER")+"/app/metric", &buf)
 	if err != nil {
 		log.Println(err)
 	}

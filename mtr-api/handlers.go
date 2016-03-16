@@ -9,7 +9,7 @@ func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	var a appMetric
 
 	switch r.Method {
-	case "PUT":
+	case "POST":
 		return a.save(r)
 	case "GET":
 		switch r.Header.Get("Accept") {
