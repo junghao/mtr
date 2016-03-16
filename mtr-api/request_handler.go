@@ -140,38 +140,30 @@ func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case "GET":
-			if user, password, ok := r.BasicAuth(); ok && userR == user && keyR == password {
-				var b bytes.Buffer
-				res := f(r, w.Header(), &b)
-				t.Stop()
+			var b bytes.Buffer
+			res := f(r, w.Header(), &b)
+			t.Stop()
 
-				switch res.code {
-				case http.StatusOK:
-					b.WriteTo(w)
+			switch res.code {
+			case http.StatusOK:
+				b.WriteTo(w)
 
-					t.Track()
-					if t.Taken() > 500 {
-						log.Printf("%s took %d ms to handle %s", id, t.Taken(), r.URL.Path)
-					}
-
-					mtrapp.StatusOK.Inc()
-				case http.StatusBadRequest:
-					http.Error(w, res.msg, res.code)
-					mtrapp.StatusBadRequest.Inc()
-				case http.StatusInternalServerError:
-					http.Error(w, res.msg, res.code)
-					mtrapp.StatusInternalServerError.Inc()
-					log.Printf("500 serving GET %s %s", r.URL, res.msg)
-				default:
-					http.Error(w, res.msg, res.code)
+				t.Track()
+				if t.Taken() > 500 {
+					log.Printf("%s took %d ms to handle %s", id, t.Taken(), r.URL.Path)
 				}
-			} else {
-				w.Header().Set("WWW-Authenticate", "Basic realm=\"GeoNet MTR\"")
-				http.Error(w, "Access denied", http.StatusUnauthorized)
-				mtrapp.StatusUnauthorized.Inc()
-				return
-			}
 
+				mtrapp.StatusOK.Inc()
+			case http.StatusBadRequest:
+				http.Error(w, res.msg, res.code)
+				mtrapp.StatusBadRequest.Inc()
+			case http.StatusInternalServerError:
+				http.Error(w, res.msg, res.code)
+				mtrapp.StatusInternalServerError.Inc()
+				log.Printf("500 serving GET %s %s", r.URL, res.msg)
+			default:
+				http.Error(w, res.msg, res.code)
+			}
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
