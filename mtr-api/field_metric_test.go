@@ -117,10 +117,12 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("GET", "application/json;version=1", "/field/metric/threshold", 200, t)
 
 	// Tags
-	doRequest("GET", "application/json;version=1", "/field/metric/tag", 200, t) // All tags
+	doRequest("GET", "application/json;version=1", "/field/metric/tag", 200, t)          // All tags on metrics
+	doRequest("GET", "application/json;version=1", "/field/metric/tag?tag=LINZ", 200, t) // All metrics for a tag
+	doRequest("GET", "application/json;version=1", "/field/tag", 200, t)                 // All tag names no metrics
 
 	// Metric types
-	doRequest("GET", "application/json;version=1", "/field/metric/type", 200, t) // All metrics type
+	doRequest("GET", "application/json;version=1", "/field/type", 200, t) // All metrics type
 }
 
 func doRequest(method, accept, uri string, status int, t *testing.T) {
