@@ -41,8 +41,8 @@ func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result
 	}
 }
 
-func fieldTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	var f fieldTag
+func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	var f fieldMetricTag
 
 	switch r.Method {
 	case "PUT":

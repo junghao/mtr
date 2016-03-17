@@ -7,11 +7,11 @@ import (
 	"net/http"
 )
 
-type fieldTag struct {
+type fieldMetricTag struct {
 	tag string
 }
 
-func (f *fieldTag) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func (f *fieldMetricTag) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	if res := checkQuery(r, []string{}, []string{"tag"}); !res.ok {
 		return res
 	}
@@ -52,7 +52,7 @@ func (f *fieldTag) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	return &statusOK
 }
 
-func (f *fieldTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func (f *fieldMetricTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	if res := checkQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.ok {
 		return res
 	}
@@ -88,7 +88,7 @@ func (f *fieldTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result
 	return &statusOK
 }
 
-func (f *fieldTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func (f *fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	if res := checkQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.ok {
 		return res
 	}
