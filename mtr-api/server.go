@@ -30,11 +30,11 @@ func init() {
 	mux.HandleFunc("/field/model", toHandler(fieldModelHandler))
 	mux.HandleFunc("/field/device", toHandler(fieldDeviceHandler))
 	mux.HandleFunc("/field/tag", toHandler(fieldTagHandler))
+	mux.HandleFunc("/field/type", toHandler(fieldTypeHandler))
 	mux.HandleFunc("/field/metric", toHandler(fieldMetricHandler))
 	mux.HandleFunc("/field/metric/latest", toHandler(fieldMetricLatestHandler))
 	mux.HandleFunc("/field/metric/threshold", toHandler(fieldThresholdHandler))
 	mux.HandleFunc("/field/metric/tag", toHandler(fieldMetricTagHandler))
-	mux.HandleFunc("/field/metric/type", toHandler(fieldTypeHandler))
 	mux.HandleFunc("/health", health)
 }
 
