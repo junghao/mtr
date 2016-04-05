@@ -94,7 +94,7 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&yrange=0.0,25.0", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", 200, t)
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", 400, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&plot=spark", 200, t)
 	doRequest("GET", "text/csv", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 
