@@ -39,7 +39,7 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 				typeID AS "TypeID",
 				lower as "Lower",
 				upper as "Upper"
-				FROM field.metric_summary_hour) l`).Scan(&s)
+				FROM field.metric_summary) l`).Scan(&s)
 	default:
 		err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]') 
 			FROM (
@@ -48,7 +48,7 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 				typeID AS "TypeID",
 				lower as "Lower",
 				upper as "Upper"
-				FROM field.metric_summary_hour where typeID = $1) l`, f.typeID).Scan(&s)
+				FROM field.metric_summary where typeID = $1) l`, f.typeID).Scan(&s)
 	}
 	if err != nil {
 		return internalServerError(err)
@@ -90,12 +90,12 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	case "":
 		rows, err = dbR.Query(`with p as (select longitude,latitude, time, avg, lower,upper, 
 			st_transform(geom::geometry, 3857) as pt
-			from field.metric_summary_hour)
+			from field.metric_summary)
 			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, avg, lower,upper from p`)
 	default:
 		rows, err = dbR.Query(`with p as (select longitude,latitude, time, avg, lower,upper,
 			st_transform(geom::geometry, 3857) as pt
-			from field.metric_summary_hour where typeID = $1)
+			from field.metric_summary where typeID = $1)
 			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, avg, lower,upper from p`, f.typeID)
 	}
 	if err != nil {

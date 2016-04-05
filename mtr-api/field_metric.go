@@ -15,13 +15,11 @@ import (
 var resolution = [...]string{
 	"minute",
 	"hour",
-	"day",
 }
 
 var duration = [...]time.Duration{
 	time.Minute,
 	time.Hour,
-	time.Hour * 24,
 }
 
 type fieldMetric struct {
@@ -193,9 +191,6 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
-	case "day":
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*730), time.Now().UTC())
-		p.SetXLabel("2 years")
 	default:
 		return badRequest("invalid value for resolution")
 	}
