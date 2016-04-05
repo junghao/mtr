@@ -100,7 +100,7 @@ func deleteMetrics() {
 	for {
 		select {
 		case <-ticker:
-			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary_hour`); err != nil {
+			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
 				log.Println(err)
 			}
 

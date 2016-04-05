@@ -90,18 +90,18 @@ CREATE INDEX on field.metric_tag (devicePK);
 CREATE INDEX on field.metric_tag (typePK);
 CREATE INDEX on field.metric_tag (tagPK);
 
--- field.metric_summary_hour is a materialized view of the metrics. 
+-- field.metric_summary is a materialized view of the metrics. 
 -- It is currently the latest value.  This could be changed. 
 --
--- REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary_hour;
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary;
 --
 -- The data is stale until refreshed, if this causes issues then use an eagerly materialized view using triggers etc.
 -- The user that will refresh the view must own it.
-CREATE MATERIALIZED VIEW field.metric_summary_hour 
+CREATE MATERIALIZED VIEW field.metric_summary
 AS  WITH summ as (SELECT devicePK, typePK, time, avg
 	FROM
 	(SELECT devicePK, typePK, time, avg, rank()
-		OVER ( PARTITION BY devicePK, typePK ORDER BY time DESC) FROM field.metric_hour) s
+		OVER ( PARTITION BY devicePK, typePK ORDER BY time DESC) FROM field.metric_minute) s
 	WHERE rank = 1)  
 	SELECT devicePK, typePK, deviceID, geom, latitude,longitude, 
 	CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower", 
@@ -112,4 +112,4 @@ AS  WITH summ as (SELECT devicePK, typePK, time, avg
 	JOIN field.type using (typePK);
 
 -- UNIQUE index is needed for refresh CONCURRENTLY
-CREATE UNIQUE INDEX on field.metric_summary_hour (devicePK, typePk, time);
+CREATE UNIQUE INDEX on field.metric_summary (devicePK, typePk, time);
