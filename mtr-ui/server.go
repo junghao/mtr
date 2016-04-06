@@ -24,6 +24,7 @@ func init() {
 
 	mux = http.NewServeMux()
 	mux.HandleFunc("/", toHandler(handler))
+	mux.HandleFunc("/field/metric/tag", toHandler(tagHandler))
 }
 
 func main() {

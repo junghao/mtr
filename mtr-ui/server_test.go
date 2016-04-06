@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -26,14 +25,12 @@ func TestExample(t *testing.T) {
 	ts := setup()
 	defer teardown(ts)
 
-	res, err := http.Get(ts.URL)
-	defer res.Body.Close()
-	if err != nil {
+	if res, err := http.Get(ts.URL); err != nil {
 		t.Error(err)
 	}
+	defer res.Body.Close()
 
-	_, err = ioutil.ReadAll(res.Body)
-	if err != nil {
+	if _, err = ioutil.ReadAll(res.Body); err != nil {
 		t.Error(err)
 	}
 
@@ -41,5 +38,4 @@ func TestExample(t *testing.T) {
 	//if bytes.Compare(bodyText, []byte("Hello from a demo page")) != 0 {
 	//	t.Errorf("unexpected text in body: %s", bodyText)
 	//}
-
 }

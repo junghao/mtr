@@ -13,6 +13,19 @@ type page struct {
 	Body  []byte
 }
 
+type tagsPage struct {
+	page
+	Tags  tags
+}
+
+type tags []tag
+
+type tag struct {
+	TypeID   string
+	DeviceID string
+	Tag      string
+}
+
 type result struct {
 	ok   bool   // set true to indicated success
 	code int    // http status code for writing back the client e.g., http.StatusOK for success.
@@ -94,6 +107,29 @@ func checkQuery(r *http.Request, required, optional []string) *result {
 	return &statusOK
 }
 
+func tagHandler(r *http.Request, w http.ResponseWriter, b *bytes.Buffer) *result {
+
+	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+		return res
+	}
+
+	// We create a page struct with variables to substitute into the loaded template
+	var p tagsPage //{Title:"Tags"}
+	p.page.Title = "Tags"
+
+	//if res := p.load(r.URL.Path); !res.ok {
+	//	return res
+
+	// TODO: handle requests for a specific tag (in a different func), get the tag from the mtr-api and return a slice of structs
+	p.Tags = append(p.Tags, tag{DeviceID:"hello", TypeID:"Something", Tag:"madeup"})
+	p.Tags = append(p.Tags, tag{DeviceID:"Yep", TypeID:"More", Tag:"stuff"})
+
+	if err := tagsTemplate.ExecuteTemplate(b, "border", p); err != nil {
+		return internalServerError(err)
+	}
+
+	return &statusOK
+}
 
 // example handler.
 func handler(r *http.Request, w http.ResponseWriter, b *bytes.Buffer) *result {
@@ -102,9 +138,8 @@ func handler(r *http.Request, w http.ResponseWriter, b *bytes.Buffer) *result {
 		return res
 	}
 
-	// Ah ha, we create a page struct with variables to substitute into the loaded template
-	// TODO: what's the difference between Execute and ExecuteTemplate?
-	p := page{Title:"a title", Body:[]byte("some generated text")}
+	// We create a page struct with variables to substitute into the loaded template
+	p := page{Title:"a title"}
 
 	//if res := p.load(r.URL.Path); !res.ok {
 	//	return res
@@ -114,9 +149,9 @@ func handler(r *http.Request, w http.ResponseWriter, b *bytes.Buffer) *result {
 	//	return internalServerError(err)
 	//}
 
-	err := borderTemplate.ExecuteTemplate(w, "border", p)
-	if err != nil {
-		http.Error(http.ResponseWriter(w), err.Error(), http.StatusInternalServerError)
+
+	if err := borderTemplate.ExecuteTemplate(b, "border", p); err != nil {
+		return internalServerError(err)
 	}
 
 	//b.WriteString("Hello from a demo page")
