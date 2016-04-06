@@ -120,3 +120,9 @@ INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1003, 'MemHeapObj
 
 --- Other runtime stats
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1100, 'Routines', 'number of routines that currently exist', 'n'); 
+
+--- Message counters
+INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1201, 'MsgRx', 'messages received', 'n'); 
+INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1202, 'MsgTx', 'messages transmitted', 'n'); 
+INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1203, 'MsgProc', 'messages processed', 'n'); 
+INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1204, 'MsgErr', 'messages error', 'n'); 
