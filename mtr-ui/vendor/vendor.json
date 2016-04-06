@@ -1,0 +1,12 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"origin": "github.com/GeoNet/mtr/vendor/github.com/GeoNet/log/logentries",
+			"path": "github.com/GeoNet/log/logentries",
+			"revision": "53141614a2d24d8ff2170ee27359e7b50dab5288",
+			"revisionTime": "2016-03-17T18:17:41+13:00"
+		}
+	]
+}

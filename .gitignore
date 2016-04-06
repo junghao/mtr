@@ -1,5 +1,7 @@
 mtr-api/mtr-api
 mtr-api/env.list.prod
+mtr-ui/mtr-ui
 docker-build-tmp/
 .idea/
 mtr.iml
+node_modules/
