@@ -351,8 +351,22 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	}
 	rows.Close()
 
-	if len(pts) > 0 {
-		p.SetLatest(pts[len(pts)-1])
+	// Add the latest minute value to the plot
+	switch resolution {
+	case "minute":
+		if len(pts) > 0 {
+			p.SetLatest(pts[len(pts)-1], "deepskyblue")
+		}
+	default:
+		// Ignore errors.  There might be no data left at minute resolution but
+		// still data at hour etc.
+		t = time.Time{}
+		avg = 0
+		_ = dbR.QueryRow(`SELECT time, avg FROM field.metric_minute WHERE 
+		devicePK = $1 AND typePK = $2
+		ORDER BY time DESC LIMIT 1 `,
+			f.devicePK, f.fieldType.typePK).Scan(&t, &avg)
+		p.SetLatest(ts.Point{DateTime: t, Value: float64(avg) * f.fieldType.Scale}, "deepskyblue")
 	}
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})

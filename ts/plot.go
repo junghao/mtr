@@ -31,6 +31,8 @@ type plt struct {
 	Min, Max, First, Last         Point   // min, max, first, and last Data Point
 	MinPt, MaxPt, FirstPt, LastPt pt      // min, max, first, and last Data pt
 	Latest                        Point
+	LatestPt                      pt
+	LatestColour                  string
 	RangeAlert                    bool
 	Threshold                     threshold
 	Axes                          axes
@@ -150,9 +152,10 @@ func (p *Plot) AddSeries(s Series) {
 /*
 use to explicitly set the latest value to display on the top right of the plot
 */
-func (p *Plot) SetLatest(pt Point) {
+func (p *Plot) SetLatest(pt Point, colour string) {
 	p.plt.Latest = pt
 	p.plt.ShowLatest = true
+	p.plt.LatestColour = colour
 }
 
 func (p *Plot) SetLables(l Lables) {
@@ -243,6 +246,12 @@ func (p *Plot) scaleData() {
 	p.plt.LastPt = pt{
 		X: int((p.plt.Last.DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
 		Y: p.plt.height - int(((p.plt.Last.Value-p.plt.YMin)*p.plt.dy)+0.5),
+	}
+	if p.plt.ShowLatest {
+		p.plt.LatestPt = pt{
+			X: int((p.plt.Latest.DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
+			Y: p.plt.height - int(((p.plt.Latest.Value-p.plt.YMin)*p.plt.dy)+0.5),
+		}
 	}
 
 	if p.plt.MinPt.Y > p.plt.height {
