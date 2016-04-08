@@ -107,7 +107,8 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 {{if .ShowLatest}}
 <text x="780" y="0" text-anchor="end" dominant-baseline="hanging" fill="darkslategray">
 {{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}})
-</text>{{end}}
+</text>
+{{end}}
 {{if .Lables}}
 <text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Lables}}<tspan fill="{{.Colour}}">{{.Lable}}</tspan> {{end}}</text>
 {{end}}
@@ -129,6 +130,11 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 {{end}}
 
 {{template "data" .}}
+{{if .ShowLatest}}
+<g style="stroke: {{.LatestColour}}; fill: none">
+<circle cx="{{.LatestPt.X}}" cy="{{.LatestPt.Y}}" r="3" />
+</g>
+{{end}}
 </g>
 
 </svg>
