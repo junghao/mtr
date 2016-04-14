@@ -1,19 +1,29 @@
-#!/bin/bash
+#!/bin/bash -e
 
-mkdir -p docker-build-tmp
-chmod +s docker-build-tmp
+# code will be compiled in this container
+BUILD_CONTAINER=golang:1.6.1-alpine
 
-# Build all executables in the golang-godep container.  Output statically linked binaries to docker-build-tmp
-docker run -e "GOBIN=/usr/src/go/src/github.com/GeoNet/mtr/docker-build-tmp" -e "GOPATH=/usr/src/go" -e "CGO_ENABLED=0" -e "GOOS=linux" --rm -v \
-"$PWD":/usr/src/go/src/github.com/GeoNet/mtr -w /usr/src/go/src/github.com/GeoNet/mtr golang:1.6.0-alpine go install -a  -ldflags "${BUILD}" -installsuffix cgo ./...
+DOCKER_TMP=docker-build-tmp
 
-# Assemble common resource for ssl, timezones, and user.
-mkdir -p docker-build-tmp/common/etc/ssl/certs
-mkdir -p docker-build-tmp/common/usr/share
-echo "nobody:x:65534:65534:Nobody:/:" > docker-build-tmp/common/etc/passwd
-cp /etc/ssl/certs/ca-certificates.crt docker-build-tmp/common/etc/ssl/certs
-# An alternative is to use $GOROOT/lib/time/zoneinfo.zip
-rsync --archive /usr/share/zoneinfo docker-build-tmp/common/usr/share
+mkdir -p $DOCKER_TMP
+chmod +s $DOCKER_TMP
+mkdir -p ${DOCKER_TMP}/common/etc/ssl/certs
+mkdir -p ${DOCKER_TMP}/common/usr/share
+
+# Prefix for the logs
+BUILD='-X github.com/GeoNet/mtr/vendor/github.com/GeoNet/log/logentries.Prefix=git-'`git rev-parse --short HEAD`
+
+# Build all executables in the Golang container.  Output statically linked binaries to docker-build-tmp
+# Assemble common resource for ssl and timezones
+docker run -e "GOBIN=/usr/src/go/src/github.com/GeoNet/mtr/${DOCKER_TMP}" -e "GOPATH=/usr/src/go" -e "CGO_ENABLED=0" -e "GOOS=linux" -e "BUILD=$BUILD" --rm \
+	-v "$PWD":/usr/src/go/src/github.com/GeoNet/mtr \
+	-w /usr/src/go/src/github.com/GeoNet/mtr ${BUILD_CONTAINER} \
+	go install -a  -ldflags "${BUILD}" -installsuffix cgo ./...; \
+	cp /etc/ssl/certs/ca-certificates.crt ${DOCKER_TMP}/common/etc/ssl/certs; \
+	cp -Ra /usr/share/zoneinfo ${DOCKER_TMP}/common/usr/share
+
+# Assemble common resource for user.
+echo "nobody:x:65534:65534:Nobody:/:" > ${DOCKER_TMP}/common/etc/passwd
 
 # Docker images for web apps with an open port 
 for i in mtr-api
