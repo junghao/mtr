@@ -7,24 +7,35 @@ import (
 	_ "github.com/GeoNet/log/logentries"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 )
 
 var (
-	mux *http.ServeMux
+	mux           *http.ServeMux
+	mtrApiUrl     *url.URL
 	webServerPort string
 )
 
 func init() {
+	var err error
 	webServerPort = os.Getenv("MTR_UI_PORT")
+	mtrApiUrlString := os.Getenv("MTR_API_URL")
 	switch "" {
 	case webServerPort:
 		log.Fatal("error, environment variable MTR_UI_PORT must be set (eg: 8080)")
+	case mtrApiUrlString:
+		log.Fatal("error, environment variable MTR_API_URL must be set (eg: https://mtr-api.geonet.org.nz)")
+	}
+
+	if mtrApiUrl, err = url.Parse(mtrApiUrlString); err != nil {
+		log.Fatal(err)
 	}
 
 	mux = http.NewServeMux()
-	mux.HandleFunc("/", toHandler(handler))
-	mux.HandleFunc("/field/metric/tag", toHandler(tagHandler))
+	mux.HandleFunc("/", toHandler(demoHandler))
+	mux.HandleFunc("/field/metric", toHandler(metricDetailHandler))
+	mux.HandleFunc("/search", toHandler(searchHandler))
 }
 
 func main() {

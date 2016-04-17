@@ -1,0 +1,7 @@
+{{define "search_tags"}}
+<!--todo: this makes a simple html5 typeahead search, get the tag IDs from the mtr-api (in go) -->
+                    <datalist id="tagIDs">
+                        {{ range $tagname := .Border.TagList }}
+                        <option value="{{$tagname}}">{{end}}
+                    </datalist>
+{{end}}

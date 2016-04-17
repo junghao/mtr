@@ -10,7 +10,7 @@ import (
 // a test server running on localhost that serves our custom test content
 func setup() (server *httptest.Server) {
 	// a test server that tests our handler(s)
-	testServer := httptest.NewServer(http.HandlerFunc(toHandler(handler)))
+	testServer := httptest.NewServer(http.HandlerFunc(toHandler(demoHandler)))
 
 	return testServer
 }
@@ -22,10 +22,15 @@ func teardown(server *httptest.Server) {
 // An example test that checks the body contents, very simple
 func TestExample(t *testing.T) {
 
+	var (
+		err error
+		res *http.Response
+	)
+
 	ts := setup()
 	defer teardown(ts)
 
-	if res, err := http.Get(ts.URL); err != nil {
+	if res, err = http.Get(ts.URL); err != nil {
 		t.Error(err)
 	}
 	defer res.Body.Close()
