@@ -34,7 +34,7 @@ var SparkLine = SVGSpark{
 }
 
 const sparkBaseTemplate = `<?xml version="1.0"?>
-<svg viewBox="0,0,800,28" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="14px" fill="darkslategrey">
+<svg viewBox="0,0,255,28" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="14px" fill="darkslategrey">
 <g transform="translate(3,4)"> 
 {{if .Threshold.Show}}
 <rect x="0" y="{{.Threshold.Y}}" width="100" height="{{.Threshold.H}}" fill="lightgrey" fill-opacity="0.3"/>
