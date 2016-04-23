@@ -106,11 +106,9 @@ func TestFieldMetrics(t *testing.T) {
 	// latitude (EPSG:4327) corners e.g., <code>165,-48,179,-34</code>.  Latitude must be in the range -85 to 85.  Maps can be 180 centric and bbox
 	// definitions for longitude can be -180 to 180 or 0 to 360
 	//
-	// doRequest("GET", "*/*", "/field/metric/latest?bbox=NewZealand&width=800", 200, t)
-	// doRequest("GET", "*/*", "/field/metric/latest?bbox=WhiteIsland&width=800&insetBbox=NewZealand", 200, t)
+	// doRequest("GET", "*/*", "/field/metric/latest?bbox=WhiteIsland&width=800typeID=voltage", 200, t)
 	// doRequest("GET", "*/*", "/field/metric/latest?bbox=NewZealand&width=800&typeID=voltage", 200, t) // SVG medium size map.
 
-	doRequest("GET", "application/json;version=1", "/field/metric/latest", 200, t)
 	doRequest("GET", "application/json;version=1", "/field/metric/latest?typeID=voltage", 200, t)
 
 	// Thresholds

@@ -11,8 +11,5 @@ GRANT CONNECT ON DATABASE mtr TO mtr_r;
 GRANT USAGE ON SCHEMA field TO mtr_r;
 GRANT SELECT ON ALL TABLES IN SCHEMA field TO mtr_r;
 
-GRANT SELECT ON field.metric_summary to mtr_r;
-ALTER MATERIALIZED VIEW field.metric_summary OWNER TO mtr_w;
-
 GRANT USAGE ON SCHEMA app TO mtr_r;
 GRANT SELECT ON ALL TABLES IN SCHEMA app TO mtr_r;
