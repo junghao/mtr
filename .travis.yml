@@ -1,9 +1,26 @@
+sudo: required
+
 language: go
 go:
-- 1.6.1
+  - 1.6.1
+
+services:
+  - docker
+
+before_deploy:
+  - docker login --email="." --username="geonet+dockerbuild" --password="$docker_password" quay.io
+
+# also trying to fix postgis bug
+before_install:
+ - export DEBIAN_FRONTEND=noninteractive;
+   sudo -E apt-get -yq update &>> ~/apt-get-update.log;
+   sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.2
+
 install: true
+
 addons:
   postgresql: '9.4'
+ 
 before_script:
 - psql -U postgres -c "create extension postgis"
 - ./database/scripts/initdb.sh
@@ -11,7 +28,18 @@ script: export $(cat mtr-api/env.list | grep = | xargs) && go test ./...  -v
 notifications:
   hipchat:
     rooms:
-      secure: s1DQrj7CvMTb0k9wJWPjhxPY4Gg2u1vbpnd9akHQDVJgTAinEwrP1thv5hlDN6XhnzJLz/5jHQqjj6apvKc0t38Jzt+cZA82DnZ4IkM5wblVkhnpcZjg7H55v/yaEJObGueFwtMg1y4rSnQIiGMr7aKA7ZzX7bF5Oojuws9mK5G8W5US91u9lClSZROJ5bD39CX//3NFjzKmCCZV7bAEd+Jc8MplsDHy2NQI7z+nFpOqfj4rIR9jLU9iVkyteGiTGYeOo7UW2mmGmKGwyfXwlmK8zEBnMqszOEfMI13UFgIPxjyQaM0tIunNG0CznT1r1F7WJ8w3PO3Qeuva9N9UnwGDqer8ywUBVAv18IwJRgIv4Qz74kLqj6nXuhghAQ908xBoAS6fxOC4e0uT5XdMDaxmIqSCkrd2VnNfGi+Con3H9CJ8Kz0MIfJAwuoCsdcWpxbIXeWBcyZjFPejCC8NaSjRq4JfJnWqj9p3+MstAf/2qNwPXiXApnzyFNi4MPPFY/TTfp+P75GlM8drP3/tvTRiy+uBwxiZ0D6T+9ZCOWHHkNv/pTf4rO5p9WEVR9gt3Q6LKnckkjHb1WhxybScO1LI9hLbtIJdI9/h3hH4ptsv4O3hSAH3/XmjKG01s/wVVtC+M4LwNPCxYpGz3fP3JsCn0OB+bmYGvTslc1k+PiI=
+      secure: "mv63qNPXrQ0baKG2ZOx4iePu4wS4HcXanOOlhyHjKcGdLCEb3m+ZkGY7LdZF7n61CG1Umg+lsWGSWFqHcOemSQ8SVwQUXCu/sP9pjAV9AuEmaKIR1J37ovZz7Cl2c29ejWECg2XM3WTu5lLRgIKXAaRr4d+sFpm097LH0IrtWNz1GFnIbJs43994wRrqJDOLKnf4sEpLRUCXwwQFN7N85KtR+VlxUx197kRBFpUKICX6S4psbbaJBGIzlqSa5ILrx6zmgJaKdHAw1RjMqRpWJESobjPmFk9S+Ecxlohk6GXCCd5ddHHY9LdWm3eirN8R5KQx9zuk1MfacDslFqaYK5ptCbK9LvkVB0mMn2ezuMlnvZobPeDdmKbtSqj+mJoY47OBFvSdO5bIOSErNRKzuxN9Jp9A4MS/znZCngUmy7VFESIq+LxZe4fvevPYFotLi/gB9TcbkCR0CU4ZBqb18AirIgos8b4lytsM/ADl2HD+mQpsjHKv7jAd4RoqiG9w6/i4GIC2w4mabaPcMvkU+t9sKUUOxrcMik7xwiKa5q67u8FVBWts5dg/aFgYRE0AKysYOBlJWxX3g3nD5wPK6E5GmlWSEftWiseXXiGOB+cQ+h6S5irV22aAAMkjV2TU8nNCrLD76MK1kGKxAt34uoYFSiwHpUXAeQAxk68/Pns="
     notify: true
     on_success: always
     on_failure: always
+
+deploy:
+   - provider: script
+     skip_cleanup: true
+     script: ./build-push.sh mtr-api
+     on: 
+       branch: master
+  
+env:
+    global:
+        - secure: "kBKz/eGZuF/0PgnkHFu42TM49dpcvqeYXwk8+I89aS8f94dUBS6oGJXI9JWbcQfvEUHPnElVFS49K6nZuEGDreWml41qcIAFa2qHmlzvImLxXx/S+DTogI4XKoqTP9qkew8+liv43GJDva40w3oUdwfKv/0EKngvBv5pbT28HiLotBh1ozohda1GrGsQi9SeaYp3cl+lveC7JbeCA1gRylcOjcyaQ6VzipGS4ZFN1ewwafwQJEpxiwe61xpqPCQQCPvuKF9qykhl2r9xqSF6P9/JmCI1j7VmEYBd8AF5CSxbap6s3p6t1Hc6i8bCRtD9ygWe5Jt2vEJ9HOJYAoXKRdfoI+sDn3W5DhY0k/l4a5RBoNNnbTwJnakOoRz+7Y6aMsD0DNk8iMQJNAtoU5Gs2o0XO6EaNDa7YW+dNOeZaCnE7GxxIkTNaPzfbzJkKczYTc8R88JSS242PA0XJ4wrUMnf7W7GPSjYarv0jcHO4+S1CF0czMLMfey3EHyb8qmHnZE9o0SZZoSI+P2i7uhn+5GjJhy7JWtIIhDKWyY24nK3RxqRDsXWepqbgUh7xMO6D6mtaATlgEvwWNIaJv43dJmrd7MH0mfJzkdqOduKmQKFwV6suWjHc4+Qnt3VFGVDqtd5YdN6+VetPcb+G7RGGuC3pL9tq7A1W79VZhCbFys="

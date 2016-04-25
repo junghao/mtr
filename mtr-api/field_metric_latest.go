@@ -21,7 +21,7 @@ type point struct {
 }
 
 func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{}, []string{"typeID"}); !res.ok {
+	if res := checkQuery(r, []string{"typeID"}, []string{}); !res.ok {
 		return res
 	}
 
@@ -30,27 +30,18 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	var s string
 	var err error
 
-	switch f.typeID {
-	case "":
-		err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]') 
+	if err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]') 
 			FROM (
 				SELECT latitude AS "Latitude", longitude AS "Longitude", 
-				deviceID AS "DeviceID", time AS "Time", avg AS "Value",
+				deviceID AS "DeviceID", time AS "Time", value AS "Value",
 				typeID AS "TypeID",
 				lower as "Lower",
 				upper as "Upper"
-				FROM field.metric_summary) l`).Scan(&s)
-	default:
-		err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]') 
-			FROM (
-				SELECT latitude AS "Latitude", longitude AS "Longitude", 
-				deviceID AS "DeviceID", time AS "Time", avg AS "Value",
-				typeID AS "TypeID",
-				lower as "Lower",
-				upper as "Upper"
-				FROM field.metric_summary where typeID = $1) l`, f.typeID).Scan(&s)
-	}
-	if err != nil {
+				FROM field.metric_latest 
+				join field.device using (devicePK) 
+				join field.type using (typePK) 
+				join field.threshold using (devicePK, typePK) 
+				where typeID = $1) l`, f.typeID).Scan(&s); err != nil {
 		return internalServerError(err)
 	}
 
@@ -62,7 +53,7 @@ func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *r
 }
 
 func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"bbox", "width"}, []string{"typeID"}); !res.ok {
+	if res := checkQuery(r, []string{"bbox", "width", "typeID"}, []string{}); !res.ok {
 		return res
 	}
 
@@ -86,19 +77,14 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return internalServerError(err)
 	}
 
-	switch f.typeID {
-	case "":
-		rows, err = dbR.Query(`with p as (select longitude,latitude, time, avg, lower,upper, 
+	if rows, err = dbR.Query(`with p as (select longitude,latitude, time, value, lower,upper,
 			st_transform(geom::geometry, 3857) as pt
-			from field.metric_summary)
-			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, avg, lower,upper from p`)
-	default:
-		rows, err = dbR.Query(`with p as (select longitude,latitude, time, avg, lower,upper,
-			st_transform(geom::geometry, 3857) as pt
-			from field.metric_summary where typeID = $1)
-			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, avg, lower,upper from p`, f.typeID)
-	}
-	if err != nil {
+			from field.metric_latest
+			join field.device using (devicePK) 
+			join field.type using (typePK) 
+			join field.threshold using (devicePK, typePK) 
+			 where typeID = $1)
+			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, value, lower,upper from p`, f.typeID); err != nil {
 		return internalServerError(err)
 	}
 	defer rows.Close()

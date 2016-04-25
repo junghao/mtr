@@ -100,10 +100,6 @@ func deleteMetrics() {
 	for {
 		select {
 		case <-ticker:
-			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
-				log.Println(err)
-			}
-
 			if _, err = db.Exec(`DELETE FROM field.metric_minute WHERE time < now() - interval '12 hours'`); err != nil {
 				log.Println(err)
 			}

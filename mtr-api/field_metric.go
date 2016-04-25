@@ -85,6 +85,17 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		}
 	}
 
+	// TODO switch to Postgres 9.5 and use upsert.
+	if _, err = db.Exec(`INSERT INTO field.metric_latest(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
+		f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
+		if _, err = db.Exec(`UPDATE field.metric_latest  SET time = $3, value = $4
+				WHERE devicePK = $1
+				AND typePK = $2
+				AND time <= $3`, f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
+			return internalServerError(err)
+		}
+	}
+
 	return &statusOK
 }
 
@@ -119,6 +130,12 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.threshold WHERE devicePK = $1 AND typePK = $2`,
+		f.devicePK, f.fieldType.typePK); err != nil {
+		txn.Rollback()
+		return internalServerError(err)
+	}
+
+	if _, err = txn.Exec(`DELETE FROM field.metric_latest WHERE devicePK = $1 AND typePK = $2`,
 		f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
@@ -351,23 +368,17 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	}
 	rows.Close()
 
-	// Add the latest minute value to the plot
-	switch resolution {
-	case "minute":
-		if len(pts) > 0 {
-			p.SetLatest(pts[len(pts)-1], "deepskyblue")
-		}
-	default:
-		// Ignore errors.  There might be no data left at minute resolution but
-		// still data at hour etc.
-		t = time.Time{}
-		avg = 0
-		_ = dbR.QueryRow(`SELECT time, avg FROM field.metric_minute WHERE 
-		devicePK = $1 AND typePK = $2
-		ORDER BY time DESC LIMIT 1 `,
-			f.devicePK, f.fieldType.typePK).Scan(&t, &avg)
-		p.SetLatest(ts.Point{DateTime: t, Value: float64(avg) * f.fieldType.Scale}, "deepskyblue")
+	// Add the latest value to the plot - this may be different to the average at minute or hour resolution.
+	t = time.Time{}
+	var value int32
+	if err = dbR.QueryRow(`SELECT time, value FROM field.metric_latest WHERE 
+			devicePK = $1 AND typePK = $2`,
+		f.devicePK, f.fieldType.typePK).Scan(&t, &value); err != nil {
+		return internalServerError(err)
 	}
+
+	pts = append(pts, ts.Point{DateTime: t, Value: float64(value) * f.fieldType.Scale})
+	p.SetLatest(ts.Point{DateTime: t, Value: float64(value) * f.fieldType.Scale}, "deepskyblue")
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
