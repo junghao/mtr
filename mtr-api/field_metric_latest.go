@@ -77,12 +77,14 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return internalServerError(err)
 	}
 
-	if rows, err = dbR.Query(`with p as (select longitude,latitude, time, value, lower,upper,
+	if rows, err = dbR.Query(`with p as (select longitude,latitude, time, value,
+			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
+			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper",
 			st_transform(geom::geometry, 3857) as pt
 			from field.metric_latest
 			join field.device using (devicePK) 
 			join field.type using (typePK) 
-			join field.threshold using (devicePK, typePK) 
+			left outer join field.threshold using (devicePK, typePK)
 			 where typeID = $1)
 			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, value, lower,upper from p`, f.typeID); err != nil {
 		return internalServerError(err)

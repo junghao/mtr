@@ -371,10 +371,12 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	// Add the latest value to the plot - this may be different to the average at minute or hour resolution.
 	t = time.Time{}
 	var value int32
-	if err = dbR.QueryRow(`SELECT time, value FROM field.metric_latest WHERE 
+	// TODO - ignoring errors.  These are caused by chaning the latest view to a table and will
+	// stop once enough data has arrived.  Then stop ignoring the errors.
+	if _ = dbR.QueryRow(`SELECT time, value FROM field.metric_latest WHERE
 			devicePK = $1 AND typePK = $2`,
 		f.devicePK, f.fieldType.typePK).Scan(&t, &value); err != nil {
-		return internalServerError(err)
+		//return internalServerError(err)
 	}
 
 	pts = append(pts, ts.Point{DateTime: t, Value: float64(value) * f.fieldType.Scale})
