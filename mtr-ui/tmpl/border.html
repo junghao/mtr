@@ -1,0 +1,389 @@
+{{define "border"}}
+
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+    <title>GeoNet MTR Home</title>
+    <link rel="stylesheet" href="//static.geonet.org.nz/bootstrap/3.3.6/css/bootstrap.min.css">
+
+
+    <style>
+		.footer {
+			margin-top: 20px;
+			padding: 20px 0 20px;
+			border-top: 1px solid #e5e5e5;
+		}
+
+		.footer p {
+			text-align: center;
+		}
+
+		#logo{position:relative;}
+		#logo li{margin:0;padding:0;list-style:none;position:absolute;top:0;}
+		#logo li a span
+		{
+			position: absolute;
+			left: -10000px;
+		}
+
+		#gns li, #gns a
+		{
+			float: left;
+			display:block;
+			height: 90px;
+			width: 54px;
+		}
+
+		#gns{left:-20px;height:90px;width:54px;}
+		#gns{background:url('//static.geonet.org.nz/geonet-2.0.2/images/logos.png') -0px -0px;}
+
+		#eqc li, #eqc a
+		{
+			display:block;
+			height: 61px;
+			width: 132px;
+		}
+
+		#eqc{right:0px;height:79px;width:132px;}
+		#eqc{background:url('//static.geonet.org.nz/geonet-2.0.2/images/logos.png') -0px -312px;}
+
+		#ccby li, #ccby a
+		{
+			display:block;
+			height: 15px;
+			width: 80px;
+		}
+		#ccby{left:15px;height:15px;width:80px; }
+		#ccby{background:url('//static.geonet.org.nz/geonet-2.0.2/images/logos.png') -0px -100px;}
+
+		#geonet{
+			background:url('//static.geonet.org.nz/geonet-2.0.2/images/logos.png') 0px -249px;
+			width:137px;
+			height:53px;
+			display:block;
+		}
+		.linked {
+			padding: 10px;
+			margin: 0px 0;
+			border: 1px solid #eee;
+			border-radius: 3px;
+			color: #333;
+		}
+		.mmi-callout {
+			padding: 10px;
+			margin: 0px 0;
+			border: 1px solid #eee;
+			border-left-width: 5px;
+			border-radius: 3px;
+			color: #333;
+		}
+		.mmi-callout p:last-child {
+			margin-bottom: 0;
+		}
+		.mmi-callout code {
+			border-radius: 3px;
+		}
+		.mmi-callout+.mmi-callout {
+			margin-top: -5px;
+		}
+		.mmi-callout--1 {
+			border-left-color: #feedde;
+		}
+		.mmi-callout-0 {
+			border-left-color: #feedde;
+		}
+		.mmi-callout-1 {
+			border-left-color: #feedde;
+		}
+		.mmi-callout-2 {
+			border-left-color: #feedde;
+		}
+		.mmi-callout-3 {
+			border-left-color: #fdd0a2;
+		}
+		.mmi-callout-4 {
+			border-left-color: #fdae6b;
+		}
+		.mmi-callout-5 {
+			border-left-color: #fd8d3c;
+		}
+		.mmi-callout-6 {
+			border-left-color: #f16913;
+		}
+		.mmi-callout-7 {
+			border-left-color: #d94801;
+		}
+		.mmi-callout-8 {
+			border-left-color: #8c2d04;
+		}
+		.table-minimal {
+			width: 100%;
+			max-width: 100%;
+			margin-bottom: 10px;
+		}
+		.table-minimal > thead > tr > th,
+		.table-minimal > tbody > tr > th,
+		.table-minimal > tfoot > tr > th,
+		.table-minimal > thead > tr > td,
+		.table-minimal > tbody > tr > td,
+		.table-minimal > tfoot > tr > td {
+			padding: 2px;
+			line-height: 1.1;
+			vertical-align: top;
+			border-top: 0px solid #ddd;
+		}
+		.table-minimal > thead > tr > th {
+			vertical-align: bottom;
+			border-bottom: 0px solid #ddd;
+		}
+		.table-minimal > caption + thead > tr:first-child > th,
+		.table-minimal > colgroup + thead > tr:first-child > th,
+		.table-minimal > thead:first-child > tr:first-child > th,
+		.table-minimal > caption + thead > tr:first-child > td,
+		.table-minimal > colgroup + thead > tr:first-child > td,
+		.table-minimal > thead:first-child > tr:first-child > td {
+			border-top: 0;
+		}
+		.table-minimal > tbody + tbody {
+			border-top: 2px solid #ddd;
+		}
+		.table-minimal .table-minimal {
+			background-color: #fff;
+		}
+		.table-td-one > tbody > tr {
+			color: #777;
+		}
+		.table-td-one > tbody > tr > td:nth-child(1) {
+			color: #333;
+		}
+		.table-td-two > tbody > tr {
+			color: #777;
+		}
+		.table-td-two > tbody > tr > td:nth-child(2) {
+			color: #333;
+		}
+		.table-td-three > tbody > tr {
+			color: #777;
+		}
+		.table-td-three > tbody > tr > td:nth-child(3) {
+			color: #333;
+		}
+		.image-small {
+			max-width: 100%;
+		}
+		@media (min-width: 768px) {
+			.image-small {
+				max-width: 30%;
+				margin: 0 2% 2% 2%;
+			}
+		}
+		.image-story {
+			max-width: 30%;
+			margin: 0 2% 0 0;
+		}
+		.quality-best {
+			background-color: #DFF0D8;
+		}
+		.quality-good {
+			background-color: #F5F5F5;
+		}
+		.quality-caution {
+			background-color: #FCF8E3;
+		}
+		.quality-deleted {
+			background-color: #F2DED7;
+		}
+		.val-0 {
+			background-color:#E7DEEC;
+			color:black;
+			text-shadow:none;
+		}
+		.val-1 {
+			background-color:#DCC9E0;
+			color:black;
+			text-shadow:none;
+		}
+		.val-2 {
+			background-color:#D1B5D3;
+			color:black;
+			text-shadow:none;
+		}
+		.val-3 {
+			background-color:#A867A2;
+			color:white;
+			text-shadow:none;
+			font-weight: bold;
+		}
+		.val-4 {
+			background-color:#954990;
+			color:white;
+			text-shadow:none;
+			font-weight: bold;
+		}
+		.val-5 {
+			background-color:#832C82;
+			color:white;
+			text-shadow:none;
+			font-weight: bold;
+		}
+		.acc-green {
+			background-color:green;
+			color:white;
+			text-shadow:none;
+			font-weight: bold;
+		}
+		.acc-yellow {
+			background-color:gold;
+			color:black;
+			text-shadow:none;
+		}
+		.acc-orange {
+			background-color:orange;
+			color:white;
+			text-shadow:none;
+			font-weight: bold;
+		}
+		.acc-red {
+			background-color:red;
+			color:white;
+			text-shadow:none;
+			font-weight: bold;
+		}
+		.quake-dl-horizontal dt {
+			float: left;
+			width: 80px;
+			overflow: hidden;
+			clear: left;
+			text-align: right;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			font-weight: normal;
+			color: #777;
+		}
+		.quake-dl-horizontal dd {
+			margin-left: 100px;
+			color: #333;
+		}
+		.quake-list-icon {
+			width: 100px;
+			height: 125px;
+		}
+	</style>
+</head>
+<body>
+<nav class="navbar navbar-default navbar-static-top">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-expanded="false">Menu
+            </button>
+            <a class="navbar-brand" href="/">GeoNet MTR</a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="navbar-collapse-1">
+            <ul class="nav navbar-nav">
+                <li> <a href="/metrics">Metrics</a></li>
+                <li> <a href="/tab1">tab1</a></li>
+                <li> <a href="/tab2">tab2</a></li>
+                <li> <a href="/tab3">tab3</a></li>
+
+            </ul>
+            <form class="navbar-form navbar-right" role="search" method="POST" action="/search" onsubmit="return document.getElementById('search_query').value!='';">
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Search" id="search_query" name="q">
+                    <input type="hidden" name="page" value="1">
+                </div>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <ol class="breadcrumb">
+        <li><a href="/" alt="Home."><span class="glyphicon glyphicon-home" aria-hidden="true"></span></a></li>
+    </ol>
+    <hr />
+
+    {{template "body" .}}
+
+    <hr />
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Explore:</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">What to do:</h3>
+                </div>
+                <div class="panel-body">
+                    <ul class="nav nav-pills nav-stacked">
+                        <li><a href="http://www.getthru.govt.nz/disasters/earthquake/">Earthquake</a></li>
+                        <li><a href="http://www.getthru.govt.nz/disasters/landslide/">Landslide</a></li>
+                        <li><a href="http://www.getthru.govt.nz/disasters/tsunami/">Tsunami</a></li>
+                        <li><a href="http://www.getthru.govt.nz/disasters/volcano/">Volcanic eruption</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer hidden-xs hidden-sm">
+        <!-- TODO - if we keep this then sort out some styles and also consider autogenerating it. -->
+        <div class="row">
+            <div class="col-md-2">
+                <h4><small><a href="/metrics" class="text-muted">Metrics</a></small></h4>
+                <ul class="list-unstyled">
+                    <li><a href="/earthquake/tab1" class="text-muted"><small>TAB1</small></a></li>
+                    <li><a href="/earthquake/tab2" class="text-muted"><small>TAB2</small></a></li>
+                    <li><a href="/earthquake/tab3" class="text-muted"><small>TAB3</small></a></li>
+                </ul>
+         </div>
+    </div>
+    <div id="footer" class="footer">
+        <div class="row">
+            <div class="col-sm-3 hidden-xs">
+                <ul id="logo">
+                    <li id="geonet"><a target="_blank" href="http://www.geonet.org.nz"><span>GeoNet</span></a></li>
+                </ul>
+            </div>
+
+            <div class="col-sm-6">
+                <p>GeoNet is a collaboration between the <a target="_blank" href="http://www.eqc.govt.nz">Earthquake Commission</a> and <a target="_blank" href="http://www.gns.cri.nz/">GNS Science</a>.</p>
+                <p><a href="/about">about</a> | <a href="/about/contact">contact</a> | <a href="/about/privacy">privacy</a> | <a href="/about/disclaimer">disclaimer</a> </p>
+                <p>GeoNet content is copyright <a target="_blank" href="http://www.gns.cri.nz/">GNS Science</a> and is licensed under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by/3.0/nz/">Creative Commons Attribution 3.0 New Zealand License</a></p>
+            </div>
+
+            <div  class="col-sm-2 hidden-xs">
+                <ul id="logo">
+                    <li id="eqc"><a target="_blank" href="http://www.eqc.govt.nz" ><span>EQC</span></a></li>
+                </ul>
+            </div>
+            <div  class="col-sm-1 hidden-xs">
+                <ul id="logo">
+                    <li id="gns"><a target="_blank" href="http://www.gns.cri.nz"><span>GNS Science</span></a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-1 col-sm-offset-5 hidden-xs">
+                <ul id="logo">
+                    <li id="ccby"><a href="http://creativecommons.org/licenses/by/3.0/nz/" ><span>CC-BY</span></a></li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!--<script src="//static.geonet.org.nz/jquery/js/jquery-1.11.3.min.js"></script>-->
+<!--<script src="//static.geonet.org.nz/bootstrap/3.3.6/js/bootstrap.min.js"></script>-->
+
+</body></html>
+{{end}}
