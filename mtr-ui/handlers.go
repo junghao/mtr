@@ -141,7 +141,7 @@ func getBytes(urlString string, accept string) (body []byte, err error) {
 		return nil, fmt.Errorf("Wrong response code for %s got %d expected %d", urlString, response.StatusCode, http.StatusOK)
 	}
 
-	// convert body to JSON.  Could use io.LimitReader() to avoid a massive read (unlikely)
+	// Read body, could use io.LimitReader() to avoid a massive read (unlikely)
 	body, err = ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
