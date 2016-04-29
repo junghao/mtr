@@ -1,6 +1,6 @@
 {{define "border"}}
-
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
@@ -291,7 +291,7 @@
 
                 </ul>
                 <!--autocompelte=off-->
-                <form class="navbar-form navbar-right" role="search" method="POST" action="/search" autocompelte="off" onsubmit="return document.getElementById('search_query').value!='';">
+                <form class="navbar-form navbar-right" role="search" method="POST" action="/search" autocomplete="off" onsubmit="return document.getElementById('search_query').value!='';">
                     <div class="form-group">
                         <!--using list=<...> as an html5 typeahead-->
                         <input type="text" class="form-control" placeholder="Search Tag ID" id="search_query" name="tagQuery" list="tagIDs">

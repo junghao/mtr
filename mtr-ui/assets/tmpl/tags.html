@@ -4,32 +4,6 @@
 <h3>Search Results for Tag: {{.TagName}}</h3>
 
 {{ range .MatchingMetrics }}
-<!--<a href="/earthquake/quakes/" >-->
-    <!--<div class="row">-->
-        <!--<div class="col-xs-6 col-sm-2 col-md-2">-->
-            <!--<img src="{{.IconUrl}}" class="img-responsive" alt="small graph of metric" width="100% \9">-->
-        <!--</div>-->
-
-        <!--<div class="col-xs-6 col-sm-2 col-md-5 col-md-push-5 col-sm-push-8">-->
-            <!--<div class="pull-right">-->
-                <!--&lt;!&ndash;<em>HumanTime</em>&ndash;&gt;-->
-                <!--<img src="{{.IconUrl}}" class="img-responsive" alt="small graph of metric" width="100% \9">-->
-            <!--</div>-->
-        <!--</div>-->
-        <!--<div class="col-xs-12 col-sm-8 col-md-5 col-md-pull-5 col-sm-pull-2">-->
-            <!--<dl class="quake-dl-horizontal">-->
-                <!--<dt>DeviceID</dt>-->
-                <!--<dd>{{.DeviceID}}</dd>-->
-                <!--<dt>TypeID</dt>-->
-                <!--<dd>{{.TypeID}}</dd>-->
-                <!--<dt>Tag</dt>-->
-                <!--<dd>{{.Tag}}</dd>-->
-                <!--&lt;!&ndash;<dt>Sparkline</dt>&ndash;&gt;-->
-                <!--&lt;!&ndash;<dd><img src="{{.IconUrl}}" width="100% /9"></dd>&ndash;&gt;-->
-            <!--</dl>-->
-        <!--</div>-->
-    <!--</div>-->
-<!--</a>-->
 <a href="/field/metric?deviceID={{.DeviceID}}&typeID={{.TypeID}}" >
     <!--<div class="row mmi-callout mmi-callout-3">-->
     <div class="container-fluid">
@@ -46,7 +20,7 @@
                 </dl>
             </div>
             <div class="col-xs-6 col-md-6">
-                <img src="{{.IconUrl}}" class="img-responsive" alt="small graph of metric" height="100% \9">
+                <img src="{{.IconUrl}}" class="img-responsive" alt="small graph of metric" style="width:100%">
             </div>
         </div>
     </div>
