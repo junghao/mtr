@@ -1,10 +1,9 @@
 package main
 
 import (
-	"testing"
 	"net/http"
 	"net/url"
-	"bytes"
+	"testing"
 )
 
 func TestGetMatchingMetrics(t *testing.T) {
@@ -13,13 +12,13 @@ func TestGetMatchingMetrics(t *testing.T) {
 	tc.setup(t)
 	defer tc.tearDown()
 
-	tc.testMux.HandleFunc("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	tc.testMtrApiMux.HandleFunc("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json;version=1")
 		w.Write(jsonTestOutput)
 	}))
 
-	matches, err := getMatchingMetrics(tc.testServer.URL)
+	matches, err := getMatchingMetrics(tc.testMtrApiServer.URL)
 	if err != nil {
 		t.Error(err)
 	}
@@ -49,7 +48,7 @@ func TestSearchHandler(t *testing.T) {
 	defer tc.tearDown()
 
 	// custom handleFunc which emulates the api for getting all tag names
-	tc.testMux.HandleFunc("/field/tag", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	tc.testMtrApiMux.HandleFunc("/field/tag", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json;version=1")
 		//fmt.Fprintf(w, "[{\"Tag\": \"GOVZ\"}, {\"Tag\": \"GRNG\"}]")
@@ -57,44 +56,24 @@ func TestSearchHandler(t *testing.T) {
 	}))
 
 	// serve fake metric data for a given tag
-	tc.testMux.HandleFunc("/field/metric/tag", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	tc.testMtrApiMux.HandleFunc("/field/metric/tag", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json;version=1")
 		//fmt.Fprintf(w, "[{\"Tag\": \"GOVZ\"}, {\"Tag\": \"GRNG\"}]")
 		w.Write([]byte(`[{"TypeID":"voltage", "DeviceID":"companyA", "Tag":"TAGX"}, {"TypeID":"voltage", "DeviceID":"companyB", "Tag":"TAGX"}]`))
 	}))
 
-	if tsUrl, err = url.Parse(tc.testServer.URL); err != nil {
+	if tsUrl, err = url.Parse(tc.testMtrUiServer.URL); err != nil {
 		t.Fatal(err)
 	}
+	tsUrl.Path = "/search"
+
+	// a request without tagQuery set should fail
+	doRequest("GET", "text/html", tsUrl.String(), 400, t)
+
+	// set tagQuery, should now work
 	q := tsUrl.Query()
 	q.Set("tagQuery", "TAGX")
 	tsUrl.RawQuery = q.Encode()
-
-	testRequest := &http.Request{URL: tsUrl}
-	testHeader := http.Header{}
-	testBuffer := &bytes.Buffer{}
-	res := searchHandler(testRequest, testHeader, testBuffer)
-
-	if res.code != http.StatusOK {
-		t.Fatalf("response.code from handler is not StatusOK, msg: %s", res.msg)
-	}
-	if res.ok != true {
-		t.Fatalf("response.ok from handler is not true, msg: %s", res.msg)
-	}
-
-	// missing tagQuery should cause a problem
-	q.Del("tagQuery")
-	tsUrl.RawQuery = q.Encode()
-	testRequest = &http.Request{URL: tsUrl}
-	testHeader = http.Header{}
-	testBuffer = &bytes.Buffer{}
-	res = searchHandler(testRequest, testHeader, testBuffer)
-
-	if res.code != http.StatusBadRequest {
-		t.Fatalf("response.code from handler is not StatusBadRequest, msg: %s", res.msg)
-	}
-	if res.ok != false {
-		t.Fatalf("response.ok from handler is not false, msg: %s", res.msg)
-	}
+	doRequest("GET", "text/html", tsUrl.String(), 200, t)
 }

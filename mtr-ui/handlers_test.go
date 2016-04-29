@@ -3,16 +3,21 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"runtime"
+	"strconv"
 	"testing"
 )
 
 type testContext struct {
-	testServer      *httptest.Server
-	testMux         *http.ServeMux
-	actualMtrApiUrl *url.URL
+	testMtrUiServer  *httptest.Server
+	testMtrApiServer *httptest.Server
+	testMtrApiMux    *http.ServeMux
+	actualMtrApiUrl  *url.URL
 }
 
 // start a test server using a test mux, which we can extend with custom handlerFuncs
@@ -20,20 +25,26 @@ func (tc *testContext) setup(t *testing.T) {
 	var testUrl *url.URL
 	var err error
 
-	tc.testMux = http.NewServeMux()
-	tc.testServer = httptest.NewServer(tc.testMux)
+	log.SetOutput(ioutil.Discard)
 
-	if testUrl, err = url.Parse(tc.testServer.URL); err != nil {
+	tc.testMtrApiMux = http.NewServeMux()
+	tc.testMtrApiServer = httptest.NewServer(tc.testMtrApiMux)
+
+	if testUrl, err = url.Parse(tc.testMtrApiServer.URL); err != nil {
 		t.Fatal(err)
 	}
 
 	// using our test server as the mtrApiUrl but reverting back at the end of each test
 	tc.actualMtrApiUrl = mtrApiUrl
 	mtrApiUrl = testUrl
+
+	// our fake mtr-ui server, a separate instance from the mtr-api server
+	tc.testMtrUiServer = httptest.NewServer(mux)
 }
 
 func (tc *testContext) tearDown() {
-	tc.testServer.Close()
+	tc.testMtrApiServer.Close()
+	tc.testMtrUiServer.Close()
 	mtrApiUrl = tc.actualMtrApiUrl
 }
 
@@ -42,8 +53,8 @@ func TestCheckQuery(t *testing.T) {
 	var res *result
 
 	// test with no required or optional params
-	u := &url.URL{Host:"http://example.com"}
-	req := &http.Request{URL:u}
+	u := &url.URL{Host: "http://example.com"}
+	req := &http.Request{URL: u}
 	res = checkQuery(req, []string{}, []string{})
 	if res.ok != true {
 		t.Fatalf("res.ok not true")
@@ -54,8 +65,8 @@ func TestCheckQuery(t *testing.T) {
 	}
 
 	// test with cachebuster
-	u = &url.URL{Host:"http://example.com", Path:"a_path;something_else"}
-	req = &http.Request{URL:u}
+	u = &url.URL{Host: "http://example.com", Path: "a_path;something_else"}
+	req = &http.Request{URL: u}
 	res = checkQuery(req, []string{"required_arg"}, []string{})
 	if res.ok != false {
 		t.Fatalf("res.ok not false, msg: %s", res.msg)
@@ -65,8 +76,8 @@ func TestCheckQuery(t *testing.T) {
 	}
 
 	// test with a required param that is missing
-	u = &url.URL{Host:"http://example.com"}
-	req = &http.Request{URL:u}
+	u = &url.URL{Host: "http://example.com"}
+	req = &http.Request{URL: u}
 	res = checkQuery(req, []string{"required_arg"}, []string{})
 	if res.ok != false {
 		t.Fatalf("res.ok not false, msg: %s", res.msg)
@@ -76,12 +87,12 @@ func TestCheckQuery(t *testing.T) {
 	}
 
 	// test with a param that doesn't belong
-	u = &url.URL{Host:"http://example.com"}
+	u = &url.URL{Host: "http://example.com"}
 	q := u.Query()
 	q.Set("notright", "true")
 	u.RawQuery = q.Encode()
 
-	req = &http.Request{URL:u}
+	req = &http.Request{URL: u}
 	res = checkQuery(req, []string{}, []string{})
 	if res.ok != false {
 		t.Fatalf("res.ok not false")
@@ -91,12 +102,12 @@ func TestCheckQuery(t *testing.T) {
 	}
 
 	// test with a supplied param that is neither required nor optional
-	u = &url.URL{Host:"http://example.com"}
+	u = &url.URL{Host: "http://example.com"}
 	q = u.Query()
 	q.Set("stillnotright", "true")
 	u.RawQuery = q.Encode()
 
-	req = &http.Request{URL:u}
+	req = &http.Request{URL: u}
 	res = checkQuery(req, []string{"required_arg1", "required_arg2"}, []string{"optional_arg1", "optional_arg2"})
 	if res.ok != false {
 		t.Fatalf("res.ok not false, msg: %s", res.msg)
@@ -106,14 +117,14 @@ func TestCheckQuery(t *testing.T) {
 	}
 
 	// test with a valid required and optional param and an invalid param
-	u = &url.URL{Host:"http://example.com"}
+	u = &url.URL{Host: "http://example.com"}
 	q = u.Query()
 	q.Set("required_arg1", "true")
 	q.Set("optional_arg1", "true")
 	q.Set("stillnotright", "true")
 	u.RawQuery = q.Encode()
 
-	req = &http.Request{URL:u}
+	req = &http.Request{URL: u}
 	res = checkQuery(req, []string{"required_arg1"}, []string{"optional_arg1", "optional_arg2"})
 	if res.ok != false {
 		t.Fatalf("res.ok not false, msg: %s", res.msg)
@@ -123,13 +134,13 @@ func TestCheckQuery(t *testing.T) {
 	}
 
 	// test with only valid params
-	u = &url.URL{Host:"http://example.com"}
+	u = &url.URL{Host: "http://example.com"}
 	q = u.Query()
 	q.Set("required_arg1", "true")
 	q.Set("optional_arg1", "true")
 	u.RawQuery = q.Encode()
 
-	req = &http.Request{URL:u}
+	req = &http.Request{URL: u}
 	res = checkQuery(req, []string{"required_arg1"}, []string{"optional_arg1", "optional_arg2"})
 	if res.ok != true {
 		t.Fatalf("res.ok not true, msg: %s", res.msg)
@@ -147,18 +158,19 @@ func TestGetBytes(t *testing.T) {
 	tc.setup(t)
 	defer tc.tearDown()
 
-	tc.testMux.HandleFunc("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// a couple handlers for the mock mtr-api server
+	tc.testMtrApiMux.HandleFunc("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json;version=1")
 		w.Write(jsonTestOutput)
 	}))
 
-	tc.testMux.HandleFunc("/badrequest", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	tc.testMtrApiMux.HandleFunc("/badrequest", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json;version=1")
 	}))
 
-	jsonObserved, err := getBytes(tc.testServer.URL, "application/json;version=1")
+	jsonObserved, err := getBytes(tc.testMtrApiServer.URL, "application/json;version=1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -179,13 +191,13 @@ func TestGetAllTagIDs(t *testing.T) {
 	tc.setup(t)
 	defer tc.tearDown()
 
-	tc.testMux.HandleFunc("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	tc.testMtrApiMux.HandleFunc("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json;version=1")
 		fmt.Fprintf(w, `[{"Tag":"1234"}, {"Tag":"ABCD"}]`)
 	}))
 
-	allTags, err := getAllTagIDs(tc.testServer.URL)
+	allTags, err := getAllTagIDs(tc.testMtrApiServer.URL)
 	if err != nil {
 		t.Error(err)
 	}
@@ -197,42 +209,57 @@ func TestGetAllTagIDs(t *testing.T) {
 
 // Test the handler directly with mocked out mtr-api server.
 func TestDemoHandler(t *testing.T) {
-	// use a mux so we can have custom endpoints and handlerFunc
-	var tsUrl *url.URL
 	var err error
+	var tsUrl *url.URL
 
 	tc := &testContext{}
 	tc.setup(t)
 	defer tc.tearDown()
 
 	// custom handleFunc which emulates the api for getting all tag names
-	tc.testMux.HandleFunc("/field/tag", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	tc.testMtrApiMux.HandleFunc("/field/tag", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json;version=1")
 		fmt.Fprintf(w, "[{\"Tag\": \"GOVZ\"}, {\"Tag\": \"GRNG\"}]")
 	}))
 
-	// emulate getting the metric info for a specific tag
-	tc.testMux.HandleFunc("/field/metric", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json;version=1")
-		fmt.Fprintf(w, "[{\"TypeID\":\"voltage\", \"DeviceID\":\"strong-gretavalley\", \"Tag\":\"GVZ\"}]")
-	}))
-
-	if tsUrl, err = url.Parse(tc.testServer.URL); err != nil {
+	if tsUrl, err = url.Parse(tc.testMtrUiServer.URL); err != nil {
 		t.Fatal(err)
 	}
+	tsUrl.Path = "/"
+	doRequest("GET", "text/html", tsUrl.String(), 200, t)
+}
 
-	testRequest := &http.Request{URL: tsUrl}
-	testHeader := http.Header{}
-	testBuffer := &bytes.Buffer{}
-	res := demoHandler(testRequest, testHeader, testBuffer)
+func doRequest(method, accept, urlString string, status int, t *testing.T) {
+	var client = http.Client{}
+	var request *http.Request
+	var response *http.Response
+	var err error
+	l := loc()
 
-	if res.code != http.StatusOK {
-		t.Fatalf("response.code from handler is not StatusOK, msg: %s", res.msg)
+	if request, err = http.NewRequest(method, urlString, nil); err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Add("Accept", accept)
+
+	if response, err = client.Do(request); err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	if status != response.StatusCode {
+		t.Errorf("Wrong response code for %s got %d expected %d", l, response.StatusCode, status)
 	}
 
-	if res.ok != true {
-		t.Fatalf("response.ok not true, msg: %s", res.msg)
+	if method == "GET" && status == http.StatusOK {
+		if response.Header.Get("Content-Type") != accept {
+			t.Errorf("Wrong Content-Type for %s got %s expected %s", l, response.Header.Get("Content-Type"), accept)
+		}
 	}
+}
+
+// loc returns a string representing the line of code 2 functions calls back.
+func loc() (loc string) {
+	_, _, l, _ := runtime.Caller(2)
+	return "L" + strconv.Itoa(l)
 }
