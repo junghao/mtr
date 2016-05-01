@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/GeoNet/mtr/internal"
 	"github.com/GeoNet/mtr/ts"
-	"github.com/lib/pq"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -16,16 +15,6 @@ import (
 	"sync"
 	"time"
 )
-
-var appResolution = [...]string{
-	"minute",
-	"hour",
-}
-
-var appDuration = [...]time.Duration{
-	time.Minute,
-	time.Hour,
-}
 
 var colours = [...]string{
 	"#a6cee3",
@@ -81,7 +70,6 @@ Handles requests like
 /app/metric?applicationID=mtr-api&group=objects
 /app/metric?applicationID=mtr-api&group=routines
 
-Metrics are available at minute (default) and hour resolution.
 */
 func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	var res *result
@@ -102,6 +90,10 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		resolution = "minute"
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
 		p.SetXLabel("12 hours")
+	case "five_minutes":
+		resolution = "five_minutes"
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*3), time.Now().UTC())
+		p.SetXLabel("48 hours")
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
@@ -128,40 +120,48 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		p.SetYAxis(ymin, ymax)
 	}
 
+	resTitle := resolution
+	resTitle = strings.Replace(resTitle, "_", " ", -1)
+	resTitle = strings.Title(resTitle)
+
 	switch r.URL.Query().Get("group") {
 	case "counters":
 		if res := a.loadCounters(resolution, &p); !res.ok {
 			return res
 		}
 
-		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Counters", a.applicationID))
+		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Counters - Sum per %s", a.applicationID, resTitle))
 		err = ts.MixedAppMetrics.Draw(p, b)
 	case "timers":
 		if res := a.loadTimers(resolution, &p); !res.ok {
 			return res
 		}
 
-		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Timers (ms)", a.applicationID))
+		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Timers - 90th Percentile (ms) - Max per %s",
+			a.applicationID, resTitle))
 		err = ts.MixedAppMetrics.Draw(p, b)
 	case "memory":
 		if res := a.loadMemory(resolution, &p); !res.ok {
 			return res
 		}
 
-		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Memory (bytes)", a.applicationID))
+		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Memory (bytes) - Average per %s",
+			a.applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	case "objects":
 		if res := a.loadAppMetrics(resolution, internal.MemHeapObjects, &p); !res.ok {
 			return res
 		}
 
-		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Memory Heap Objects (n)", a.applicationID))
+		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Memory Heap Objects (n) - Average per %s",
+			a.applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	case "routines":
 		if res := a.loadAppMetrics(resolution, internal.Routines, &p); !res.ok {
 			return res
 		}
-		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Routines (n)", a.applicationID))
+		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Routines (n) - Average per %s",
+			a.applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	default:
 		return badRequest("invalid value for type")
@@ -179,12 +179,35 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 
 func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *result {
 	var err error
-
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT typePK, time, count FROM app.counter_`+resolution+` WHERE 
+	switch resolution {
+	case "minute":
+		rows, err = dbR.Query(`SELECT typePK, date_trunc('`+resolution+`',time) as t, sum(count)
+		FROM app.counter WHERE
 		applicationPK = $1
-		ORDER BY time ASC`, a.applicationPK); err != nil {
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('`+resolution+`',time), typePK
+		ORDER BY t ASC`, a.applicationPK)
+	case "five_minutes":
+		rows, err = dbR.Query(`SELECT typePK,
+		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, sum(count)
+		FROM app.counter WHERE
+		applicationPK = $1
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', typePK
+		ORDER BY t ASC`, a.applicationPK)
+	case "hour":
+		rows, err = dbR.Query(`SELECT typePK, date_trunc('`+resolution+`',time) as t, sum(count)
+		FROM app.counter WHERE
+		applicationPK = $1
+		AND time > now() - interval '28 days'
+		GROUP BY date_trunc('`+resolution+`',time), typePK
+		ORDER BY t ASC`, a.applicationPK)
+	default:
+		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+	}
+	if err != nil {
 		return internalServerError(err)
 	}
 
@@ -230,9 +253,34 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *result {
 
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT sourcePK, time, avg, n FROM app.timer_`+resolution+` WHERE 
+	switch resolution {
+	case "minute":
+		rows, err = dbR.Query(`SELECT sourcePK, date_trunc('`+resolution+`',time) as t, max(ninety), sum(count)
+		FROM app.timer WHERE
 		applicationPK = $1
-		ORDER BY time ASC`, a.applicationPK); err != nil {
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('`+resolution+`',time), sourcePK
+		ORDER BY t ASC`, a.applicationPK)
+	case "five_minutes":
+		rows, err = dbR.Query(`SELECT sourcePK,
+		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
+		max(ninety), sum(count)
+		FROM app.timer WHERE
+		applicationPK = $1
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', sourcePK
+		ORDER BY t ASC`, a.applicationPK)
+	case "hour":
+		rows, err = dbR.Query(`SELECT sourcePK, date_trunc('`+resolution+`',time) as t, max(ninety), sum(count)
+		FROM app.timer WHERE
+		applicationPK = $1
+		AND time > now() - interval '28 days'
+		GROUP BY date_trunc('`+resolution+`',time), sourcePK
+		ORDER BY t ASC`, a.applicationPK)
+	default:
+		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+	}
+	if err != nil {
 		return internalServerError(err)
 	}
 
@@ -298,16 +346,41 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT instancePK, typePK, time, avg FROM app.metric_`+resolution+` WHERE 
-		applicationPK = $1 AND typePK IN (1000, 1001, 1002) 
-		ORDER BY time ASC`, a.applicationPK); err != nil {
+	switch resolution {
+	case "minute":
+		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(avg)
+		FROM app.metric WHERE
+		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
+		ORDER BY t ASC`, a.applicationPK)
+	case "five_minutes":
+		rows, err = dbR.Query(`SELECT instancePK, typePK,
+		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, avg(avg)
+		FROM app.metric WHERE
+		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', typePK, instancePK
+		ORDER BY t ASC`, a.applicationPK)
+	case "hour":
+		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(avg)
+		FROM app.metric WHERE
+		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
+		AND time > now() - interval '28 days'
+		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
+		ORDER BY t ASC`, a.applicationPK)
+	default:
+		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+	}
+	if err != nil {
 		return internalServerError(err)
 	}
 
 	defer rows.Close()
 
 	var t time.Time
-	var typePK, instancePK, avg int
+	var typePK, instancePK int
+	var avg float64
 	var instanceID string
 	pts := make(map[InstanceMetric][]ts.Point)
 
@@ -316,7 +389,7 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 			return internalServerError(err)
 		}
 		key := InstanceMetric{instancePK: instancePK, typePK: typePK}
-		pts[key] = append(pts[key], ts.Point{DateTime: t, Value: float64(avg)})
+		pts[key] = append(pts[key], ts.Point{DateTime: t, Value: avg})
 	}
 	rows.Close()
 
@@ -354,16 +427,41 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT instancePK, typePK, time, avg FROM app.metric_`+resolution+` WHERE 
-		applicationPK = $1 AND typePK = $2 
-		ORDER BY time ASC`, a.applicationPK, int(typeID)); err != nil {
+	switch resolution {
+	case "minute":
+		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(avg)
+		FROM app.metric WHERE
+		applicationPK = $1 AND typePK = $2
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
+		ORDER BY t ASC`, a.applicationPK, int(typeID))
+	case "five_minutes":
+		rows, err = dbR.Query(`SELECT instancePK, typePK,
+		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, avg(avg)
+		FROM app.metric WHERE
+		applicationPK = $1 AND typePK = $2
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', typePK, instancePK
+		ORDER BY t ASC`, a.applicationPK, int(typeID))
+	case "hour":
+		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(avg)
+		FROM app.metric WHERE
+		applicationPK = $1 AND typePK = $2
+		AND time > now() - interval '28 days'
+		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
+		ORDER BY t ASC`, a.applicationPK, int(typeID))
+	default:
+		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+	}
+	if err != nil {
 		return internalServerError(err)
 	}
 
 	defer rows.Close()
 
 	var t time.Time
-	var typePK, instancePK, avg int
+	var typePK, instancePK int
+	var avg float64
 	var instanceID string
 	pts := make(map[InstanceMetric][]ts.Point)
 
@@ -372,7 +470,7 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 			return internalServerError(err)
 		}
 		key := InstanceMetric{instancePK: instancePK, typePK: typePK}
-		pts[key] = append(pts[key], ts.Point{DateTime: t, Value: float64(avg)})
+		pts[key] = append(pts[key], ts.Point{DateTime: t, Value: avg})
 	}
 	rows.Close()
 
@@ -468,18 +566,13 @@ func (a *appMetric) save(r *http.Request) *result {
 	}
 
 	// Run the inserts in parallel
-	m1 := insertAppMetrics(applicationPK, instancePK, "minute", time.Minute, m.Metrics)
-	m2 := insertAppMetrics(applicationPK, instancePK, "hour", time.Hour, m.Metrics)
-
-	m3 := insertAppCounters(applicationPK, "minute", time.Minute, m.Counters)
-	m4 := insertAppCounters(applicationPK, "hour", time.Hour, m.Counters)
-
-	m5 := insertAppTimers(applicationPK, "minute", time.Minute, m.Timers)
-	m6 := insertAppTimers(applicationPK, "hour", time.Hour, m.Timers)
+	m1 := insertAppMetrics(applicationPK, instancePK, m.Metrics)
+	m2 := insertAppCounters(applicationPK, m.Counters)
+	m3 := insertAppTimers(applicationPK, m.Timers)
 
 	var resFinal = &statusOK
 
-	for res := range merge(m1, m2, m3, m4, m5, m6) {
+	for res := range merge(m1, m2, m3) {
 		if !res.ok {
 			resFinal = res
 		}
@@ -488,30 +581,17 @@ func (a *appMetric) save(r *http.Request) *result {
 	return resFinal
 }
 
-func insertAppMetrics(applicationPK, instancePK int, tableResolution string, resolution time.Duration, metrics []internal.Metric) <-chan *result {
+func insertAppMetrics(applicationPK, instancePK int, metrics []internal.Metric) <-chan *result {
 	out := make(chan *result)
 	go func() {
 		defer close(out)
 		var err error
 
 		for _, v := range metrics {
-			if _, err = db.Exec(`INSERT INTO app.metric_`+tableResolution+` (applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`,
-				applicationPK, instancePK, v.MetricID, v.Time.Truncate(resolution), v.Value, 1); err != nil {
-				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
-					// unique error (already a value at this resolution) update the moving average.
-					if _, err = db.Exec(`UPDATE app.metric_`+tableResolution+` SET avg = ($5 + (avg * n)) / (n+1), n = n + 1
-						WHERE applicationPK = $1
-						AND instancePK = $2
-						AND typePK = $3
-						AND time = $4`,
-						applicationPK, instancePK, v.MetricID, v.Time.Truncate(resolution), v.Value); err != nil {
-						out <- internalServerError(err)
-						return
-					}
-				} else {
-					out <- internalServerError(err)
-					return
-				}
+			if _, err = db.Exec(`INSERT INTO app.metric (applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`,
+				applicationPK, instancePK, v.MetricID, v.Time, v.Value, 1); err != nil {
+				out <- internalServerError(err)
+				return
 			}
 		}
 
@@ -521,29 +601,17 @@ func insertAppMetrics(applicationPK, instancePK int, tableResolution string, res
 	return out
 }
 
-func insertAppCounters(applicationPK int, tableResolution string, resolution time.Duration, counters []internal.Counter) <-chan *result {
+func insertAppCounters(applicationPK int, counters []internal.Counter) <-chan *result {
 	out := make(chan *result)
 	go func() {
 		defer close(out)
 		var err error
 
 		for _, v := range counters {
-			if _, err = db.Exec(`INSERT INTO app.counter_`+tableResolution+`(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
-				applicationPK, v.CounterID, v.Time.Truncate(resolution), v.Count); err != nil {
-				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
-					// unique error (already a value at this resolution) update the moving average.
-					if _, err = db.Exec(`UPDATE app.counter_`+tableResolution+` SET count = count + $4
-							WHERE applicationPK = $1
-							AND typePK = $2
-							AND time = $3`,
-						applicationPK, v.CounterID, v.Time.Truncate(resolution), v.Count); err != nil {
-						out <- internalServerError(err)
-						return
-					}
-				} else {
-					out <- internalServerError(err)
-					return
-				}
+			if _, err = db.Exec(`INSERT INTO app.counter(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
+				applicationPK, v.CounterID, v.Time, v.Count); err != nil {
+				out <- internalServerError(err)
+				return
 			}
 		}
 
@@ -553,7 +621,7 @@ func insertAppCounters(applicationPK int, tableResolution string, resolution tim
 	return out
 }
 
-func insertAppTimers(applicationPK int, tableResolution string, resolution time.Duration, timers []internal.Timer) <-chan *result {
+func insertAppTimers(applicationPK int, timers []internal.Timer) <-chan *result {
 	out := make(chan *result)
 	go func() {
 		defer close(out)
@@ -580,24 +648,11 @@ func insertAppTimers(applicationPK int, tableResolution string, resolution time.
 				return
 			}
 
-			if _, err = db.Exec(`INSERT INTO app.timer_`+tableResolution+` (applicationPK, sourcePK, time, avg, n) VALUES($1,$2,$3,$4,$5)`,
-				applicationPK, sourcePK, v.Time.Truncate(resolution), v.Total/v.Count, v.Count); err != nil {
-				if pgerr, ok := err.(*pq.Error); ok && pgerr.Code == errorUniqueViolation {
-					// unique error (already a value at this resolution) update the moving average.
-					if _, err = db.Exec(`UPDATE app.timer_`+tableResolution+` SET avg = ($4 + (avg * n)) / (n+$5), n = n + $5
-								WHERE applicationPK = $1
-								AND sourcePK = $2
-								AND time = $3`,
-						applicationPK, sourcePK, v.Time.Truncate(resolution), v.Total, v.Count); err != nil {
-						out <- internalServerError(err)
-						return
-					}
-				} else {
-					out <- internalServerError(err)
-					return
-				}
+			if _, err = db.Exec(`INSERT INTO app.timer(applicationPK, sourcePK, time, average, count, fifty, ninety) VALUES($1,$2,$3,$4,$5,$6,$7)`,
+				applicationPK, sourcePK, v.Time, v.Average, v.Count, v.Fifty, v.Ninety); err != nil {
+				out <- internalServerError(err)
+				return
 			}
-
 		}
 
 		out <- &statusOK

@@ -7,8 +7,9 @@ import (
 var timers chan Timer
 
 // for aggregating timers
-var count = make(map[string]uint64)
-var sum = make(map[string]uint64)
+var count = make(map[string]int)
+var sum = make(map[string]int)
+var taken = make(map[string][]int)
 
 func init() {
 	timers = make(chan Timer, 300)
@@ -18,7 +19,7 @@ func init() {
 type Timer struct {
 	start   time.Time
 	id      string
-	taken   uint64
+	taken   int
 	stopped bool
 }
 
@@ -31,7 +32,7 @@ func Start() Timer {
 
 // Stops the timer
 func (t *Timer) Stop() {
-	t.taken = uint64(time.Since(t.start) / time.Millisecond)
+	t.taken = int(time.Since(t.start) / time.Millisecond)
 	t.stopped = true
 }
 
@@ -51,6 +52,6 @@ func (t *Timer) Track(id string) {
 }
 
 // Returns the time taken between start and stop in milliseconds.
-func (t *Timer) Taken() uint64 {
+func (t *Timer) Taken() int {
 	return t.taken
 }
