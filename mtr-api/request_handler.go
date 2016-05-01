@@ -93,14 +93,7 @@ toHandler adds basic auth to f and returns a handler.
 */
 func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Find the name of the function f to use as the timer id
-		id := r.Method
-		fn := runtime.FuncForPC(reflect.ValueOf(f).Pointer())
-		if fn != nil {
-			id = fn.Name() + "." + id
-		}
-
-		t := mtrapp.Start(id)
+		t := mtrapp.Start()
 
 		mtrapp.Requests.Inc()
 
@@ -117,7 +110,15 @@ func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 				case http.StatusOK:
 					w.WriteHeader(http.StatusOK)
 
-					t.Track()
+					// Find the name of the function f to use as the timer id
+					id := r.Method
+					fn := runtime.FuncForPC(reflect.ValueOf(f).Pointer())
+					if fn != nil {
+						id = fn.Name() + "." + id
+					}
+
+
+					t.Track(id)
 					if t.Taken() > 500 {
 						log.Printf("%s took %d ms to handle %s", id, t.Taken(), r.URL.Path)
 					}
@@ -148,7 +149,15 @@ func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 			case http.StatusOK:
 				b.WriteTo(w)
 
-				t.Track()
+				// Find the name of the function f to use as the timer id
+				id := r.Method
+				fn := runtime.FuncForPC(reflect.ValueOf(f).Pointer())
+				if fn != nil {
+					id = fn.Name() + "." + id
+				}
+
+				t.Track(id)
+
 				if t.Taken() > 500 {
 					log.Printf("%s took %d ms to handle %s", id, t.Taken(), r.URL.Path)
 				}

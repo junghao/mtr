@@ -14,7 +14,7 @@ func init() {
 	timers = make(chan Timer, 300)
 }
 
-// TImer is for timing events
+// Timer is for timing events
 type Timer struct {
 	start   time.Time
 	id      string
@@ -22,11 +22,10 @@ type Timer struct {
 	stopped bool
 }
 
-// Start returns started Timer for Id.
-func Start(id string) Timer {
+// Start returns started Timer.
+func Start() Timer {
 	return Timer{
 		start: time.Now().UTC(),
-		id:    id,
 	}
 }
 
@@ -37,11 +36,14 @@ func (t *Timer) Stop() {
 }
 
 // Stops the timer if it is not already stopped.  Tracks the time taken
-// in milliseconds.
-func (t *Timer) Track() {
+// in milliseconds with identity id.
+func (t *Timer) Track(id string) {
 	if !t.stopped {
 		t.Stop()
 	}
+
+	t.id = id
+
 	select {
 	case timers <- *t:
 	default:
