@@ -7,41 +7,44 @@ import (
 var timers chan Timer
 
 // for aggregating timers
-var count = make(map[string]uint64)
-var sum = make(map[string]uint64)
+var count = make(map[string]int)
+var sum = make(map[string]int)
+var taken = make(map[string][]int)
 
 func init() {
 	timers = make(chan Timer, 300)
 }
 
-// TImer is for timing events
+// Timer is for timing events
 type Timer struct {
 	start   time.Time
 	id      string
-	taken   uint64
+	taken   int
 	stopped bool
 }
 
-// Start returns started Timer for Id.
-func Start(id string) Timer {
+// Start returns started Timer.
+func Start() Timer {
 	return Timer{
 		start: time.Now().UTC(),
-		id:    id,
 	}
 }
 
 // Stops the timer
 func (t *Timer) Stop() {
-	t.taken = uint64(time.Since(t.start) / time.Millisecond)
+	t.taken = int(time.Since(t.start) / time.Millisecond)
 	t.stopped = true
 }
 
 // Stops the timer if it is not already stopped.  Tracks the time taken
-// in milliseconds.
-func (t *Timer) Track() {
+// in milliseconds with identity id.
+func (t *Timer) Track(id string) {
 	if !t.stopped {
 		t.Stop()
 	}
+
+	t.id = id
+
 	select {
 	case timers <- *t:
 	default:
@@ -49,6 +52,6 @@ func (t *Timer) Track() {
 }
 
 // Returns the time taken between start and stop in milliseconds.
-func (t *Timer) Taken() uint64 {
+func (t *Timer) Taken() int {
 	return t.taken
 }

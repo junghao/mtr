@@ -13,8 +13,10 @@ package mtrapp
 import (
 	"github.com/GeoNet/mtr/internal"
 	"log"
+	"math"
 	"os"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -65,6 +67,7 @@ func init() {
 			case m := <-timers:
 				count[m.id]++
 				sum[m.id] += m.taken
+				taken[m.id] = append(taken[m.id], m.taken)
 			case <-ticker:
 				now = time.Now().UTC()
 
@@ -103,16 +106,18 @@ func init() {
 				}
 
 				for k, v := range count {
-					if v > 0 {
-						m.Timers = append(m.Timers, internal.Timer{
-							TimerID: k,
-							Time:    last,
-							Count:   int32(v),
-							Total:   int32(sum[k]),
-						})
-					}
-					count[k] = 0
-					sum[k] = 0
+					m.Timers = append(m.Timers, internal.Timer{
+						TimerID: k,
+						Time:    last,
+						Count:   int32(v),
+						Average:   int32(sum[k]/v),
+						Fifty:   int32(percentile(0.5, taken[k])),
+						Ninety:  int32(percentile(0.9, taken[k])),
+					})
+
+					delete(taken, k)
+					delete(sum, k)
+					delete(count, k)
 				}
 
 				last = now
@@ -124,4 +129,27 @@ func init() {
 			}
 		}
 	}()
+}
+
+// calculates the kth percentile of v
+func percentile(k float64, v []int) (value int) {
+	if !sort.IntsAreSorted(v) {
+		sort.Ints(v)
+	}
+
+	p := k * float64(len(v))
+
+	if p != math.Trunc(p) {
+		idx := int(math.Ceil(p))
+		if idx <= len(v) {
+			value = v[int(math.Ceil(p))-1]
+		}
+	} else {
+		idx := int(math.Trunc(p))
+		if idx < len(v) {
+			value = int((v[idx-1] + v[idx]) / 2)
+		}
+	}
+
+	return
 }
