@@ -1,0 +1,4 @@
+{{define "body"}}
+<h3> Detailed Metric Information</h3>
+<img src="{{.MtrApiUrl}}/field/metric?deviceID={{.MetricDetail.DeviceID}}&typeID={{.MetricDetail.TypeID}}&resolution=hour" alt="detailed plot for deviceID={{.MetricDetail.DeviceID}} and typeID={{.MetricDetail.TypeID}}" width="100%">
+{{end}}

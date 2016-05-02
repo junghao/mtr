@@ -1,12 +1,12 @@
 {{define "border"}}
-
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-    <title>GeoNet MTR Home</title>
+    <title>{{ .Border.Title }}</title>
     <link rel="stylesheet" href="//static.geonet.org.nz/bootstrap/3.3.6/css/bootstrap.min.css">
 
 
@@ -274,116 +274,76 @@
 	</style>
 </head>
 <body>
-<nav class="navbar navbar-default navbar-static-top">
-    <div class="container">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-expanded="false">Menu
-            </button>
-            <a class="navbar-brand" href="/">GeoNet MTR</a>
-        </div>
+    <nav class="navbar navbar-default navbar-static-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-expanded="false">Menu
+                </button>
+                <a class="navbar-brand" href="/">GeoNet MTR</a>
+            </div>
 
-        <div class="collapse navbar-collapse" id="navbar-collapse-1">
-            <ul class="nav navbar-nav">
-                <li> <a href="/metrics">Metrics</a></li>
-                <li> <a href="/tab1">tab1</a></li>
-                <li> <a href="/tab2">tab2</a></li>
-                <li> <a href="/tab3">tab3</a></li>
+            <div class="collapse navbar-collapse" id="navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li class="active"> <a href="/">Home</a></li>
+                    <li> <a href="/tab1">tab1</a></li>
+                    <li> <a href="/tab2">tab2</a></li>
+                    <li> <a href="/tab3">tab3</a></li>
 
-            </ul>
-            <form class="navbar-form navbar-right" role="search" method="POST" action="/search" onsubmit="return document.getElementById('search_query').value!='';">
-                <div class="form-group">
-                    <input type="text" class="form-control" placeholder="Search" id="search_query" name="q">
-                    <input type="hidden" name="page" value="1">
-                </div>
-            </form>
-        </div>
-    </div>
-</nav>
-
-<div class="container">
-    <ol class="breadcrumb">
-        <li><a href="/" alt="Home."><span class="glyphicon glyphicon-home" aria-hidden="true"></span></a></li>
-    </ol>
-    <hr />
-
-    {{template "body" .}}
-
-    <hr />
-    <div class="row">
-        <div class="col-xs-12 col-sm-6 col-md-4">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Explore:</h3>
-                </div>
+                </ul>
+                <!--autocompelte=off-->
+                <form class="navbar-form navbar-right" role="search" method="POST" action="/search" autocomplete="off" onsubmit="return document.getElementById('search_query').value!='';">
+                    <div class="form-group">
+                        <!--using list=<...> as an html5 typeahead-->
+                        <input type="text" class="form-control" placeholder="Search Tag ID" id="search_query" name="tagQuery" list="tagIDs">
+                        <input type="hidden" name="page" value="1">
+                        {{template "search_tags" .}}
+                    </div>
+                </form>
             </div>
         </div>
-        <div class="col-xs-12 col-sm-6 col-md-4">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">What to do:</h3>
+    </nav>
+
+    <div class="container">
+        {{template "body" .}}
+
+        <div id="footer" class="footer">
+            <div class="row">
+                <div class="col-sm-3 hidden-xs">
+                    <ul id="logo">
+                        <li id="geonet"><a target="_blank" href="http://www.geonet.org.nz"><span>GeoNet</span></a></li>
+                    </ul>
                 </div>
-                <div class="panel-body">
-                    <ul class="nav nav-pills nav-stacked">
-                        <li><a href="http://www.getthru.govt.nz/disasters/earthquake/">Earthquake</a></li>
-                        <li><a href="http://www.getthru.govt.nz/disasters/landslide/">Landslide</a></li>
-                        <li><a href="http://www.getthru.govt.nz/disasters/tsunami/">Tsunami</a></li>
-                        <li><a href="http://www.getthru.govt.nz/disasters/volcano/">Volcanic eruption</a></li>
+
+                <div class="col-sm-6">
+                    <p>GeoNet is a collaboration between the <a target="_blank" href="http://www.eqc.govt.nz">Earthquake Commission</a> and <a target="_blank" href="http://www.gns.cri.nz/">GNS Science</a>.</p>
+                    <p><a href="/about">about</a> | <a href="/about/contact">contact</a> | <a href="/about/privacy">privacy</a> | <a href="/about/disclaimer">disclaimer</a> </p>
+                    <p>GeoNet content is copyright <a target="_blank" href="http://www.gns.cri.nz/">GNS Science</a> and is licensed under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by/3.0/nz/">Creative Commons Attribution 3.0 New Zealand License</a></p>
+                </div>
+
+                <div  class="col-sm-2 hidden-xs">
+                    <ul id="logo">
+                        <li id="eqc"><a target="_blank" href="http://www.eqc.govt.nz" ><span>EQC</span></a></li>
+                    </ul>
+                </div>
+                <div  class="col-sm-1 hidden-xs">
+                    <ul id="logo">
+                        <li id="gns"><a target="_blank" href="http://www.gns.cri.nz"><span>GNS Science</span></a></li>
                     </ul>
                 </div>
             </div>
+
+            <div class="row">
+                <div class="col-sm-1 col-sm-offset-5 hidden-xs">
+                    <ul id="logo">
+                        <li id="ccby"><a href="http://creativecommons.org/licenses/by/3.0/nz/" ><span>CC-BY</span></a></li>
+                    </ul>
+                </div>
+            </div>
+
         </div>
     </div>
-
-    <div class="footer hidden-xs hidden-sm">
-        <!-- TODO - if we keep this then sort out some styles and also consider autogenerating it. -->
-        <div class="row">
-            <div class="col-md-2">
-                <h4><small><a href="/metrics" class="text-muted">Metrics</a></small></h4>
-                <ul class="list-unstyled">
-                    <li><a href="/earthquake/tab1" class="text-muted"><small>TAB1</small></a></li>
-                    <li><a href="/earthquake/tab2" class="text-muted"><small>TAB2</small></a></li>
-                    <li><a href="/earthquake/tab3" class="text-muted"><small>TAB3</small></a></li>
-                </ul>
-         </div>
-    </div>
-    <div id="footer" class="footer">
-        <div class="row">
-            <div class="col-sm-3 hidden-xs">
-                <ul id="logo">
-                    <li id="geonet"><a target="_blank" href="http://www.geonet.org.nz"><span>GeoNet</span></a></li>
-                </ul>
-            </div>
-
-            <div class="col-sm-6">
-                <p>GeoNet is a collaboration between the <a target="_blank" href="http://www.eqc.govt.nz">Earthquake Commission</a> and <a target="_blank" href="http://www.gns.cri.nz/">GNS Science</a>.</p>
-                <p><a href="/about">about</a> | <a href="/about/contact">contact</a> | <a href="/about/privacy">privacy</a> | <a href="/about/disclaimer">disclaimer</a> </p>
-                <p>GeoNet content is copyright <a target="_blank" href="http://www.gns.cri.nz/">GNS Science</a> and is licensed under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by/3.0/nz/">Creative Commons Attribution 3.0 New Zealand License</a></p>
-            </div>
-
-            <div  class="col-sm-2 hidden-xs">
-                <ul id="logo">
-                    <li id="eqc"><a target="_blank" href="http://www.eqc.govt.nz" ><span>EQC</span></a></li>
-                </ul>
-            </div>
-            <div  class="col-sm-1 hidden-xs">
-                <ul id="logo">
-                    <li id="gns"><a target="_blank" href="http://www.gns.cri.nz"><span>GNS Science</span></a></li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-sm-1 col-sm-offset-5 hidden-xs">
-                <ul id="logo">
-                    <li id="ccby"><a href="http://creativecommons.org/licenses/by/3.0/nz/" ><span>CC-BY</span></a></li>
-                </ul>
-            </div>
-        </div>
-
-    </div>
-</div>
-<!--<script src="//static.geonet.org.nz/jquery/js/jquery-1.11.3.min.js"></script>-->
-<!--<script src="//static.geonet.org.nz/bootstrap/3.3.6/js/bootstrap.min.js"></script>-->
+    <script src="//static.geonet.org.nz/jquery/js/jquery-1.11.3.min.js"></script>
+    <script src="//static.geonet.org.nz/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 
 </body></html>
 {{end}}

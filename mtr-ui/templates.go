@@ -6,7 +6,9 @@ import (
 )
 
 var (
-	borderTemplate  *template.Template
+	borderTemplate       *template.Template
+	tagsTemplate         *template.Template
+	metricDetailTemplate *template.Template
 )
 
 func init() {
@@ -15,6 +17,8 @@ func init() {
 
 func loadTemplates() {
 	log.Println("Loading templates.")
-	borderTemplate = template.Must(template.New("t").ParseFiles("tmpl/demo.html", "tmpl/border.html"))
+	borderTemplate = template.Must(template.New("t").ParseFiles("assets/tmpl/demo.html", "assets/tmpl/tag_list.html", "assets/tmpl/border.html"))
+	tagsTemplate = template.Must(template.New("t").ParseFiles("assets/tmpl/tags.html", "assets/tmpl/tag_list.html", "assets/tmpl/border.html"))
+	metricDetailTemplate = template.Must(template.New("t").ParseFiles("assets/tmpl/metric_detail.html", "assets/tmpl/tag_list.html", "assets/tmpl/border.html"))
 	log.Println("Done loading templates.")
 }
