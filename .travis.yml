@@ -36,7 +36,7 @@ notifications:
 deploy:
    - provider: script
      skip_cleanup: true
-     script: ./build-push.sh mtr-api
+     script: ./build-push.sh mtr-api mtr-ui
      on: 
        branch: master
   
