@@ -35,9 +35,21 @@ CREATE TABLE field.type (
 
 --  These must also be added to mtr-api/field_type.go
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(1, 'voltage', 'voltage', 'mV'); 
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(2, 'clock', 'clock quality', 'c'); 
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(2, 'clock', 'clock quality', '%');
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(3, 'satellites', 'number of satellites tracked', 'n');
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(4, 'conn', 'end to end connectivity', 'us'); 
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(5, 'ping', 'ping', 'us');
+
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(6, 'disk.hd1', 'disk hd1', '%');
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(7, 'disk.hd2', 'disk hd1', '%');
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(8, 'disk.hd3', 'disk hd1', '%');
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(9, 'disk.hd4', 'disk hd1', '%');
+
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(10, 'centre', 'centre', 'mV');
+
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(11, 'rf.signal', 'rf signal', 'dB');
+INSERT INTO field.type(typePK, typeID, description, unit) VALUES(12, 'rf.noise', 'rf signal', 'dB');
+
 
 CREATE TABLE field.metric_latest (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
