@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package mtrpb;
+option go_package = "mtrpb";
+
+// FieldMetricLatest is the latest value received for a field metric and thresholds for the metric.
+// If upper == lower == 0 then no threshold has been set on the metric.
+message FieldMetricLatest {
+    // The deviceID for the metric e.g., idu-birchfarm
+    string device_iD = 1;
+    // The typeID for the metric e.g., conn
+    string type_iD  = 2;
+    // Unix time in seconds for the metric value (don't need nanos).
+    int64 seconds = 3;
+    // The value
+    int32 value = 4;
+    // The upper threshold for the metric to be good.
+    int32 upper = 5;
+    // The lower threshold for the metric to be good.
+    int32 lower = 6;
+}
+
+message FieldMetricLatestResult {
+    repeated FieldMetricLatest result = 1;
+}
+
+
+

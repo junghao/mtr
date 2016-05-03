@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/golang/protobuf/proto"
+	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
@@ -9,10 +12,10 @@ import (
 
 var client = &http.Client{}
 
-func TestFieldMetrics(t *testing.T) {
-	setup(t)
-	defer teardown()
-
+// adds some test field metrics.  Assumes the caller has already called
+//  setup(t)
+//  defer teardown()
+func addFieldMetrics(t *testing.T) {
 	// Device model
 
 	// Creates a device model.  Repeated requests noop.
@@ -26,8 +29,6 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("PUT", "*/*", "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9&latitude=-38.74270&longitude=176.08100", 200, t)
 	doRequest("DELETE", "*/*", "/field/device?deviceID=gps-taupoairport", 200, t)
 	doRequest("PUT", "*/*", "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9&latitude=-38.74270&longitude=176.08100", 200, t)
-
-	// Metrics
 
 	doRequest("DELETE", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 
@@ -49,6 +50,14 @@ func TestFieldMetrics(t *testing.T) {
 	// Should get a rate limit error for sends in the same minute
 	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=10000", 200, t)
 	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 429, t)
+
+}
+
+func TestFieldMetrics(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	addFieldMetrics(t)
 
 	// Thresholds
 
@@ -111,7 +120,10 @@ func TestFieldMetrics(t *testing.T) {
 	// doRequest("GET", "*/*", "/field/metric/latest?bbox=WhiteIsland&width=800typeID=voltage", 200, t)
 	// doRequest("GET", "*/*", "/field/metric/latest?bbox=NewZealand&width=800&typeID=voltage", 200, t) // SVG medium size map.
 
-	doRequest("GET", "application/json;version=1", "/field/metric/latest?typeID=voltage", 200, t)
+	// All latest metrics as a FieldMetricLatestResult protobuf
+	doRequest("GET", "application/x-protobuf", "/field/metric/latest", 200, t)
+	// Latest voltage metrics
+	doRequest("GET", "application/x-protobuf", "/field/metric/latest?typeID=voltage", 200, t)
 
 	// Thresholds
 	doRequest("GET", "application/json;version=1", "/field/metric/threshold", 200, t)
@@ -123,6 +135,99 @@ func TestFieldMetrics(t *testing.T) {
 
 	// Metric types
 	doRequest("GET", "application/json;version=1", "/field/type", 200, t) // All metrics type
+}
+
+func TestFieldMetricsLatest(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	addFieldMetrics(t)
+
+	doRequest("GET", "application/x-protobuf", "/field/metric/latest", 200, t)
+
+	var err error
+	var b []byte
+
+	if b, err = getBytes("application/x-protobuf", "/field/metric/latest"); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.FieldMetricLatestResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Error("expected 1 result.")
+	}
+
+	r := f.Result[0]
+
+	if r.DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport got %s", r.DeviceID)
+	}
+
+	if r.TypeID != "voltage" {
+		t.Errorf("expected voltage got %s", r.TypeID)
+	}
+
+	if r.Value != 14100 {
+		t.Errorf("expected 14100 got %d", r.Value)
+	}
+
+	if r.Seconds == 0 {
+		t.Error("unexpected zero seconds")
+	}
+
+	if r.Upper != 0 {
+		t.Errorf("expected 0 got %d", r.Upper)
+	}
+
+	if r.Lower != 0 {
+		t.Errorf("expected 0 got %d", r.Lower)
+	}
+
+	// should be no errors and empty result for typeID=conn
+	doRequest("GET", "application/x-protobuf", "/field/metric/latest?typeID=conn", 200, t)
+
+	if b, err = getBytes("application/x-protobuf", "/field/metric/latest?typeID=conn"); err != nil {
+		t.Error(err)
+	}
+
+	f.Reset()
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 0 {
+		t.Error("expected 0 results.")
+	}
+}
+
+func getBytes(accept, uri string) (b []byte, err error) {
+	var request *http.Request
+	var response *http.Response
+
+	if request, err = http.NewRequest("GET", testServer.URL+uri, nil); err != nil {
+		return
+	}
+
+	request.Header.Add("Accept", accept)
+
+	if response, err = client.Do(request); err != nil {
+		return
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		err = fmt.Errorf("non 200 response: %d for %s", response.StatusCode, uri)
+	}
+
+	b, err = ioutil.ReadAll(response.Body)
+
+	return
 }
 
 func doRequest(method, accept, uri string, status int, t *testing.T) {

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/GeoNet/map180"
+	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/golang/protobuf/proto"
 	"math"
 	"net/http"
 	"strconv"
@@ -20,34 +22,68 @@ type point struct {
 	x, y                float64
 }
 
-func (f *fieldLatest) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"typeID"}, []string{}); !res.ok {
+func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	if res := checkQuery(r, []string{}, []string{"typeID"}); !res.ok {
 		return res
 	}
 
-	f.typeID = r.URL.Query().Get("typeID")
+	typeID := r.URL.Query().Get("typeID")
 
-	var s string
 	var err error
+	var rows *sql.Rows
 
-	if err = dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]') 
-			FROM (
-				SELECT latitude AS "Latitude", longitude AS "Longitude", 
-				deviceID AS "DeviceID", time AS "Time", value AS "Value",
-				typeID AS "TypeID",
-				lower as "Lower",
-				upper as "Upper"
-				FROM field.metric_latest 
-				join field.device using (devicePK) 
-				join field.type using (typePK) 
-				join field.threshold using (devicePK, typePK) 
-				where typeID = $1) l`, f.typeID).Scan(&s); err != nil {
+	switch typeID {
+	case "":
+		rows, err = dbR.Query(`select deviceID, typeid, time, value,
+		CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
+		CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
+		from field.metric_latest
+		join field.device using (devicePK)
+		join field.type using (typePK)
+		left outer join field.threshold using (devicePK, typePK);`)
+	default:
+		rows, err = dbR.Query(`select deviceID, typeid, time, value,
+		CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
+		CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
+		from field.metric_latest
+		join field.device using (devicePK)
+		join field.type using (typePK)
+		left outer join field.threshold using (devicePK, typePK)
+		WHERE typeID = $1;`, typeID)
+	}
+	if err != nil {
 		return internalServerError(err)
 	}
 
-	b.WriteString(s)
+	defer rows.Close()
 
-	h.Set("Content-Type", "application/json;version=1")
+	var t time.Time
+	var fmlr mtrpb.FieldMetricLatestResult
+
+	for rows.Next() {
+
+		var fmr mtrpb.FieldMetricLatest
+
+		if err = rows.Scan(&fmr.DeviceID, &fmr.TypeID, &t, &fmr.Value,
+			&fmr.Lower, &fmr.Upper); err != nil {
+			return internalServerError(err)
+		}
+
+		fmr.Seconds = t.Unix()
+
+		fmlr.Result = append(fmlr.Result, &fmr)
+	}
+	rows.Close()
+
+	var by []byte
+
+	if by, err = proto.Marshal(&fmlr); err != nil {
+		return internalServerError(err)
+	}
+
+	b.Write(by)
+
+	h.Set("Content-Type", "application/x-protobuf")
 
 	return &statusOK
 }
