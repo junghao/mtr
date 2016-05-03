@@ -18,6 +18,8 @@ message FieldMetricLatest {
     int32 upper = 5;
     // The lower threshold for the metric to be good.
     int32 lower = 6;
+    // the modelID for the device e.g., "Trimble NetR9"
+    string model_iD = 7;
 }
 
 message FieldMetricLatestResult {

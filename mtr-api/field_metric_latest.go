@@ -34,19 +34,21 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *re
 
 	switch typeID {
 	case "":
-		rows, err = dbR.Query(`select deviceID, typeid, time, value,
+		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value,
 		CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
 		CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
 		from field.metric_latest
 		join field.device using (devicePK)
+		join field.model using (modelPK)
 		join field.type using (typePK)
 		left outer join field.threshold using (devicePK, typePK);`)
 	default:
-		rows, err = dbR.Query(`select deviceID, typeid, time, value,
+		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value,
 		CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
 		CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
 		from field.metric_latest
 		join field.device using (devicePK)
+		join field.model using (modelPK)
 		join field.type using (typePK)
 		left outer join field.threshold using (devicePK, typePK)
 		WHERE typeID = $1;`, typeID)
@@ -64,7 +66,7 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *re
 
 		var fmr mtrpb.FieldMetricLatest
 
-		if err = rows.Scan(&fmr.DeviceID, &fmr.TypeID, &t, &fmr.Value,
+		if err = rows.Scan(&fmr.DeviceID, &fmr.ModelID, &fmr.TypeID, &t, &fmr.Value,
 			&fmr.Lower, &fmr.Upper); err != nil {
 			return internalServerError(err)
 		}
