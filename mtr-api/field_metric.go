@@ -5,22 +5,13 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/GeoNet/mtr/ts"
-	"github.com/lib/pq"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
 
-var resolution = [...]string{
-	"minute",
-	"hour",
-}
-
-var duration = [...]time.Duration{
-	time.Minute,
-	time.Hour,
-}
+var statusTooManyRequests = result{ok: false, code: http.StatusTooManyRequests, msg: "Already data for the minute"}
 
 type fieldMetric struct {
 	deviceID  string
@@ -66,23 +57,24 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		return res
 	}
 
-	for i, _ := range resolution {
-		// Insert the value (which may already exist)
-		if _, err = db.Exec(`INSERT INTO field.metric_`+resolution[i]+`(devicePK, typePK, time, avg, n) VALUES($1, $2, $3, $4, $5)`,
-			f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v), 1); err != nil {
-			if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
-				// unique error (already a value at this resolution) update the moving average.
-				if _, err := db.Exec(`UPDATE field.metric_`+resolution[i]+` SET avg = ($4 + (avg * n)) / (n+1), n = n + 1
-					WHERE devicePK = $1
-					AND typePK = $2
-					AND time = $3`,
-					f.devicePK, f.fieldType.typePK, t.Truncate(duration[i]), int32(v)); err != nil {
-					return internalServerError(err)
-				}
-			} else {
-				return internalServerError(err)
-			}
+	// TODO rate limit here
+	var count int
+	if err = db.QueryRow(`SELECT count(*) FROM field.metric
+				WHERE devicePK = $1
+				AND typePK = $2
+				AND date_trunc('minute', time) = $3`, f.devicePK, f.fieldType.typePK, t.Truncate(time.Minute)).Scan(&count); err != nil {
+		if err != nil {
+			return internalServerError(err)
 		}
+	}
+
+	if count != 0 {
+		return &statusTooManyRequests
+	}
+
+	if _, err = db.Exec(`INSERT INTO field.metric(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
+		f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
+		return internalServerError(err)
 	}
 
 	// TODO switch to Postgres 9.5 and use upsert.
@@ -115,12 +107,10 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 		return internalServerError(err)
 	}
 
-	for _, v := range resolution {
-		if _, err = txn.Exec(`DELETE FROM field.metric_`+v+` WHERE devicePK = $1 AND typePK = $2`,
-			f.devicePK, f.fieldType.typePK); err != nil {
-			txn.Rollback()
-			return internalServerError(err)
-		}
+	if _, err = txn.Exec(`DELETE FROM field.metric WHERE devicePK = $1 AND typePK = $2`,
+		f.devicePK, f.fieldType.typePK); err != nil {
+		txn.Rollback()
+		return internalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.metric_tag WHERE devicePK = $1 AND typePK = $2`,
@@ -160,7 +150,7 @@ func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer)
 	var rows *sql.Rows
 	var err error
 
-	if rows, err = dbR.Query(`SELECT format('%s,%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), avg, n) as csv FROM field.metric_minute 
+	if rows, err = dbR.Query(`SELECT format('%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), value) as csv FROM field.metric
 		WHERE devicePK = $1 AND typePK = $2
 		ORDER BY time ASC`,
 		f.devicePK, f.fieldType.typePK); err != nil && err != sql.ErrNoRows {
@@ -205,6 +195,10 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		resolution = "minute"
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
 		p.SetXLabel("12 hours")
+	case "five_minutes":
+		resolution = "five_minutes"
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*3), time.Now().UTC())
+		p.SetXLabel("48 hours")
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
@@ -347,24 +341,47 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT time, avg FROM field.metric_`+resolution+` WHERE 
+	switch resolution {
+	case "minute":
+		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
 		devicePK = $1 AND typePK = $2
-		ORDER BY time ASC`,
-		f.devicePK, f.fieldType.typePK); err != nil {
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('`+resolution+`',time)
+		ORDER BY t ASC`,
+			f.devicePK, f.fieldType.typePK)
+	case "five_minutes":
+		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
+		 avg(value) FROM field.metric WHERE
+		devicePK = $1 AND typePK = $2
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
+		ORDER BY t ASC`,
+			f.devicePK, f.fieldType.typePK)
+	case "hour":
+		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
+		devicePK = $1 AND typePK = $2
+		AND time > now() - interval '28 days'
+		GROUP BY date_trunc('`+resolution+`',time)
+		ORDER BY t ASC`,
+			f.devicePK, f.fieldType.typePK)
+	default:
+		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+	}
+	if err != nil {
 		return internalServerError(err)
 	}
 
 	defer rows.Close()
 
 	var t time.Time
-	var avg int32
+	var avg float64
 	var pts []ts.Point
 
 	for rows.Next() {
 		if err = rows.Scan(&t, &avg); err != nil {
 			return internalServerError(err)
 		}
-		pts = append(pts, ts.Point{DateTime: t, Value: float64(avg) * f.fieldType.Scale})
+		pts = append(pts, ts.Point{DateTime: t, Value: avg * f.fieldType.Scale})
 	}
 	rows.Close()
 

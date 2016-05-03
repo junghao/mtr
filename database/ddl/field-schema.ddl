@@ -62,29 +62,16 @@ CREATE TABLE field.metric_latest (
 CREATE INDEX on field.metric_latest (devicePK);
 CREATE INDEX on field.metric_latest (typePK);
 
-CREATE TABLE field.metric_minute (
+CREATE TABLE field.metric (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	avg INTEGER NOT NULL,
-	n INTEGER NOT NULL,
+	value INTEGER NOT NULL,
 	PRIMARY KEY(devicePK, typePK, time)
 );
 
-CREATE INDEX on field.metric_minute (devicePK);
-CREATE INDEX on field.metric_minute (typePK);
-
-CREATE TABLE field.metric_hour (
-	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
-	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
-	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	avg INTEGER NOT NULL,
-	n INTEGER NOT NULL,
-	PRIMARY KEY(devicePK, typePK, time)
-);
-
-CREATE INDEX on field.metric_hour (devicePK);
-CREATE INDEX on field.metric_hour (typePK);
+CREATE INDEX on field.metric (devicePK);
+CREATE INDEX on field.metric (typePK);
 
 CREATE TABLE field.threshold (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
