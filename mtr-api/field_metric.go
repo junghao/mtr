@@ -138,45 +138,6 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 	return &statusOK
 }
 
-func (f *fieldMetric) metricCSV(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.ok {
-		return res
-	}
-
-	if res := f.loadPK(r); !res.ok {
-		return res
-	}
-
-	var rows *sql.Rows
-	var err error
-
-	if rows, err = dbR.Query(`SELECT format('%s,%s', to_char(time, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), value) as csv FROM field.metric
-		WHERE devicePK = $1 AND typePK = $2
-		ORDER BY time ASC`,
-		f.devicePK, f.fieldType.typePK); err != nil && err != sql.ErrNoRows {
-		return internalServerError(err)
-	}
-	defer rows.Close()
-
-	var d string
-
-	b.Write([]byte("date-time," + f.fieldType.Name))
-	b.Write(eol)
-	for rows.Next() {
-		if err = rows.Scan(&d); err != nil {
-			return internalServerError(err)
-		}
-		b.Write([]byte(d))
-		b.Write(eol)
-	}
-	rows.Close()
-
-	h.Set("Content-Disposition", `attachment; filename="MTR-`+strings.Replace(f.deviceID+`-`+f.fieldType.Name, " ", "-", -1)+`.csv"`)
-	h.Set("Content-Type", "text/csv")
-
-	return &statusOK
-}
-
 func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{"plot", "resolution", "yrange"}); !res.ok {
 		return res

@@ -31,8 +31,6 @@ func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		return f.delete(r)
 	case "GET":
 		switch r.Header.Get("Accept") {
-		case "text/csv":
-			return f.metricCSV(r, h, b)
 		default:
 			return f.svg(r, h, b)
 		}

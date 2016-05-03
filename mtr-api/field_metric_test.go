@@ -99,7 +99,6 @@ func TestFieldMetrics(t *testing.T) {
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", 400, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&plot=spark", 200, t)
-	doRequest("GET", "text/csv", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 
 	// Latest metrics as SVG map
 	//  These only pass with the map180 data in the DB.
