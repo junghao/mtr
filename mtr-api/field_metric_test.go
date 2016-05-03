@@ -168,6 +168,10 @@ func TestFieldMetricsLatest(t *testing.T) {
 		t.Errorf("expected gps-taupoairport got %s", r.DeviceID)
 	}
 
+	if r.ModelID != "Trimble NetR9" {
+		t.Errorf("expected Trimble NetR9 got %s", r.ModelID)
+	}
+
 	if r.TypeID != "voltage" {
 		t.Errorf("expected voltage got %s", r.TypeID)
 	}
