@@ -45,9 +45,10 @@
 			"revisionTime": "2015-01-25T10:08:32-08:00"
 		},
 		{
+			"checksumSHA1": "FczzogSoZcKU3h21tCUyHzMsnBY=",
 			"path": "github.com/golang/protobuf/proto",
-			"revision": "ab974be44dc3b7b8a1fb306fb32fe9b9f3864b3d",
-			"revisionTime": "2015-07-07T21:13:00-06:00"
+			"revision": "7cc19b78d562895b13596ddce7aafb59dd789318",
+			"revisionTime": "2016-04-25T21:53:00Z"
 		},
 		{
 			"path": "github.com/lib/pq",
