@@ -57,7 +57,19 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		return res
 	}
 
-	// TODO rate limit here
+	// Update or save the latest value.  Not rate limited.
+	// TODO switch to Postgres 9.5 and use upsert.
+	if _, err = db.Exec(`INSERT INTO field.metric_latest(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
+		f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
+		if _, err = db.Exec(`UPDATE field.metric_latest  SET time = $3, value = $4
+				WHERE devicePK = $1
+				AND typePK = $2
+				AND time <= $3`, f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
+			return internalServerError(err)
+		}
+	}
+
+	// Rate limit the stored data to 1 per minute
 	var count int
 	if err = db.QueryRow(`SELECT count(*) FROM field.metric
 				WHERE devicePK = $1
@@ -75,17 +87,6 @@ func (f *fieldMetric) save(r *http.Request) *result {
 	if _, err = db.Exec(`INSERT INTO field.metric(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
 		f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
 		return internalServerError(err)
-	}
-
-	// TODO switch to Postgres 9.5 and use upsert.
-	if _, err = db.Exec(`INSERT INTO field.metric_latest(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
-		f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
-		if _, err = db.Exec(`UPDATE field.metric_latest  SET time = $3, value = $4
-				WHERE devicePK = $1
-				AND typePK = $2
-				AND time <= $3`, f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
-			return internalServerError(err)
-		}
 	}
 
 	return &statusOK
