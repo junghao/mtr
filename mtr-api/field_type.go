@@ -38,6 +38,58 @@ var fieldTypes = map[string]fieldType{
 		Name:   "Connectivity",
 		Unit:   "ms",
 	},
+	"ping": fieldType{
+		typePK: 5,
+		Scale:  0.001,
+		Name:   "ping",
+		Unit:   "ms",
+	},
+
+	"disk.hd1": fieldType{
+		typePK: 6,
+		Scale:  1.0,
+		Name:   "disk hd1",
+		Unit:   "%",
+	},
+	"disk.hd2": fieldType{
+		typePK: 7,
+		Scale:  1.0,
+		Name:   "disk hd2",
+		Unit:   "%",
+	},
+	"disk.hd3": fieldType{
+		typePK: 8,
+		Scale:  1.0,
+		Name:   "disk hd3",
+		Unit:   "%",
+	},
+	"disk.hd4": fieldType{
+		typePK: 9,
+		Scale:  1.0,
+		Name:   "disk hd4",
+		Unit:   "%",
+	},
+
+	"centre": fieldType{
+		typePK: 10,
+		Scale:  1.0,
+		Name:   "centre",
+		Unit:   "mV",
+	},
+
+	"rf.signal": fieldType{
+		typePK: 11,
+		Scale:  1.0,
+		Name:   "rf signal",
+		Unit:   "dB",
+	},
+	"rf.noise": fieldType{
+		typePK: 12,
+		Scale:  1.0,
+		Name:   "rf noise",
+		Unit:   "dB",
+	},
+
 }
 
 func loadFieldType(typeID string) (fieldType, *result) {

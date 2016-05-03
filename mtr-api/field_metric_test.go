@@ -46,9 +46,9 @@ func TestFieldMetrics(t *testing.T) {
 			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v), 200, t)
 	}
 
-	// This min and max value is saved in each minute.
+	// Should get a rate limit error for sends in the same minute
 	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=10000", 200, t)
-	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 200, t)
+	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 429, t)
 
 	// Thresholds
 
@@ -91,12 +91,14 @@ func TestFieldMetrics(t *testing.T) {
 	//
 	// if yrange is not set then the yaxis autoranges between 0 and ymax.
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=five_minutes", 200, t)
+	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&yrange=0.0,25.0", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", 200, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", 400, t)
 	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&plot=spark", 200, t)
-	doRequest("GET", "text/csv", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 
 	// Latest metrics as SVG map
 	//  These only pass with the map180 data in the DB.
