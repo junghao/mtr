@@ -1,18 +1,19 @@
 package main
 
 import (
+	"bytes"
+	"database/sql"
+	"fmt"
+	"github.com/GeoNet/mtr/ts"
+	"github.com/lib/pq"
 	"net/http"
 	"strconv"
-	"time"
-	"database/sql"
-	"github.com/GeoNet/mtr/ts"
 	"strings"
-	"fmt"
-	"bytes"
+	"time"
 )
 
-type dataLatency struct{
-	sitePK int
+type dataLatency struct {
+	sitePK   int
 	dataType dataType
 }
 
@@ -91,37 +92,13 @@ func (d *dataLatency) save(r *http.Request) *result {
 		return res
 	}
 
-	// Update or save the latest value.  Not rate limited.
-	// TODO switch to Postgres 9.5 and use upsert.
-	if _, err = db.Exec(`INSERT INTO data.latency_latest(sitePK, typePK, time, mean, min, max, fifty, ninety) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-		d.sitePK, d.dataType.typePK, t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
-		if _, err = db.Exec(`UPDATE data.latency_latest SET time = $3, mean = $4, min = $5, max = $6, fifty = $7, ninety = $8
-				WHERE sitePK = $1
-				AND typePK = $2
-				AND time <= $3`,
-			d.sitePK, d.dataType.typePK, t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
+	if _, err = db.Exec(`INSERT INTO data.latency(sitePK, typePK, rate_limit, time, mean, min, max, fifty, ninety) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		d.sitePK, d.dataType.typePK, t.Truncate(time.Minute).Unix(), t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
+		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
+			return &statusTooManyRequests
+		} else {
 			return internalServerError(err)
 		}
-	}
-
-	// Rate limit the stored data to 1 per minute
-	var count int
-	if err = db.QueryRow(`SELECT count(*) FROM data.latency
-				WHERE sitePK = $1
-				AND typePK = $2
-				AND date_trunc('minute', time) = $3`, d.sitePK, d.dataType.typePK, t.Truncate(time.Minute)).Scan(&count); err != nil {
-		if err != nil {
-			return internalServerError(err)
-		}
-	}
-
-	if count != 0 {
-		return &statusTooManyRequests
-	}
-
-	if _, err = db.Exec(`INSERT INTO data.latency(sitePK, typePK, time, mean, min, max, fifty, ninety) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-		d.sitePK, d.dataType.typePK, t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
-		return internalServerError(err)
 	}
 
 	return &statusOK
@@ -144,12 +121,6 @@ func (d *dataLatency) delete(r *http.Request) *result {
 	}
 
 	if _, err = txn.Exec(`DELETE FROM data.latency WHERE sitePK = $1 AND typePK = $2`,
-		d.sitePK, d.dataType.typePK); err != nil {
-		txn.Rollback()
-		return internalServerError(err)
-	}
-
-	if _, err = txn.Exec(`DELETE FROM data.latency_latest WHERE sitePK = $1 AND typePK = $2`,
 		d.sitePK, d.dataType.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
@@ -226,7 +197,6 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	//
 	//p.SetSubTitle("Tags: " + strings.Join(tags, ","))
 
-
 	p.SetTitle(fmt.Sprintf("Site: %s - %s", r.URL.Query().Get("siteID"), strings.Title(d.dataType.Name)))
 
 	var err error
@@ -247,7 +217,6 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	}
 
 	h.Set("Content-Type", "image/svg+xml")
-
 
 	return &statusOK
 }
@@ -309,8 +278,10 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 	// Add the latest value to the plot - this may be different to the average at minute or hour resolution.
 	t = time.Time{}
 	var value int32
-	if err = dbR.QueryRow(`SELECT time, mean FROM data.latency_latest WHERE
-			sitePK = $1 AND typePK = $2`,
+	if err = dbR.QueryRow(`SELECT time, mean FROM data.latency WHERE
+			sitePK = $1 AND typePK = $2
+			ORDER BY time DESC
+			LIMIT 1`,
 		d.sitePK, d.dataType.typePK).Scan(&t, &value); err != nil {
 		return internalServerError(err)
 	}
@@ -322,4 +293,3 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 
 	return &statusOK
 }
-
