@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"github.com/lib/pq"
+	"database/sql"
 )
 
 type dataSite struct {
@@ -56,4 +57,17 @@ func (d *dataSite) delete(r *http.Request) *result {
 	}
 
 	return &statusOK
+}
+
+func dataSitePK(siteID string) (int, *result) {
+	var pk int
+
+	if err := dbR.QueryRow(`SELECT sitePK FROM data.site where siteID = $1`, siteID).Scan(&pk); err != nil {
+		if err == sql.ErrNoRows {
+			return pk, badRequest("unknown siteID")
+		}
+		return pk, internalServerError(err)
+	}
+
+	return pk, &statusOK
 }

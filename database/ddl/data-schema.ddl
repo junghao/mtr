@@ -27,4 +27,39 @@ CREATE TABLE data.type (
   unit TEXT NOT NULL
 );
 
+--  These must also be added to mtr-api/data_type.go
+INSERT INTO data.type(typePK, typeID, description, unit) VALUES(1, 'latency.strong', 'latency strong motion data', 'ms');
+INSERT INTO data.type(typePK, typeID, description, unit) VALUES(2, 'latency.weak', 'latency weak motion data', 'ms');
+INSERT INTO data.type(typePK, typeID, description, unit) VALUES(3, 'latency.gnss.1hz', 'latency GNSS 1Hz data', 'ms');
+INSERT INTO data.type(typePK, typeID, description, unit) VALUES(4, 'latency.tsunami', 'latency tsunami data', 'ms');
 
+CREATE TABLE data.latency (
+  sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
+  typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
+  time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+  mean INTEGER NOT NULL,
+  min INTEGER NOT NULL,
+  max INTEGER NOT NULL,
+  fifty INTEGER NOT NULL,
+  ninety INTEGER NOT NULL,
+  PRIMARY KEY(sitePK, typePK, time)
+);
+
+CREATE INDEX on data.latency (sitePK);
+CREATE INDEX on data.latency (typePK);
+CREATE INDEX on data.latency (time);
+
+CREATE TABLE data.latency_latest (
+sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
+typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
+time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+mean INTEGER NOT NULL,
+min INTEGER NOT NULL,
+max INTEGER NOT NULL,
+fifty INTEGER NOT NULL,
+ninety INTEGER NOT NULL,
+PRIMARY KEY(sitePK, typePK)
+);
+
+CREATE INDEX on data.latency_latest (sitePK);
+CREATE INDEX on data.latency_latest (typePK);

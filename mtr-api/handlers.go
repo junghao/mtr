@@ -181,3 +181,21 @@ func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		return &methodNotAllowed
 	}
 }
+
+func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	var d dataLatency
+
+	switch r.Method {
+	case "PUT":
+		return d.save(r)
+	case "DELETE":
+		return d.delete(r)
+	//case "GET":
+	//	switch r.Header.Get("Accept") {
+	//	default:
+	//		return f.svg(r, h, b)
+	//	}
+	default:
+		return &methodNotAllowed
+	}
+}
