@@ -39,15 +39,6 @@ func addDataMetrics(t *testing.T) {
 	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=10000", 200, t)
 	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=14100", 429, t)
 
-	// Add another site, some latency data, then delete.
-	doRequest("DELETE", "*/*", "/data/site?siteID=WGTN", 200, t)
-	doRequest("PUT", "*/*", "/data/site?siteID=WGTN&latitude=-38.74270&longitude=176.08100", 200, t)
-
-	// min, max, fifty, ninety are optional latency values
-	doRequest("PUT", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong&time="+now.Format(time.RFC3339)+
-	"&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", 200, t)
-
-	doRequest("DELETE", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong", 200, t)
 }
 
 func TestDataMetrics(t *testing.T) {
@@ -55,4 +46,34 @@ func TestDataMetrics(t *testing.T) {
 	defer teardown()
 
 	addDataMetrics(t)
+
+	// Add another site, some latency data, then delete.
+	doRequest("DELETE", "*/*", "/data/site?siteID=WGTN", 200, t)
+	doRequest("PUT", "*/*", "/data/site?siteID=WGTN&latitude=-38.74270&longitude=176.08100", 200, t)
+
+	// min, max, fifty, ninety are optional latency values
+	doRequest("PUT", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong&time="+time.Now().UTC().Format(time.RFC3339)+
+	"&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", 200, t)
+
+	doRequest("DELETE", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong", 200, t)
+
+	// Latency plots.  Resolution is optional on plots and sparks.  yrange is also optional.  If not set autoranges on the data.
+	// Options for the plot parameter:
+	// default = line plot.
+	// line
+	// scatter
+	// spark (line)
+	// spark-line
+	// spark-scatter
+	//
+	// if yrange is not set then the yaxis autoranges between 0 and ymax.
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=five_minutes", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&yrange=0.0,25.0", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=day", 400, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&plot=spark", 200, t)
 }

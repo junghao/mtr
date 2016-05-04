@@ -190,11 +190,11 @@ func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		return d.save(r)
 	case "DELETE":
 		return d.delete(r)
-	//case "GET":
-	//	switch r.Header.Get("Accept") {
-	//	default:
-	//		return f.svg(r, h, b)
-	//	}
+	case "GET":
+		switch r.Header.Get("Accept") {
+		default:
+			return d.svg(r, h, b)
+		}
 	default:
 		return &methodNotAllowed
 	}
