@@ -168,3 +168,16 @@ func fieldMetricLatestHandler(r *http.Request, h http.Header, b *bytes.Buffer) *
 		return &methodNotAllowed
 	}
 }
+
+func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	var d dataSite
+
+	switch r.Method {
+	case "PUT":
+		return d.save(r)
+	case "DELETE":
+		return d.delete(r)
+	default:
+		return &methodNotAllowed
+	}
+}

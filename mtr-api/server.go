@@ -36,6 +36,7 @@ func init() {
 	mux.HandleFunc("/field/metric/threshold", toHandler(fieldThresholdHandler))
 	mux.HandleFunc("/field/metric/tag", toHandler(fieldMetricTagHandler))
 	mux.HandleFunc("/health", health)
+	mux.HandleFunc("/data/site", toHandler(dataSiteHandler))
 }
 
 func main() {

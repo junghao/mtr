@@ -27,13 +27,4 @@ CREATE TABLE data.type (
   unit TEXT NOT NULL
 );
 
-CREATE TABLE data.event (
-  sitePK SMALLINT REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
-  typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
-  time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-  PRIMARY KEY(sitePK, typePK, time)
-);
-
-CREATE INDEX on data.event (sitePK);
-CREATE INDEX on data.event (typePK);
 
