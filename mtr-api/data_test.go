@@ -39,6 +39,7 @@ func addDataMetrics(t *testing.T) {
 	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=10000", 200, t)
 	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=14100", 429, t)
 
+
 }
 
 func TestDataMetrics(t *testing.T) {
@@ -56,6 +57,19 @@ func TestDataMetrics(t *testing.T) {
 	"&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", 200, t)
 
 	doRequest("DELETE", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong", 200, t)
+
+	// Create a threshold for latency.
+	// I assume a single threshold would be for mean, fifty, and ninety?
+	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
+
+	// Update a threshold
+	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=13000&upper=15000", 200, t)
+
+	// Delete a threshold then create it again
+	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
+
 
 	// Latency plots.  Resolution is optional on plots and sparks.  yrange is also optional.  If not set autoranges on the data.
 	// Options for the plot parameter:

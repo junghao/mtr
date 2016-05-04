@@ -63,3 +63,14 @@ PRIMARY KEY(sitePK, typePK)
 
 CREATE INDEX on data.latency_latest (sitePK);
 CREATE INDEX on data.latency_latest (typePK);
+
+CREATE TABLE data.latency_threshold (
+  sitePK SMALLINT REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
+  typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
+  lower INTEGER NOT NULL,
+  upper INTEGER NOT NULL,
+  PRIMARY KEY(sitePK, typePK)
+);
+
+CREATE INDEX on data.latency_threshold (sitePK);
+CREATE INDEX on data.latency_threshold (typePK);
