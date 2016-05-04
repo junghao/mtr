@@ -55,6 +55,7 @@ func (f *fieldDevice) save(r *http.Request) *result {
 		f.deviceID, modelPK, f.latitude, f.longitude); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
+		// TODO should the be an update here?
 		} else {
 			return internalServerError(err)
 		}
