@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package mtrpb;
+option go_package = "mtrpb";
+
+// DataLatencySummary is a summary of data latency metrics for each site.
+// mean should not be 0.  fifty and ninety may be unknown (0).
+// If upper == lower == 0 then no threshold has been set on the metric.
+message DataLatencySummary {
+    // The siteID for the metric e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the metric e.g., latency.strong
+    string type_iD  = 2;
+    // Unix time in seconds for the metric value (don't need nanos).
+    int64 seconds = 3;
+    // The mean latency
+    int32 mean = 4;
+    // The fiftieth percentile value.  Might be unknown (0)
+    int32 fifty = 5;
+    // The ninetieth percentile value.  Might be unknown (0)
+    int32 ninety = 6;
+    // The upper threshold for the metric to be good.
+    int32 upper = 7;
+    // The lower threshold for the metric to be good.
+    int32 lower = 8;
+}
+
+message DataLatencySummaryResult {
+    repeated DataLatencySummary result = 1;
+}
+
+
+

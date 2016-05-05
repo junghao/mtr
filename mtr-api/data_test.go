@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/golang/protobuf/proto"
 	"testing"
 	"time"
-	"fmt"
 )
 
 func addDataMetrics(t *testing.T) {
@@ -39,6 +41,10 @@ func addDataMetrics(t *testing.T) {
 	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=10000", 200, t)
 	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=14100", 429, t)
 
+	// Refresh the latency_summary view.  Usually done on timer in server.go
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
+		t.Error(err)
+	}
 
 }
 
@@ -54,7 +60,7 @@ func TestDataMetrics(t *testing.T) {
 
 	// min, max, fifty, ninety are optional latency values
 	doRequest("PUT", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong&time="+time.Now().UTC().Format(time.RFC3339)+
-	"&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", 200, t)
+		"&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", 200, t)
 
 	doRequest("DELETE", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong", 200, t)
 
@@ -69,7 +75,6 @@ func TestDataMetrics(t *testing.T) {
 	// Delete a threshold then create it again
 	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
 	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
-
 
 	// Latency plots.  Resolution is optional on plots and sparks.  yrange is also optional.  If not set autoranges on the data.
 	// Options for the plot parameter:
@@ -90,4 +95,80 @@ func TestDataMetrics(t *testing.T) {
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=day", 400, t)
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&plot=spark", 200, t)
+}
+
+func TestDataLatencySummary(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	addDataMetrics(t)
+
+	doRequest("GET", "application/x-protobuf", "/data/latency/summary", 200, t)
+
+	var err error
+	var b []byte
+
+	if b, err = getBytes("application/x-protobuf", "/data/latency/summary"); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.DataLatencySummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Error("expected 1 result.")
+	}
+
+	r := f.Result[0]
+
+	if r.SiteID != "TAUP" {
+		t.Errorf("expected TAUP got %s", r.SiteID)
+	}
+
+	if r.TypeID != "latency.strong" {
+		t.Errorf("expected latency.strong got %s", r.TypeID)
+	}
+
+	if r.Mean != 10000 {
+		t.Errorf("expected 10000 got %d", r.Mean)
+	}
+
+	if r.Fifty != 0 {
+		t.Errorf("expected 0 got %d", r.Fifty)
+	}
+
+	if r.Ninety != 0 {
+		t.Errorf("expected 0 got %d", r.Ninety)
+	}
+
+	if r.Seconds == 0 {
+		t.Error("unexpected zero seconds")
+	}
+
+	if r.Upper != 0 {
+		t.Errorf("expected 0 got %d", r.Upper)
+	}
+
+	if r.Lower != 0 {
+		t.Errorf("expected 0 got %d", r.Lower)
+	}
+
+	doRequest("GET", "application/x-protobuf", "/data/latency/summary?typeID=latency.strong", 200, t)
+
+	if b, err = getBytes("application/x-protobuf", "/data/latency/summary?typeID=latency.strong"); err != nil {
+		t.Error(err)
+	}
+
+	f.Reset()
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Error("expected 1 result.")
+	}
 }

@@ -219,3 +219,21 @@ func dataLatencyThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer
 		return &methodNotAllowed
 	}
 }
+
+func dataLatencySummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	var d dataLatencySummary
+
+	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return d.proto(r, h, b)
+			//default:
+			//	return f.svg(r, h, b)
+		default:
+			return &notAcceptable
+		}
+	default:
+		return &methodNotAllowed
+	}
+}
