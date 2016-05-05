@@ -12,8 +12,8 @@ It is generated from these files:
 It has these top-level messages:
 	DataLatencySummary
 	DataLatencySummaryResult
-	FieldMetricLatest
-	FieldMetricLatestResult
+	FieldMetricSummary
+	FieldMetricSummaryResult
 */
 package mtrpb
 

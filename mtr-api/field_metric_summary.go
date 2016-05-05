@@ -60,11 +60,11 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *re
 	defer rows.Close()
 
 	var t time.Time
-	var fmlr mtrpb.FieldMetricLatestResult
+	var fmlr mtrpb.FieldMetricSummaryResult
 
 	for rows.Next() {
 
-		var fmr mtrpb.FieldMetricLatest
+		var fmr mtrpb.FieldMetricSummary
 
 		if err = rows.Scan(&fmr.DeviceID, &fmr.ModelID, &fmr.TypeID, &t, &fmr.Value,
 			&fmr.Lower, &fmr.Upper); err != nil {
