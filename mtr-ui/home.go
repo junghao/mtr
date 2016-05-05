@@ -28,15 +28,15 @@ func homepageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		return internalServerError(err)
 	}
 
-	if p.FieldSummary, err = getFieldLatest(); err != nil {
+	if p.FieldSummary, err = getFieldSummary(); err != nil {
 		return internalServerError(err)
 	}
 
-	if p.DataSummary, err = getDataLatest(); err != nil {
+	if p.DataSummary, err = getDataSummary(); err != nil {
 		return internalServerError(err)
 	}
 
-	if p.AppSummary, err = getAppLatest(); err != nil {
+	if p.AppSummary, err = getAppSummary(); err != nil {
 		return internalServerError(err)
 	}
 

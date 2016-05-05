@@ -72,7 +72,7 @@ func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		return internalServerError(err)
 	}
 
-	if p.Summary, err = getFieldLatest(); err != nil {
+	if p.Summary, err = getFieldSummary(); err != nil {
 		return internalServerError(err)
 	}
 
@@ -100,7 +100,7 @@ func fieldMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 		return internalServerError(err)
 	}
 
-	if err = p.getMetricsLatest(); err != nil {
+	if err = p.getMetricsSummary(); err != nil {
 		return internalServerError(err)
 	}
 
@@ -128,7 +128,7 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 		return internalServerError(err)
 	}
 
-	if err = p.getDevicesLatest(); err != nil {
+	if err = p.getDevicesSummary(); err != nil {
 		return internalServerError(err)
 	}
 
@@ -139,16 +139,16 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	return &statusOK
 }
 
-func getFieldLatest() (m map[string]int, err error) {
+func getFieldSummary() (m map[string]int, err error) {
 	u := *mtrApiUrl
-	u.Path = "/field/metric/latest"
+	u.Path = "/field/metric/summary"
 
 	var b []byte
 	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
 		return
 	}
 
-	var f mtrpb.FieldMetricLatestResult
+	var f mtrpb.FieldMetricSummaryResult
 
 	if err = proto.Unmarshal(b, &f); err != nil {
 		return
@@ -165,16 +165,16 @@ func getFieldLatest() (m map[string]int, err error) {
 	return
 }
 
-func (p *fieldPage) getMetricsLatest() (err error) {
+func (p *fieldPage) getMetricsSummary() (err error) {
 	u := *mtrApiUrl
-	u.Path = "/field/metric/latest"
+	u.Path = "/field/metric/summary"
 
 	var b []byte
 	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
 		return
 	}
 
-	var f mtrpb.FieldMetricLatestResult
+	var f mtrpb.FieldMetricSummaryResult
 
 	if err = proto.Unmarshal(b, &f); err != nil {
 		return
@@ -189,16 +189,16 @@ func (p *fieldPage) getMetricsLatest() (err error) {
 	return
 }
 
-func (p *fieldPage) getDevicesLatest() (err error) {
+func (p *fieldPage) getDevicesSummary() (err error) {
 	u := *mtrApiUrl
-	u.Path = "/field/metric/latest"
+	u.Path = "/field/metric/summary"
 
 	var b []byte
 	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
 		return
 	}
 
-	var f mtrpb.FieldMetricLatestResult
+	var f mtrpb.FieldMetricSummaryResult
 
 	if err = proto.Unmarshal(b, &f); err != nil {
 		return
@@ -214,7 +214,7 @@ func (p *fieldPage) getDevicesLatest() (err error) {
 }
 
 // Increase count if Id exists in slice, append to slice if it's a new Id
-func updateMetric(m []idCount, result *mtrpb.FieldMetricLatest) []idCount {
+func updateMetric(m []idCount, result *mtrpb.FieldMetricSummary) []idCount {
 	for _, r := range m {
 		if r.Id == result.TypeID {
 			incCount(r.Count, result)
@@ -228,7 +228,7 @@ func updateMetric(m []idCount, result *mtrpb.FieldMetricLatest) []idCount {
 }
 
 // Increase count if Id exists in slice, append to slice if it's a new Id
-func updateDevice(m []device, result *mtrpb.FieldMetricLatest) []device {
+func updateDevice(m []device, result *mtrpb.FieldMetricSummary) []device {
 	for i, r := range m {
 		if r.ModelId == result.ModelID {
 			r.TypeCount++
@@ -255,7 +255,7 @@ func updateDevice(m []device, result *mtrpb.FieldMetricLatest) []device {
 	return append(m, device{ModelId: result.ModelID, Types: t, TypeCount: 1})
 }
 
-func incCount(m map[string]int, r *mtrpb.FieldMetricLatest) {
+func incCount(m map[string]int, r *mtrpb.FieldMetricSummary) {
 	switch {
 	case r.Upper == 0 && r.Lower == 0:
 		m["unknown"] = m["unknown"] + 1

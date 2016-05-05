@@ -29,7 +29,7 @@ func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		return internalServerError(err)
 	}
 
-	if p.Summary, err = getDataLatest(); err != nil {
+	if p.Summary, err = getDataSummary(); err != nil {
 		return internalServerError(err)
 	}
 
@@ -41,16 +41,16 @@ func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	return &statusOK
 }
 
-func getDataLatest() (m map[string]int, err error) {
+func getDataSummary() (m map[string]int, err error) {
 	u := *mtrApiUrl
-	u.Path = "/field/metric/latest"
+	u.Path = "/field/metric/summary"
 
 	var b []byte
 	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
 		return
 	}
 
-	var f mtrpb.FieldMetricLatestResult
+	var f mtrpb.FieldMetricSummaryResult
 
 	if err = proto.Unmarshal(b, &f); err != nil {
 		return
