@@ -1,0 +1,37 @@
+{{define "data_main"}}
+<a href="/#TODO">
+    <div class="row mtr-size mtr-callout mtr-sub-title">
+        <div class="col-xs-12 col-md-12">Sites {{index . "sites"}}</div>
+    </div>
+</a>
+
+<a href="/#TODO">
+    <div class="row mtr-size mtr-callout">
+        <div class="col-xs-12 col-md-12">Metrics {{index . "metrics"}}</div>
+    </div>
+</a>
+
+<a href="/#TODO">
+    <div class="row mtr-size mtr-callout mtr-callout-good">
+        <div class="col-xs-12 col-md-12">Good {{index . "good"}}</div>
+    </div>
+</a>
+
+<a href="/#TODO">
+    <div class="row mtr-size mtr-callout mtr-callout-bad">
+        <div class="col-xs-12 col-md-12">Bad {{index . "bad"}}</div>
+    </div>
+</a>
+<a href="/#TODO">
+    <div class="row mtr-size mtr-callout mtr-callout-late">
+        <div class="col-xs-12 col-md-12">Late {{index . "late"}}</div>
+    </div>
+</a>
+
+<a href="/#TODO">
+    <div class="row mtr-size mtr-callout mtr-callout-unknown">
+        <div class="col-xs-12 col-md-12">Other {{index . "unknown"}}</div>
+    </div>
+</a>
+
+{{end}}

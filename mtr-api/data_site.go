@@ -1,14 +1,14 @@
 package main
 
 import (
+	"database/sql"
+	"github.com/lib/pq"
 	"net/http"
 	"strconv"
-	"github.com/lib/pq"
-	"database/sql"
 )
 
 type dataSite struct {
-	siteID string
+	siteID              string
 	longitude, latitude float64
 }
 
@@ -34,7 +34,7 @@ func (d *dataSite) save(r *http.Request) *result {
 		d.siteID, d.latitude, d.longitude); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			if _, err := db.Exec(`UPDATE data.site SET latitude=$2, longitude=$3 where siteID=$1`,
-			d.siteID, d.latitude, d.longitude); err != nil {
+				d.siteID, d.latitude, d.longitude); err != nil {
 				return internalServerError(err)
 			}
 		} else {

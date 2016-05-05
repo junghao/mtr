@@ -411,7 +411,7 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 
 	var lables ts.Lables
 
-	for k, _ := range pts {
+	for k := range pts {
 		p.AddSeries(ts.Series{Colour: internal.Colour(k.typePK), Points: pts[k]})
 		lables = append(lables, ts.Lable{Colour: internal.Colour(k.typePK), Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], strings.TrimPrefix(internal.Lable(k.typePK), `Mem `))})
 	}
@@ -492,7 +492,7 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	var keys InstanceMetrics
 
-	for k, _ := range pts {
+	for k := range pts {
 		keys = append(keys, k)
 	}
 

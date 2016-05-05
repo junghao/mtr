@@ -77,11 +77,11 @@ func init() {
 					ApplicationID: appName,
 					InstanceID:    instanceID,
 					Metrics: []internal.Metric{
-						internal.Metric{MetricID: internal.MemSys, Time: now, Value: int64(mem.Sys)},
-						internal.Metric{MetricID: internal.MemHeapAlloc, Time: now, Value: int64(mem.HeapAlloc)},
-						internal.Metric{MetricID: internal.MemHeapSys, Time: now, Value: int64(mem.HeapSys)},
-						internal.Metric{MetricID: internal.MemHeapObjects, Time: now, Value: int64(mem.HeapObjects)},
-						internal.Metric{MetricID: internal.Routines, Time: now, Value: int64(runtime.NumGoroutine())},
+						{MetricID: internal.MemSys, Time: now, Value: int64(mem.Sys)},
+						{MetricID: internal.MemHeapAlloc, Time: now, Value: int64(mem.HeapAlloc)},
+						{MetricID: internal.MemHeapSys, Time: now, Value: int64(mem.HeapSys)},
+						{MetricID: internal.MemHeapObjects, Time: now, Value: int64(mem.HeapObjects)},
+						{MetricID: internal.Routines, Time: now, Value: int64(runtime.NumGoroutine())},
 					},
 				}
 
@@ -110,7 +110,7 @@ func init() {
 						TimerID: k,
 						Time:    last,
 						Count:   int32(v),
-						Average:   int32(sum[k]/v),
+						Average: int32(sum[k] / v),
 						Fifty:   int32(percentile(0.5, taken[k])),
 						Ninety:  int32(percentile(0.9, taken[k])),
 					})

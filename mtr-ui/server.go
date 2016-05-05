@@ -33,7 +33,10 @@ func init() {
 	}
 
 	mux = http.NewServeMux()
-	mux.HandleFunc("/", toHandler(demoHandler))
+	mux.HandleFunc("/", toHandler(homepageHandler))
+	mux.HandleFunc("/field", toHandler(fieldPageHandler))
+	mux.HandleFunc("/field/metrics", toHandler(fieldMetricsPageHandler))
+	mux.HandleFunc("/field/devices", toHandler(fieldDevicesPageHandler))
 	mux.HandleFunc("/field/metric", toHandler(metricDetailHandler))
 	mux.HandleFunc("/search", toHandler(searchHandler))
 }
