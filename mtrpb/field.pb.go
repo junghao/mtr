@@ -2,16 +2,6 @@
 // source: field.proto
 // DO NOT EDIT!
 
-/*
-Package mtrpb is a generated protocol buffer package.
-
-It is generated from these files:
-	field.proto
-
-It has these top-level messages:
-	FieldMetricLatest
-	FieldMetricLatestResult
-*/
 package mtrpb
 
 import proto "github.com/golang/protobuf/proto"
@@ -22,10 +12,6 @@ import math "math"
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-const _ = proto.ProtoPackageIsVersion1
 
 // FieldMetricLatest is the latest value received for a field metric and thresholds for the metric.
 // If upper == lower == 0 then no threshold has been set on the metric.
@@ -49,7 +35,7 @@ type FieldMetricLatest struct {
 func (m *FieldMetricLatest) Reset()                    { *m = FieldMetricLatest{} }
 func (m *FieldMetricLatest) String() string            { return proto.CompactTextString(m) }
 func (*FieldMetricLatest) ProtoMessage()               {}
-func (*FieldMetricLatest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (*FieldMetricLatest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
 
 type FieldMetricLatestResult struct {
 	Result []*FieldMetricLatest `protobuf:"bytes,1,rep,name=result" json:"result,omitempty"`
@@ -58,7 +44,7 @@ type FieldMetricLatestResult struct {
 func (m *FieldMetricLatestResult) Reset()                    { *m = FieldMetricLatestResult{} }
 func (m *FieldMetricLatestResult) String() string            { return proto.CompactTextString(m) }
 func (*FieldMetricLatestResult) ProtoMessage()               {}
-func (*FieldMetricLatestResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (*FieldMetricLatestResult) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{1} }
 
 func (m *FieldMetricLatestResult) GetResult() []*FieldMetricLatest {
 	if m != nil {
@@ -72,7 +58,7 @@ func init() {
 	proto.RegisterType((*FieldMetricLatestResult)(nil), "mtrpb.FieldMetricLatestResult")
 }
 
-var fileDescriptor0 = []byte{
+var fileDescriptor1 = []byte{
 	// 224 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x64, 0x90, 0xc1, 0x4a, 0x03, 0x31,
 	0x10, 0x86, 0x59, 0xd7, 0x4d, 0xda, 0xe9, 0xc9, 0x20, 0x34, 0xe2, 0x45, 0x7a, 0xea, 0x69, 0x11,

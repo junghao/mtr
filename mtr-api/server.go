@@ -38,6 +38,7 @@ func init() {
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/data/site", toHandler(dataSiteHandler))
 	mux.HandleFunc("/data/latency", toHandler(dataLatencyHandler))
+	mux.HandleFunc("/data/latency/summary", toHandler(dataLatencySummaryHandler))
 	mux.HandleFunc("/data/latency/threshold", toHandler(dataLatencyThresholdHandler))
 }
 
@@ -80,6 +81,7 @@ func main() {
 	}
 
 	go deleteMetrics()
+	go refreshViews()
 
 	log.Println("starting server")
 	log.Fatal(http.ListenAndServe(":8080", mux))
@@ -107,6 +109,10 @@ func deleteMetrics() {
 				log.Println(err)
 			}
 
+			if _, err = db.Exec(`DELETE FROM data.latency WHERE time < now() - interval '40 days'`); err != nil {
+				log.Println(err)
+			}
+
 			if _, err = db.Exec(`DELETE FROM app.metric WHERE time < now() - interval '28 days'`); err != nil {
 				log.Println(err)
 			}
@@ -116,6 +122,19 @@ func deleteMetrics() {
 			}
 
 			if _, err = db.Exec(`DELETE FROM app.timer WHERE time < now() - interval '28 days'`); err != nil {
+				log.Println(err)
+			}
+		}
+	}
+}
+
+func refreshViews() {
+	ticker := time.NewTicker(time.Second * 20).C
+	var err error
+	for {
+		select {
+		case <-ticker:
+			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
 				log.Println(err)
 			}
 		}

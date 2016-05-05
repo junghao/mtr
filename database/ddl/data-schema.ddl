@@ -36,33 +36,19 @@ INSERT INTO data.type(typePK, typeID, description, unit) VALUES(4, 'latency.tsun
 CREATE TABLE data.latency (
   sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
   typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
+  rate_limit BIGINT NOT NULL,
   time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
   mean INTEGER NOT NULL,
   min INTEGER NOT NULL,
   max INTEGER NOT NULL,
   fifty INTEGER NOT NULL,
   ninety INTEGER NOT NULL,
-  PRIMARY KEY(sitePK, typePK, time)
+  PRIMARY KEY(sitePK, typePK, rate_limit)
 );
 
 CREATE INDEX on data.latency (sitePK);
 CREATE INDEX on data.latency (typePK);
 CREATE INDEX on data.latency (time);
-
-CREATE TABLE data.latency_latest (
-sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
-typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
-time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-mean INTEGER NOT NULL,
-min INTEGER NOT NULL,
-max INTEGER NOT NULL,
-fifty INTEGER NOT NULL,
-ninety INTEGER NOT NULL,
-PRIMARY KEY(sitePK, typePK)
-);
-
-CREATE INDEX on data.latency_latest (sitePK);
-CREATE INDEX on data.latency_latest (typePK);
 
 CREATE TABLE data.latency_threshold (
   sitePK SMALLINT REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
