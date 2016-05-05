@@ -50,24 +50,13 @@ INSERT INTO field.type(typePK, typeID, description, unit) VALUES(10, 'centre', '
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(11, 'rf.signal', 'rf signal', 'dB');
 INSERT INTO field.type(typePK, typeID, description, unit) VALUES(12, 'rf.noise', 'rf signal', 'dB');
 
-
-CREATE TABLE field.metric_latest (
-	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
-	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
-	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	value INTEGER NOT NULL,
-	PRIMARY KEY(devicePK, typePK)
-);
-
-CREATE INDEX on field.metric_latest (devicePK);
-CREATE INDEX on field.metric_latest (typePK);
-
 CREATE TABLE field.metric (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
-	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
+	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL,
+	rate_limit BIGINT NOT NULL,
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	value INTEGER NOT NULL,
-	PRIMARY KEY(devicePK, typePK, time)
+	PRIMARY KEY(devicePK, typePK, rate_limit)
 );
 
 CREATE INDEX on field.metric (devicePK);

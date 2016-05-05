@@ -32,7 +32,7 @@ func init() {
 	mux.HandleFunc("/field/tag", toHandler(fieldTagHandler))
 	mux.HandleFunc("/field/type", toHandler(fieldTypeHandler))
 	mux.HandleFunc("/field/metric", toHandler(fieldMetricHandler))
-	mux.HandleFunc("/field/metric/latest", toHandler(fieldMetricLatestHandler))
+	mux.HandleFunc("/field/metric/summary", toHandler(fieldMetricLatestHandler))
 	mux.HandleFunc("/field/metric/threshold", toHandler(fieldThresholdHandler))
 	mux.HandleFunc("/field/metric/tag", toHandler(fieldMetricTagHandler))
 	mux.HandleFunc("/health", health)
@@ -135,6 +135,10 @@ func refreshViews() {
 		select {
 		case <-ticker:
 			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
+				log.Println(err)
+			}
+
+			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
 				log.Println(err)
 			}
 		}

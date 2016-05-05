@@ -3,9 +3,9 @@ syntax = "proto3";
 package mtrpb;
 option go_package = "mtrpb";
 
-// FieldMetricLatest is the latest value received for a field metric and thresholds for the metric.
+// FieldMetricSummary is the latest value received for a field metric and thresholds for the metric.
 // If upper == lower == 0 then no threshold has been set on the metric.
-message FieldMetricLatest {
+message FieldMetricSummary {
     // The deviceID for the metric e.g., idu-birchfarm
     string device_iD = 1;
     // The typeID for the metric e.g., conn
@@ -22,8 +22,8 @@ message FieldMetricLatest {
     string model_iD = 7;
 }
 
-message FieldMetricLatestResult {
-    repeated FieldMetricLatest result = 1;
+message FieldMetricSummaryResult {
+    repeated FieldMetricSummary result = 1;
 }
 
 

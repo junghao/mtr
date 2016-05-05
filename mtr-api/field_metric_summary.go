@@ -34,23 +34,11 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *re
 
 	switch typeID {
 	case "":
-		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value,
-		CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
-		CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
-		from field.metric_latest
-		join field.device using (devicePK)
-		join field.model using (modelPK)
-		join field.type using (typePK)
-		left outer join field.threshold using (devicePK, typePK);`)
+		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value, lower, upper
+		FROM field.metric_summary`)
 	default:
-		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value,
-		CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
-		CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper"
-		from field.metric_latest
-		join field.device using (devicePK)
-		join field.model using (modelPK)
-		join field.type using (typePK)
-		left outer join field.threshold using (devicePK, typePK)
+		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value, lower, upper
+		FROM field.metric_summary
 		WHERE typeID = $1;`, typeID)
 	}
 	if err != nil {
@@ -60,11 +48,11 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *re
 	defer rows.Close()
 
 	var t time.Time
-	var fmlr mtrpb.FieldMetricLatestResult
+	var fmlr mtrpb.FieldMetricSummaryResult
 
 	for rows.Next() {
 
-		var fmr mtrpb.FieldMetricLatest
+		var fmr mtrpb.FieldMetricSummary
 
 		if err = rows.Scan(&fmr.DeviceID, &fmr.ModelID, &fmr.TypeID, &t, &fmr.Value,
 			&fmr.Lower, &fmr.Upper); err != nil {
@@ -115,16 +103,12 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return internalServerError(err)
 	}
 
-	if rows, err = dbR.Query(`with p as (select longitude,latitude, time, value,
-			CASE WHEN threshold.lower is NULL THEN 0 ELSE threshold.lower END AS "lower",
-			CASE WHEN threshold.upper is NULL THEN 0 ELSE threshold.upper END AS "upper",
+	if rows, err = dbR.Query(`with p as (select geom, time, value, lower, upper,
 			st_transform(geom::geometry, 3857) as pt
-			from field.metric_latest
-			join field.device using (devicePK) 
-			join field.type using (typePK) 
-			left outer join field.threshold using (devicePK, typePK)
-			 where typeID = $1)
-			select ST_X(pt), ST_Y(pt)*-1, longitude,latitude, time, value, lower,upper from p`, f.typeID); err != nil {
+			FROM field.metric_summary
+			where typeID = $1)
+			select ST_X(pt), ST_Y(pt)*-1, ST_X(geom::geometry),ST_Y(geom::geometry), time,
+			value, lower,upper from p`, f.typeID); err != nil {
 		return internalServerError(err)
 	}
 	defer rows.Close()

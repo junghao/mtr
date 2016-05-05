@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/GeoNet/mtr/ts"
+	"github.com/lib/pq"
 	"net/http"
 	"strconv"
 	"strings"
@@ -57,36 +58,13 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		return res
 	}
 
-	// Update or save the latest value.  Not rate limited.
-	// TODO switch to Postgres 9.5 and use upsert.
-	if _, err = db.Exec(`INSERT INTO field.metric_latest(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
-		f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
-		if _, err = db.Exec(`UPDATE field.metric_latest  SET time = $3, value = $4
-				WHERE devicePK = $1
-				AND typePK = $2
-				AND time <= $3`, f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
+	if _, err = db.Exec(`INSERT INTO field.metric(devicePK, typePK, rate_limit, time, value) VALUES($1, $2, $3, $4, $5)`,
+		f.devicePK, f.fieldType.typePK, t.Truncate(time.Minute).Unix(), t, int32(v)); err != nil {
+		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
+			return &statusTooManyRequests
+		} else {
 			return internalServerError(err)
 		}
-	}
-
-	// Rate limit the stored data to 1 per minute
-	var count int
-	if err = db.QueryRow(`SELECT count(*) FROM field.metric
-				WHERE devicePK = $1
-				AND typePK = $2
-				AND date_trunc('minute', time) = $3`, f.devicePK, f.fieldType.typePK, t.Truncate(time.Minute)).Scan(&count); err != nil {
-		if err != nil {
-			return internalServerError(err)
-		}
-	}
-
-	if count != 0 {
-		return &statusTooManyRequests
-	}
-
-	if _, err = db.Exec(`INSERT INTO field.metric(devicePK, typePK, time, value) VALUES($1, $2, $3, $4)`,
-		f.devicePK, f.fieldType.typePK, t, int32(v)); err != nil {
-		return internalServerError(err)
 	}
 
 	return &statusOK
@@ -121,12 +99,6 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.threshold WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.fieldType.typePK); err != nil {
-		txn.Rollback()
-		return internalServerError(err)
-	}
-
-	if _, err = txn.Exec(`DELETE FROM field.metric_latest WHERE devicePK = $1 AND typePK = $2`,
 		f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
@@ -350,8 +322,10 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	// Add the latest value to the plot - this may be different to the average at minute or hour resolution.
 	t = time.Time{}
 	var value int32
-	if err = dbR.QueryRow(`SELECT time, value FROM field.metric_latest WHERE
-			devicePK = $1 AND typePK = $2`,
+	if err = dbR.QueryRow(`SELECT time, value FROM field.metric WHERE
+			devicePK = $1 AND typePK = $2
+			ORDER BY time DESC
+			LIMIT 1`,
 		f.devicePK, f.fieldType.typePK).Scan(&t, &value); err != nil {
 		return internalServerError(err)
 	}
