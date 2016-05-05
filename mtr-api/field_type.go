@@ -14,82 +14,81 @@ type fieldType struct {
 }
 
 var fieldTypes = map[string]fieldType{
-	"voltage": fieldType{
+	"voltage": {
 		typePK: 1,
 		Scale:  0.001,
 		Name:   "Voltage",
 		Unit:   "V",
 	},
-	"clock": fieldType{
+	"clock": {
 		typePK: 2,
 		Scale:  1.0,
 		Name:   "Clock Quality",
 		Unit:   "%",
 	},
-	"satellites": fieldType{
+	"satellites": {
 		typePK: 3,
 		Scale:  1.0,
 		Name:   "Satellites Tracked",
 		Unit:   "n",
 	},
-	"conn": fieldType{
+	"conn": {
 		typePK: 4,
 		Scale:  0.001,
 		Name:   "Connectivity",
 		Unit:   "ms",
 	},
-	"ping": fieldType{
+	"ping": {
 		typePK: 5,
 		Scale:  0.001,
 		Name:   "ping",
 		Unit:   "ms",
 	},
 
-	"disk.hd1": fieldType{
+	"disk.hd1": {
 		typePK: 6,
 		Scale:  1.0,
 		Name:   "disk hd1",
 		Unit:   "%",
 	},
-	"disk.hd2": fieldType{
+	"disk.hd2": {
 		typePK: 7,
 		Scale:  1.0,
 		Name:   "disk hd2",
 		Unit:   "%",
 	},
-	"disk.hd3": fieldType{
+	"disk.hd3": {
 		typePK: 8,
 		Scale:  1.0,
 		Name:   "disk hd3",
 		Unit:   "%",
 	},
-	"disk.hd4": fieldType{
+	"disk.hd4": {
 		typePK: 9,
 		Scale:  1.0,
 		Name:   "disk hd4",
 		Unit:   "%",
 	},
 
-	"centre": fieldType{
+	"centre": {
 		typePK: 10,
 		Scale:  1.0,
 		Name:   "centre",
 		Unit:   "mV",
 	},
 
-	"rf.signal": fieldType{
+	"rf.signal": {
 		typePK: 11,
 		Scale:  1.0,
 		Name:   "rf signal",
 		Unit:   "dB",
 	},
-	"rf.noise": fieldType{
+	"rf.noise": {
 		typePK: 12,
 		Scale:  1.0,
 		Name:   "rf noise",
 		Unit:   "dB",
 	},
-
 }
 
 func loadFieldType(typeID string) (fieldType, *result) {

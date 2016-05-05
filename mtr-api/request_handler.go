@@ -117,7 +117,6 @@ func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 						id = fn.Name() + "." + id
 					}
 
-
 					t.Track(id)
 					if t.Taken() > 500 {
 						log.Printf("%s took %d ms to handle %s", id, t.Taken(), r.URL.Path)

@@ -24,10 +24,10 @@ type Metric struct {
 type Timer struct {
 	TimerID string    // An identifier for the thing being timed
 	Time    time.Time // Start of the time window.
-	Average   int32     // in ms
+	Average int32     // in ms
 	Count   int32     // Counts for ID in the window.
-	Fifty int32 // the 50th percentile
-	Ninety int32 // the 90th percentile
+	Fifty   int32     // the 50th percentile
+	Ninety  int32     // the 90th percentile
 }
 
 type Counter struct {

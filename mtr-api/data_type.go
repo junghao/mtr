@@ -8,25 +8,25 @@ type dataType struct {
 }
 
 var dataTypes = map[string]dataType{
-	"latency.strong": dataType{
+	"latency.strong": {
 		typePK: 1,
 		Scale:  1.0,
 		Name:   "latency strong motion data",
 		Unit:   "ms",
 	},
-	"latency.weak": dataType{
+	"latency.weak": {
 		typePK: 2,
 		Scale:  1.0,
 		Name:   "latency weak motion data",
 		Unit:   "ms",
 	},
-	"latency.gnss.1hz": dataType{
+	"latency.gnss.1hz": {
 		typePK: 3,
 		Scale:  1.0,
 		Name:   "latency GNSS 1Hz data",
 		Unit:   "ms",
 	},
-	"latency.tsunami": dataType{
+	"latency.tsunami": {
 		typePK: 4,
 		Scale:  1.0,
 		Name:   "latency tsunami data",
@@ -42,5 +42,3 @@ func loadDataType(typeID string) (dataType, *result) {
 
 	return dataType{}, badRequest("invalid type " + typeID)
 }
-
-
