@@ -30,6 +30,21 @@ func (d *dataLatency) loadPK(r *http.Request) (res *result) {
 	return
 }
 
+/*
+loadThreshold loads thresholds for the data latency.  Assumes d.loadPK has been called first.
+*/
+func (d *dataLatency) threshold() (lower, upper int, res *result) {
+	res = &statusOK
+
+	if err := dbR.QueryRow(`SELECT lower,upper FROM data.latency_threshold
+		WHERE sitePK = $1 AND typePK = $2`,
+		d.sitePK, d.dataType.typePK).Scan(&lower, &upper); err != nil && err != sql.ErrNoRows {
+		res = internalServerError(err)
+	}
+
+	return
+}
+
 func (d *dataLatency) save(r *http.Request) *result {
 	if res := checkQuery(r, []string{"siteID", "typeID", "time", "mean"}, []string{"min", "max", "fifty", "ninety"}); !res.ok {
 		return res
@@ -140,13 +155,13 @@ func (d *dataLatency) delete(r *http.Request) *result {
 		return internalServerError(err)
 	}
 
-	// TODO when add latency thresholds look at this.
-	// TODO also tags
-	//if _, err = txn.Exec(`DELETE FROM data.threshold WHERE devicePK = $1 AND typePK = $2`,
-	//	f.devicePK, f.fieldType.typePK); err != nil {
-	//	txn.Rollback()
-	//	return internalServerError(err)
-	//}
+	// TODO when add latency tags add delete here.
+
+	if _, err = txn.Exec(`DELETE FROM data.latency_threshold WHERE sitePK = $1 AND typePK = $2`,
+		d.sitePK, d.dataType.typePK); err != nil {
+		txn.Rollback()
+		return internalServerError(err)
+	}
 
 	if err = txn.Commit(); err != nil {
 		return internalServerError(err)
@@ -190,18 +205,18 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	p.SetUnit(d.dataType.Unit)
 
-	// TODO tags and thresholds
+	// TODO tags
 
-	//var lower, upper int
-	//var res *result
-	//
-	//if lower, upper, res = f.threshold(); !res.ok {
-	//	return res
-	//}
-	//
-	//if !(lower == 0 && upper == 0) {
-	//	p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
-	//}
+	var lower, upper int
+	var res *result
+
+	if lower, upper, res = d.threshold(); !res.ok {
+		return res
+	}
+
+	if !(lower == 0 && upper == 0) {
+		p.SetThreshold(float64(lower)*d.dataType.Scale, float64(upper)*d.dataType.Scale)
+	}
 	//
 	//var tags []string
 	//

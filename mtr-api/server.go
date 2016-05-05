@@ -38,6 +38,7 @@ func init() {
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/data/site", toHandler(dataSiteHandler))
 	mux.HandleFunc("/data/latency", toHandler(dataLatencyHandler))
+	mux.HandleFunc("/data/latency/threshold", toHandler(dataLatencyThresholdHandler))
 }
 
 func main() {

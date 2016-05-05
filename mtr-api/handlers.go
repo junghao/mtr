@@ -199,3 +199,23 @@ func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		return &methodNotAllowed
 	}
 }
+
+func dataLatencyThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	var d dataLatencyThreshold
+
+	switch r.Method {
+	case "PUT":
+		return d.save(r)
+	case "DELETE":
+		return d.delete(r)
+	//case "GET":
+	//	switch r.Header.Get("Accept") {
+	//	case "application/json;version=1":
+	//		return f.jsonV1(r, h, b)
+	//	default:
+	//		return &notAcceptable
+	//	}
+	default:
+		return &methodNotAllowed
+	}
+}
