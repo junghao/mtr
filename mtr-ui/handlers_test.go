@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"runtime"
 	"strconv"
 	"testing"
-	"reflect"
 )
 
 type testContext struct {
-	testMtrUiServer  *httptest.Server
+	testMtrUiServer *httptest.Server
 	//testMtrApiServer *httptest.Server
 	//testMtrApiMux    *http.ServeMux
 	//actualMtrApiUrl  *url.URL

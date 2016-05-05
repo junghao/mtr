@@ -1,0 +1,18 @@
+{{define "body"}}
+<div class="container">
+    <ul class="nav nav-tabs">
+        <li role="presentation" {{if eq .Path "/field"}}class="active"{{end}}><a href="/field">Field</a></li>
+        <li role="presentation" {{if eq .Path "/field/metrics"}}class="active"{{end}}><a href="/field/metrics">Metrics</a></li>
+        <li role="presentation" {{if eq .Path "/field/devices"}}class="active"{{end}}><a href="/field/devices">Devices</a></li>
+    </ul>
+    {{if eq .Path "/field"}}
+        {{template "field_main" .Summary}}
+    {{end}}
+    {{if eq .Path "/field/metrics"}}
+        {{template "field_metrics" .Metrics}}
+    {{end}}
+    {{if eq .Path "/field/devices"}}
+        {{template "field_devices" .Devices}}
+    {{end}}
+</div>
+{{end}}

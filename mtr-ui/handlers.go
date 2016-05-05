@@ -175,30 +175,6 @@ func getAllTagIDs(urlString string) (tagIDs []string, err error) {
 	return tagIDs, nil
 }
 
-// example handler.
-func demoHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-
-	var err error
-
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
-		return res
-	}
-
-	// We create a page struct with variables to substitute into the loaded template
-	p := page{}
-	p.Border.Title = "A Title"
-
-	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
-	}
-
-	if err = borderTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
-	}
-
-	return &statusOK
-}
-
 // Very simple toHandler.  Might be able to use the one from mtr-api.
 func toHandler(f requestHandler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

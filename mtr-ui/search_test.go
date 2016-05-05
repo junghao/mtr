@@ -2,8 +2,8 @@ package main
 
 import (
 	"net/url"
-	"testing"
 	"reflect"
+	"testing"
 )
 
 func TestGetMatchingMetrics(t *testing.T) {

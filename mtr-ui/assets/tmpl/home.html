@@ -1,0 +1,26 @@
+{{define "body"}}
+<div class="container">
+<div class="col-xs-12 col-md-12">
+    <div class="row">
+        <div class="col-xs-12 col-md-4">
+            <div class="row">
+                <div class="col-xs-12 col-md-12 h1">Fields</div>
+            </div>
+            {{template "field_main" .FieldSummary}}
+        </div>
+        <div class="col-xs-12 col-md-4">
+            <div class="row">
+                <div class="col-xs-12 col-md-12 h1">Data</div>
+            </div>
+            {{template "data_main" .DataSummary}}
+        </div>
+        <div class="col-xs-12 col-md-4">
+            <div class="row">
+                <div class="col-xs-12 col-md-12 h1">Applications</div>
+            </div>
+            {{template "app_main" .AppSummary}}
+        </div>
+    </div>
+</div>
+</div>
+{{end}}

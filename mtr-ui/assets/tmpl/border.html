@@ -271,6 +271,18 @@
 			width: 100px;
 			height: 125px;
 		}
+		.metrics-good {
+		    color:  #4daf4a;
+		}
+		.metrics-bad {
+		    color: #e41a1c;
+		}
+		.metrics-unknown {
+		    color: #377eb8;
+		}
+		.metrics-late {
+		    color: #800080;
+		}
 	</style>
 </head>
 <body>
@@ -279,17 +291,10 @@
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-expanded="false">Menu
                 </button>
-                <a class="navbar-brand" href="/">GeoNet MTR</a>
+                <a class="navbar-brand" href="/"><span class="glyphicon glyphicon-home"></span> GeoNet MTR</a>
             </div>
 
             <div class="collapse navbar-collapse" id="navbar-collapse-1">
-                <ul class="nav navbar-nav">
-                    <li class="active"> <a href="/">Home</a></li>
-                    <li> <a href="/tab1">tab1</a></li>
-                    <li> <a href="/tab2">tab2</a></li>
-                    <li> <a href="/tab3">tab3</a></li>
-
-                </ul>
                 <!--autocompelte=off-->
                 <form class="navbar-form navbar-right" role="search" method="POST" action="/search" autocomplete="off" onsubmit="return document.getElementById('search_query').value!='';">
                     <div class="form-group">
@@ -305,7 +310,6 @@
 
     <div class="container">
         {{template "body" .}}
-
         <div id="footer" class="footer">
             <div class="row">
                 <div class="col-sm-3 hidden-xs">
