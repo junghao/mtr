@@ -72,226 +72,67 @@
 			border-radius: 3px;
 			color: #333;
 		}
-		.mmi-callout {
-			padding: 10px;
+
+		.mtr-callout {
+			border: 1px solid #333;
+			border-left-color: #333;
+			padding: 5px;
 			margin: 0px 0;
-			border: 1px solid #eee;
-			border-left-width: 5px;
+			margin-top: 5px;
 			border-radius: 3px;
 			color: #333;
+			background-color: #e2f3f3;
 		}
-		.mmi-callout p:last-child {
+		.mtr-callout p:last-child {
 			margin-bottom: 0;
 		}
-		.mmi-callout code {
-			border-radius: 3px;
+		.mtr-callout-good {
+			border: 1px solid darkgreen;
+			border-left-width: 10px;
+			border-left-color: darkgreen;
 		}
-		.mmi-callout+.mmi-callout {
-			margin-top: -5px;
+		.mtr-callout-bad {
+			border: 1px solid crimson;
+			border-left-width: 10px;
+			border-left-color: crimson;
 		}
-		.mmi-callout--1 {
-			border-left-color: #feedde;
+		.mtr-callout-late {
+			border: 1px solid rebeccapurple;
+			border-left-width: 10px;
+			border-left-color: rebeccapurple;
 		}
-		.mmi-callout-0 {
-			border-left-color: #feedde;
+		.mtr-callout-unknown {
+			border: 1px solid slateblue;
+			border-left-width: 10px;
+			border-left-color: slateblue;
 		}
-		.mmi-callout-1 {
-			border-left-color: #feedde;
+
+		.mtr-title {
+			background-color: #9ed4e0;
 		}
-		.mmi-callout-2 {
-			border-left-color: #feedde;
+
+		.mtr-sub-title {
+			background-color: #78F3E6;
 		}
-		.mmi-callout-3 {
-			border-left-color: #fdd0a2;
+
+		.mtr-size {
+			font-size: 3.0vw;
 		}
-		.mmi-callout-4 {
-			border-left-color: #fdae6b;
-		}
-		.mmi-callout-5 {
-			border-left-color: #fd8d3c;
-		}
-		.mmi-callout-6 {
-			border-left-color: #f16913;
-		}
-		.mmi-callout-7 {
-			border-left-color: #d94801;
-		}
-		.mmi-callout-8 {
-			border-left-color: #8c2d04;
-		}
-		.table-minimal {
-			width: 100%;
-			max-width: 100%;
-			margin-bottom: 10px;
-		}
-		.table-minimal > thead > tr > th,
-		.table-minimal > tbody > tr > th,
-		.table-minimal > tfoot > tr > th,
-		.table-minimal > thead > tr > td,
-		.table-minimal > tbody > tr > td,
-		.table-minimal > tfoot > tr > td {
-			padding: 2px;
-			line-height: 1.1;
-			vertical-align: top;
-			border-top: 0px solid #ddd;
-		}
-		.table-minimal > thead > tr > th {
-			vertical-align: bottom;
-			border-bottom: 0px solid #ddd;
-		}
-		.table-minimal > caption + thead > tr:first-child > th,
-		.table-minimal > colgroup + thead > tr:first-child > th,
-		.table-minimal > thead:first-child > tr:first-child > th,
-		.table-minimal > caption + thead > tr:first-child > td,
-		.table-minimal > colgroup + thead > tr:first-child > td,
-		.table-minimal > thead:first-child > tr:first-child > td {
-			border-top: 0;
-		}
-		.table-minimal > tbody + tbody {
-			border-top: 2px solid #ddd;
-		}
-		.table-minimal .table-minimal {
-			background-color: #fff;
-		}
-		.table-td-one > tbody > tr {
-			color: #777;
-		}
-		.table-td-one > tbody > tr > td:nth-child(1) {
-			color: #333;
-		}
-		.table-td-two > tbody > tr {
-			color: #777;
-		}
-		.table-td-two > tbody > tr > td:nth-child(2) {
-			color: #333;
-		}
-		.table-td-three > tbody > tr {
-			color: #777;
-		}
-		.table-td-three > tbody > tr > td:nth-child(3) {
-			color: #333;
-		}
-		.image-small {
-			max-width: 100%;
-		}
-		@media (min-width: 768px) {
-			.image-small {
-				max-width: 30%;
-				margin: 0 2% 2% 2%;
+		@media (max-width:767px) {
+			.mtr-size {
+				font-size: 7.0vw;
 			}
 		}
-		.image-story {
-			max-width: 30%;
-			margin: 0 2% 0 0;
-		}
-		.quality-best {
-			background-color: #DFF0D8;
-		}
-		.quality-good {
-			background-color: #F5F5F5;
-		}
-		.quality-caution {
-			background-color: #FCF8E3;
-		}
-		.quality-deleted {
-			background-color: #F2DED7;
-		}
-		.val-0 {
-			background-color:#E7DEEC;
-			color:black;
-			text-shadow:none;
-		}
-		.val-1 {
-			background-color:#DCC9E0;
-			color:black;
-			text-shadow:none;
-		}
-		.val-2 {
-			background-color:#D1B5D3;
-			color:black;
-			text-shadow:none;
-		}
-		.val-3 {
-			background-color:#A867A2;
-			color:white;
-			text-shadow:none;
-			font-weight: bold;
-		}
-		.val-4 {
-			background-color:#954990;
-			color:white;
-			text-shadow:none;
-			font-weight: bold;
-		}
-		.val-5 {
-			background-color:#832C82;
-			color:white;
-			text-shadow:none;
-			font-weight: bold;
-		}
-		.acc-green {
-			background-color:green;
-			color:white;
-			text-shadow:none;
-			font-weight: bold;
-		}
-		.acc-yellow {
-			background-color:gold;
-			color:black;
-			text-shadow:none;
-		}
-		.acc-orange {
-			background-color:orange;
-			color:white;
-			text-shadow:none;
-			font-weight: bold;
-		}
-		.acc-red {
-			background-color:red;
-			color:white;
-			text-shadow:none;
-			font-weight: bold;
-		}
-		.quake-dl-horizontal dt {
-			float: left;
-			width: 80px;
-			overflow: hidden;
-			clear: left;
-			text-align: right;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-			font-weight: normal;
-			color: #777;
-		}
-		.quake-dl-horizontal dd {
-			margin-left: 100px;
-			color: #333;
-		}
-		.quake-list-icon {
-			width: 100px;
-			height: 125px;
-		}
-		.metrics-good {
-		    color:  #4daf4a;
-		}
-		.metrics-bad {
-		    color: #e41a1c;
-		}
-		.metrics-unknown {
-		    color: #377eb8;
-		}
-		.metrics-late {
-		    color: #800080;
-		}
+
 	</style>
 </head>
 <body>
-    <nav class="navbar navbar-default navbar-static-top">
+    <nav class="navbar navbar-inverse navbar-default navbar-static-top">
         <div class="container">
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse-1" aria-expanded="false">Menu
                 </button>
-                <a class="navbar-brand" href="/"><span class="glyphicon glyphicon-home"></span> GeoNet MTR</a>
+                <a class="navbar-brand" href="/">GeoNet Metrics</a>
             </div>
 
             <div class="collapse navbar-collapse" id="navbar-collapse-1">

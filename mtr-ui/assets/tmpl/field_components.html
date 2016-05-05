@@ -1,76 +1,65 @@
 {{define "field_main"}}
-        <a id="fields" href="javascript:showFields()">
-        <div class="row">
-            <div class="col-xs-6 col-md-6 h2">Devices</div>
-            <div class="col-xs-6 col-md-6 h2">{{index . "devices"}}</div>
-        </div>
-        <div class="row">
-            <div class="col-xs-6 col-md-6 h2">Metrics</div>
-            <div class="col-xs-6 col-md-6 h2">{{index . "metrics"}}</div>
-        </div>
-        <div class="row metrics-good">
-            <div class="col-xs-6 col-md-6 h3">Good</div>
-            <div class="col-xs-6 col-md-6 h3">{{index . "good"}}</div>
-        </div>
-        <div class="row metrics-bad">
-            <div class="col-xs-6 col-md-6 h3">Bad</div>
-            <div class="col-xs-6 col-md-6 h3">{{index . "bad"}}</div>
-        </div>
-        <div class="row metrics-unknown">
-            <div class="col-xs-6 col-md-6 h3">Unknown</div>
-            <div class="col-xs-6 col-md-6 h3">{{index . "unknown"}}</div>
-        </div>
-        <div class="row metrics-late">
-            <div class="col-xs-6 col-md-6 h3">Late</div>
-            <div class="col-xs-6 col-md-6 h3">{{index . "late"}}</div>
-        </div>
-        </a>
-<script>
-function showFields() {
-    document.location="/field";
-}
-</script>
+<a href="/field/devices">
+    <div class="row mtr-size mtr-callout mtr-sub-title">
+        <div class="col-xs-12 col-md-12">Devices {{index . "devices"}}</div>
+    </div>
+</a>
+
+<a href="/field/metrics">
+    <div class="row mtr-size mtr-callout">
+        <div class="col-xs-12 col-md-12">Metrics {{index . "metrics"}}</div>
+    </div>
+</a>
+
+<a href="/field/metric/good">
+    <div class="row mtr-size mtr-callout mtr-callout-good">
+        <div class="col-xs-12 col-md-12">Good {{index . "good"}}</div>
+    </div>
+</a>
+
+<a href="/field/metric/bad">
+    <div class="row mtr-size mtr-callout mtr-callout-bad">
+        <div class="col-xs-12 col-md-12">Bad {{index . "bad"}}</div>
+    </div>
+</a>
+<a href="/field/metric/late">
+    <div class="row mtr-size mtr-callout mtr-callout-late">
+        <div class="col-xs-12 col-md-12">Late {{index . "late"}}</div>
+    </div>
+</a>
+
+<a href="/field/metric/unknown">
+    <div class="row mtr-size mtr-callout mtr-callout-unknown">
+        <div class="col-xs-12 col-md-12">Other {{index . "unknown"}}</div>
+    </div>
+</a>
 {{end}}
 
 {{define "field_metrics"}}
-    {{range .}}
-        <div class="row">
-            {{template "field_metric" .}}
-        </div>
-    {{end}}
+{{range .}}
+<div class="row">
+    <div class="col-xs-3 col-md-2 h4">{{.Id}}: {{index .Count "total"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">other {{index .Count "unknown"}}</div>
+</div>
+{{end}}
 {{end}}
 
 {{define "field_devices"}}
-    {{range .}}
-        <div class="row">
-            {{template "field_device" .}}
-        </div>
-    {{end}}
-{{end}}
-
-{{define "field_metric"}}
+{{range .}}
 <div class="row">
-    <div class="col-xs-12 col-md-12 h3">{{.Id}}:{{index .Count "total"}}</div>
-    <div class="col-xs-3 col-md-3 metrics-good">good:{{index .Count "good"}}</div>
-    <div class="col-xs-3 col-md-3 metrics-bad">bad:{{index .Count "bad"}}</div>
-    <div class="col-xs-3 col-md-3 metrics-unknown">unknown:{{index .Count "unknown"}}</div>
-    <div class="col-xs-3 col-md-3 metrics-late">late:{{index .Count "late"}}</div>
+    <div class="col-xs-12 col-md-12 h3">{{.ModelId}}: {{.TypeCount}}</div>
+</div>
+{{range .Types}}
+<div class="row">
+    <div class="col-xs-3 col-md-2 h4">{{.Id}}:</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">unknown {{index .Count "unknown"}}</div>
 </div>
 {{end}}
-
-{{define "field_device"}}
-<div class="row">
-    <div class="col-xs-12 col-md-12 h3">{{.ModelId}}:{{.TypeCount}}</div>
-    <div class="col-xs-12 col-md-12">
-    {{range .Types}}
-        <div class="row">
-            <div class="col-xs-2 col-md-2">{{.Id}}</div>
-            <div class="col-xs-2 col-md-2 metrics-good">good:{{index .Count "good"}}</div>
-            <div class="col-xs-2 col-md-2 metrics-bad">bad:{{index .Count "bad"}}</div>
-            <div class="col-xs-2 col-md-2 metrics-unknown">unknown:{{index .Count "unknown"}}</div>
-            <div class="col-xs-2 col-md-2 metrics-late">late:{{index .Count "late"}}</div>
-        </div>
-    {{end}}
-    </div>
-</div>
+{{end}}
 {{end}}
