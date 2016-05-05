@@ -34,10 +34,10 @@ func setup(t *testing.T) {
 	}
 
 	// Only needed when testing map180 calls (which depends on loading the map data)
-	// wm, err = map180.Init(dbR, map180.Region(`newzealand`), 256000000)
-	// if err != nil {
-	// 	t.Fatalf("ERROR: problem with map180 config: %s", err)
-	// }
+	//wm, err = map180.Init(dbR, map180.Region(`newzealand`), 256000000)
+	//if err != nil {
+	//	t.Fatalf("ERROR: problem with map180 config: %s", err)
+	//}
 
 	testServer = httptest.NewServer(mux)
 }

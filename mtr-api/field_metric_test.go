@@ -48,9 +48,12 @@ func addFieldMetrics(t *testing.T) {
 	}
 
 	// Should get a rate limit error for sends in the same minute
-	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=10000", 200, t)
-	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 429, t)
+	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 200, t)
+	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=15100", 429, t)
 
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestFieldMetrics(t *testing.T) {
@@ -79,6 +82,10 @@ func TestFieldMetrics(t *testing.T) {
 
 	// Delete a tag on a metric
 	doRequest("DELETE", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
+
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
+		t.Error(err)
+	}
 
 	// GET requests
 	// Non specific Accept headers return svg.
@@ -117,8 +124,8 @@ func TestFieldMetrics(t *testing.T) {
 	// latitude (EPSG:4327) corners e.g., <code>165,-48,179,-34</code>.  Latitude must be in the range -85 to 85.  Maps can be 180 centric and bbox
 	// definitions for longitude can be -180 to 180 or 0 to 360
 	//
-	// doRequest("GET", "*/*", "/field/metric/summary?bbox=WhiteIsland&width=800typeID=voltage", 200, t)
-	// doRequest("GET", "*/*", "/field/metric/summary?bbox=NewZealand&width=800&typeID=voltage", 200, t) // SVG medium size map.
+	//doRequest("GET", "*/*", "/field/metric/summary?bbox=WhiteIsland&width=800&typeID=voltage", 200, t)
+	//doRequest("GET", "*/*", "/field/metric/summary?bbox=NewZealand&width=800&typeID=voltage", 200, t)
 
 	// All latest metrics as a FieldMetricLatestResult protobuf
 	doRequest("GET", "application/x-protobuf", "/field/metric/summary", 200, t)
@@ -253,6 +260,8 @@ func doRequest(method, accept, uri string, status int, t *testing.T) {
 
 	if status != response.StatusCode {
 		t.Errorf("Wrong response code for %s got %d expected %d", l, response.StatusCode, status)
+		by, _ := ioutil.ReadAll(response.Body)
+		t.Log(string(by))
 	}
 
 	if method == "GET" && status == http.StatusOK {
