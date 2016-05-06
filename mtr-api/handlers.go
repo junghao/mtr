@@ -47,30 +47,19 @@ func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *res
 		return f.save(r, h, b)
 	case "DELETE":
 		return f.delete(r, h, b)
-	case "GET":
-		switch r.Header.Get("Accept") {
-		case "application/json;version=1":
-			return f.jsonV1(r, h, b)
-		default:
-			return &notAcceptable
-		}
-
 	default:
 		return &methodNotAllowed
 	}
 }
 
-func fieldTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	var f fieldTag
+func tagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	var t tag
 
 	switch r.Method {
-	case "GET":
-		switch r.Header.Get("Accept") {
-		case "application/json;version=1":
-			return f.jsonV1(r, h, b)
-		default:
-			return &notAcceptable
-		}
+	case "PUT":
+		return t.save(r)
+	case "DELETE":
+		return t.delete(r)
 
 	default:
 		return &methodNotAllowed

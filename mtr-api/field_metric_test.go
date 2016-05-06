@@ -76,6 +76,15 @@ func TestFieldMetrics(t *testing.T) {
 
 	// Tags
 
+	doRequest("DELETE", "*/*", "/tag?tag=TAUP", 200, t)
+	doRequest("DELETE", "*/*", "/tag?tag=LINZ", 200, t)
+
+	// tag must exist before it can be added to a metric
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 400, t)
+
+	doRequest("PUT", "*/*", "/tag?tag=LINZ", 200, t)
+	doRequest("PUT", "*/*", "/tag?tag=TAUP", 200, t)
+
 	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
 	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 200, t)
 	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
@@ -134,11 +143,6 @@ func TestFieldMetrics(t *testing.T) {
 
 	// Thresholds
 	doRequest("GET", "application/json;version=1", "/field/metric/threshold", 200, t)
-
-	// Tags
-	doRequest("GET", "application/json;version=1", "/field/metric/tag", 200, t)          // All tags on metrics
-	doRequest("GET", "application/json;version=1", "/field/metric/tag?tag=LINZ", 200, t) // All metrics for a tag
-	doRequest("GET", "application/json;version=1", "/field/tag", 200, t)                 // All tag names no metrics
 
 	// Metric types
 	doRequest("GET", "application/json;version=1", "/field/type", 200, t) // All metrics type

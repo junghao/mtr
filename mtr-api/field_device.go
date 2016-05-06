@@ -9,10 +9,24 @@ import (
 )
 
 type fieldDevice struct {
+	devicePK int
 	deviceID            string
 	longitude, latitude float64
 }
 
+func (f *fieldDevice) loadPK(r *http.Request) *result {
+	if err := dbR.QueryRow(`SELECT devicePK FROM field.device where deviceID = $1`,
+		r.URL.Query().Get("deviceID")).Scan(&f.devicePK); err != nil {
+		if err == sql.ErrNoRows {
+			return badRequest("unknown deviceID")
+		}
+		return internalServerError(err)
+	}
+
+	return &statusOK
+}
+
+// TODO deprecated get rid of this.
 func fieldDevicePK(deviceID string) (int, *result) {
 	// TODO - if these don't change they could be app layer cached (for success only).
 	var pk int

@@ -26,10 +26,11 @@ func init() {
 	keyR = os.Getenv("MTR_KEY_R")
 
 	mux = http.NewServeMux()
+	mux.HandleFunc("/tag", toHandler(tagHandler))
 	mux.HandleFunc("/app/metric", toHandler(appMetricHandler))
 	mux.HandleFunc("/field/model", toHandler(fieldModelHandler))
 	mux.HandleFunc("/field/device", toHandler(fieldDeviceHandler))
-	mux.HandleFunc("/field/tag", toHandler(fieldTagHandler))
+	//mux.HandleFunc("/field/tag", toHandler(fieldTagHandler))
 	mux.HandleFunc("/field/type", toHandler(fieldTypeHandler))
 	mux.HandleFunc("/field/metric", toHandler(fieldMetricHandler))
 	mux.HandleFunc("/field/metric/summary", toHandler(fieldMetricLatestHandler))
