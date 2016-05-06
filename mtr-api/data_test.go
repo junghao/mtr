@@ -76,6 +76,24 @@ func TestDataMetrics(t *testing.T) {
 	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
 	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
 
+	// Tags
+
+	doRequest("DELETE", "*/*", "/tag?tag=TAUP", 200, t)
+	doRequest("DELETE", "*/*", "/tag?tag=LINZ", 200, t)
+
+	// tag must exist before it can be added to a metric
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", 400, t)
+
+	doRequest("PUT", "*/*", "/tag?tag=LINZ", 200, t)
+	doRequest("PUT", "*/*", "/tag?tag=TAUP", 200, t)
+
+	// Create a tag on a latency.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=LINZ", 200, t)
+
+	// Delete a tag on a latency
+	doRequest("DELETE", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=LINZ", 200, t)
+
 	// Latency plots.  Resolution is optional on plots and sparks.  yrange is also optional.  If not set autoranges on the data.
 	// Options for the plot parameter:
 	// default = line plot.

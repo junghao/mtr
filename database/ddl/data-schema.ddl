@@ -60,3 +60,14 @@ CREATE TABLE data.latency_threshold (
 
 CREATE INDEX on data.latency_threshold (sitePK);
 CREATE INDEX on data.latency_threshold (typePK);
+
+CREATE TABLE data.latency_tag(
+  sitePK SMALLINT REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
+  typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
+  tagPK INTEGER REFERENCES mtr.tag(tagPK) ON DELETE CASCADE NOT NULL,
+  PRIMARY KEY(sitePK, typePK, tagPK)
+);
+
+CREATE INDEX on data.latency_tag (sitePK);
+CREATE INDEX on data.latency_tag (typePK);
+CREATE INDEX on data.latency_tag (tagPK);

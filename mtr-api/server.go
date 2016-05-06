@@ -40,6 +40,7 @@ func init() {
 	mux.HandleFunc("/data/site", toHandler(dataSiteHandler))
 	mux.HandleFunc("/data/latency", toHandler(dataLatencyHandler))
 	mux.HandleFunc("/data/latency/summary", toHandler(dataLatencySummaryHandler))
+	mux.HandleFunc("/data/latency/tag", toHandler(dataLatencyTagHandler))
 	mux.HandleFunc("/data/latency/threshold", toHandler(dataLatencyThresholdHandler))
 }
 

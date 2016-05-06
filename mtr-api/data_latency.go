@@ -15,20 +15,27 @@ import (
 type dataLatency struct {
 	dataSite
 	dataType
+	pk                            *result // for tracking pkLoad()
 	t                             time.Time
 	mean, min, max, fifty, ninety int
 }
 
+// TODO adopt this no-op approach further?
+// Also pass the http.Resquest every where?
 func (d *dataLatency) loadPK(r *http.Request) *result {
-	if res := d.dataType.loadPK(r); !res.ok {
-		return res
+	if d.pk == nil {
+		if d.pk = d.dataType.loadPK(r); !d.pk.ok {
+			return d.pk
+		}
+
+		if d.pk = d.dataSite.loadPK(r); !d.pk.ok {
+			return d.pk
+		}
+
+		d.pk = &statusOK
 	}
 
-	if res := d.dataSite.loadPK(r); !res.ok {
-		return res
-	}
-
-	return &statusOK
+	return d.pk
 }
 
 /*
@@ -124,10 +131,14 @@ func (d *dataLatency) delete(r *http.Request) *result {
 		return internalServerError(err)
 	}
 
-	// TODO when add latency tags add delete here.
-
 	if _, err = txn.Exec(`DELETE FROM data.latency_threshold WHERE sitePK = $1 AND typePK = $2`,
 		d.sitePK, d.dataType.typePK); err != nil {
+		txn.Rollback()
+		return internalServerError(err)
+	}
+
+	if _, err = txn.Exec(`DELETE FROM data.latency_tag WHERE sitePK = $1 AND typePK = $2`,
+		d.sitePK, d.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
@@ -186,14 +197,14 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	if !(lower == 0 && upper == 0) {
 		p.SetThreshold(float64(lower)*d.dataType.Scale, float64(upper)*d.dataType.Scale)
 	}
-	//
-	//var tags []string
-	//
-	//if tags, res = f.tags(); !res.ok {
-	//	return res
-	//}
-	//
-	//p.SetSubTitle("Tags: " + strings.Join(tags, ","))
+
+	var tags []string
+
+	if tags, res = d.tags(r); !res.ok {
+		return res
+	}
+
+	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
 
 	p.SetTitle(fmt.Sprintf("Site: %s - %s", r.URL.Query().Get("siteID"), strings.Title(d.dataType.Name)))
 
@@ -290,4 +301,36 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
 	return &statusOK
+}
+
+func (f *dataLatency) tags(r *http.Request) (t []string, res *result) {
+	if res = f.loadPK(r); !res.ok {
+		return
+	}
+
+	var rows *sql.Rows
+	var err error
+
+	if rows, err = dbR.Query(`SELECT tag FROM data.latency_tag JOIN mtr.tag USING (tagpk) WHERE
+		sitePK = $1 AND typePK = $2
+		ORDER BY tag asc`,
+		f.sitePK, f.typePK); err != nil {
+		res = internalServerError(err)
+		return
+	}
+
+	defer rows.Close()
+
+	var s string
+
+	for rows.Next() {
+		if err = rows.Scan(&s); err != nil {
+			res = internalServerError(err)
+			return
+		}
+		t = append(t, s)
+	}
+
+	res = &statusOK
+	return
 }

@@ -209,6 +209,19 @@ func dataLatencyThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer
 	}
 }
 
+func dataLatencyTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	var f dataLatencyTag
+
+	switch r.Method {
+	case "PUT":
+		return f.save(r, h, b)
+	case "DELETE":
+		return f.delete(r, h, b)
+	default:
+		return &methodNotAllowed
+	}
+}
+
 func dataLatencySummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	var d dataLatencySummary
 
