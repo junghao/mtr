@@ -14,6 +14,9 @@ type fieldPage struct {
 	Summary      map[string]int
 	Metrics      []idCount
 	DeviceModels []deviceModel
+	Devices      []device
+	ModelId      string
+	TypeId       string
 }
 
 type deviceModels []deviceModel
@@ -27,6 +30,20 @@ func (m deviceModels) Less(i, j int) bool {
 }
 
 func (m deviceModels) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+type devices []device
+
+func (m devices) Len() int {
+	return len(m)
+}
+
+func (m devices) Less(i, j int) bool {
+	return m[i].Id < m[j].Id
+}
+
+func (m devices) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
 
@@ -48,6 +65,13 @@ type deviceModel struct {
 	ModelId   string
 	TypeCount int
 	Types     []idCount
+}
+
+type device struct {
+	ModelId string
+	TypeId  string
+	Status  string
+	Id      string
 }
 
 type idCount struct {
@@ -115,7 +139,7 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{}, []string{"modelID", "typeID"}); !res.ok {
 		return res
 	}
 
@@ -128,10 +152,18 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 		return internalServerError(err)
 	}
 
-	if err = p.getDevicesSummary(); err != nil {
-		return internalServerError(err)
+	q := r.URL.Query()
+	p.ModelId = q.Get("modelID")
+	p.TypeId = q.Get("typeID")
+	if p.ModelId == "" || p.TypeId == "" { // if any parameter is missing, we give summary
+		if err = p.getDevicesSummary(); err != nil {
+			return internalServerError(err)
+		}
+	} else {
+		if err = p.getDevicesByModelType(); err != nil {
+			return internalServerError(err)
+		}
 	}
-
 	if err = fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return internalServerError(err)
 	}
@@ -213,6 +245,32 @@ func (p *fieldPage) getDevicesSummary() (err error) {
 	return
 }
 
+func (p *fieldPage) getDevicesByModelType() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/field/metric/summary"
+
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var f mtrpb.FieldMetricSummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
+	p.Devices = make([]device, 0)
+	for _, r := range f.Result {
+		if r.ModelID == p.ModelId && r.TypeID == p.TypeId {
+			p.Devices = append(p.Devices, device{TypeId: p.TypeId, ModelId: p.ModelId, Id: r.DeviceID, Status: statusString(r)})
+		}
+	}
+
+	sort.Sort(devices(p.Devices))
+	return
+}
+
 // Increase count if Id exists in slice, append to slice if it's a new Id
 func updateFieldMetric(m []idCount, result *mtrpb.FieldMetricSummary) []idCount {
 	for _, r := range m {
@@ -255,14 +313,18 @@ func updateFieldDevice(m []deviceModel, result *mtrpb.FieldMetricSummary) []devi
 }
 
 func incFieldCount(m map[string]int, r *mtrpb.FieldMetricSummary) {
+	s := statusString(r)
+	m[s] = m["s"] + 1
+	m["total"] = m["total"] + 1
+}
+
+func statusString(r *mtrpb.FieldMetricSummary) string {
 	switch {
 	case r.Upper == 0 && r.Lower == 0:
-		m["unknown"] = m["unknown"] + 1
+		return "unknown"
 	case r.Value >= r.Lower && r.Value <= r.Upper:
-		m["good"] = m["good"] + 1
-	default:
-		m["bad"] = m["bad"] + 1
+		return "good"
 		// TBD: late
 	}
-	m["total"] = m["total"] + 1
+	return "bad"
 }

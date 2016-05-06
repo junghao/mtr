@@ -49,17 +49,34 @@
 
 {{define "field_device_models"}}
 {{range .}}
+{{$modelId := .ModelId}}
 <div class="row">
     <div class="col-xs-12 col-md-12 h3">{{.ModelId}}: {{.TypeCount}}</div>
 </div>
 {{range .Types}}
 <div class="row">
+    <a href="/field/devices?modelID={{urlquery $modelId}}&typeID={{urlquery .Id}}">
     <div class="col-xs-3 col-md-2 h4">{{.Id}}:</div>
     <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
     <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
     <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
     <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">unknown {{index .Count "unknown"}}</div>
+    </a>
 </div>
 {{end}}
 {{end}}
 {{end}}
+
+{{define "field_devices"}}
+{{range .}}
+<div class="row">
+    <!-- TBD: link to mtr-api should be without host name -->
+    <a href="https://mtr-api.geonet.org.nz/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}">
+    <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.Id}}:</div>
+    <div class="col-xs-6 col-md-6"><img src="https://mtr-api.geonet.org.nz/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}&plot=spark"/></div>
+    </a>
+</div>
+{{end}}
+{{end}}
+
+

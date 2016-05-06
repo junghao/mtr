@@ -236,16 +236,20 @@ func updateDataSite(m []site, result *mtrpb.DataLatencySummary) []site {
 }
 
 func incDataCount(m map[string]int, r *mtrpb.DataLatencySummary) {
+	s := getStatusString(r)
+	m[s] = m[s] + 1
+	m["total"] = m["total"] + 1
+}
+
+func getStatusString(r *mtrpb.DataLatencySummary) string {
 	switch {
 	case r.Upper == 0 && r.Lower == 0:
-		m["unknown"] = m["unknown"] + 1
+		return "unknown"
 	case allGood(r):
-		m["good"] = m["good"] + 1
-	default:
-		m["bad"] = m["bad"] + 1
+		return "good"
 		// TBD: late
 	}
-	m["total"] = m["total"] + 1
+	return "bad"
 }
 
 func allGood(r *mtrpb.DataLatencySummary) bool {
