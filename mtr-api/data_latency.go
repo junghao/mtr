@@ -13,22 +13,22 @@ import (
 )
 
 type dataLatency struct {
-	sitePK   int
-	dataType dataType
+	dataSite
+	dataType
+	t                             time.Time
+	mean, min, max, fifty, ninety int
 }
 
-func (d *dataLatency) loadPK(r *http.Request) (res *result) {
-	if d.dataType, res = loadDataType(r.URL.Query().Get("typeID")); !res.ok {
+func (d *dataLatency) loadPK(r *http.Request) *result {
+	if res := d.dataType.loadPK(r); !res.ok {
 		return res
 	}
 
-	if d.sitePK, res = dataSitePK(r.URL.Query().Get("siteID")); !res.ok {
+	if res := d.dataSite.loadPK(r); !res.ok {
 		return res
 	}
 
-	res = &statusOK
-
-	return
+	return &statusOK
 }
 
 /*
@@ -53,38 +53,35 @@ func (d *dataLatency) save(r *http.Request) *result {
 
 	var err error
 
-	var t time.Time
-	var mean, min, max, fifty, ninety int
-
-	if mean, err = strconv.Atoi(r.URL.Query().Get("mean")); err != nil {
+	if d.mean, err = strconv.Atoi(r.URL.Query().Get("mean")); err != nil {
 		return badRequest("invalid value for mean")
 	}
 
 	if r.URL.Query().Get("min") != "" {
-		if min, err = strconv.Atoi(r.URL.Query().Get("min")); err != nil {
+		if d.min, err = strconv.Atoi(r.URL.Query().Get("min")); err != nil {
 			return badRequest("invalid value for min")
 		}
 	}
 
 	if r.URL.Query().Get("max") != "" {
-		if max, err = strconv.Atoi(r.URL.Query().Get("max")); err != nil {
+		if d.max, err = strconv.Atoi(r.URL.Query().Get("max")); err != nil {
 			return badRequest("invalid value for max")
 		}
 	}
 
 	if r.URL.Query().Get("fifty") != "" {
-		if fifty, err = strconv.Atoi(r.URL.Query().Get("fifty")); err != nil {
+		if d.fifty, err = strconv.Atoi(r.URL.Query().Get("fifty")); err != nil {
 			return badRequest("invalid value for fifty")
 		}
 	}
 
 	if r.URL.Query().Get("ninety") != "" {
-		if ninety, err = strconv.Atoi(r.URL.Query().Get("ninety")); err != nil {
+		if d.ninety, err = strconv.Atoi(r.URL.Query().Get("ninety")); err != nil {
 			return badRequest("invalid value for ninety")
 		}
 	}
 
-	if t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
+	if d.t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
 		return badRequest("invalid time")
 	}
 
@@ -93,7 +90,8 @@ func (d *dataLatency) save(r *http.Request) *result {
 	}
 
 	if _, err = db.Exec(`INSERT INTO data.latency(sitePK, typePK, rate_limit, time, mean, min, max, fifty, ninety) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		d.sitePK, d.dataType.typePK, t.Truncate(time.Minute).Unix(), t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
+		d.sitePK, d.dataType.typePK, d.t.Truncate(time.Minute).Unix(),
+		d.t, int32(d.mean), int32(d.min), int32(d.max), int32(d.fifty), int32(d.ninety)); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			return &statusTooManyRequests
 		} else {

@@ -8,6 +8,7 @@ import (
 )
 
 type dataSite struct {
+	sitePK              int
 	siteID              string
 	longitude, latitude float64
 }
@@ -59,15 +60,14 @@ func (d *dataSite) delete(r *http.Request) *result {
 	return &statusOK
 }
 
-func dataSitePK(siteID string) (int, *result) {
-	var pk int
-
-	if err := dbR.QueryRow(`SELECT sitePK FROM data.site where siteID = $1`, siteID).Scan(&pk); err != nil {
+func (d *dataSite) loadPK(r *http.Request) *result {
+	if err := dbR.QueryRow(`SELECT sitePK FROM data.site where siteID = $1`,
+		r.URL.Query().Get("siteID")).Scan(&d.sitePK); err != nil {
 		if err == sql.ErrNoRows {
-			return pk, badRequest("unknown siteID")
+			return badRequest("unknown siteID")
 		}
-		return pk, internalServerError(err)
+		return internalServerError(err)
 	}
 
-	return pk, &statusOK
+	return &statusOK
 }

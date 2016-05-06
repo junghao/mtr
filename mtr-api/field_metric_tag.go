@@ -17,7 +17,7 @@ func (f *fieldMetricTag) loadPK(r *http.Request) *result {
 		return res
 	}
 
-	if res := f.fieldDevice.loadPK(r); !res.ok{
+	if res := f.fieldDevice.loadPK(r); !res.ok {
 		return res
 	}
 
@@ -58,7 +58,6 @@ func (f *fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer)
 	if res := f.loadPK(r); !res.ok {
 		return res
 	}
-
 
 	if _, err := db.Exec(`DELETE FROM field.metric_tag
 			WHERE devicePK = $1

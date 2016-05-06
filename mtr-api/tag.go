@@ -1,12 +1,12 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/lib/pq"
 	"net/http"
-	"database/sql"
 )
 
-type tag struct{
+type tag struct {
 	tagPK int
 }
 

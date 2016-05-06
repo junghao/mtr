@@ -9,7 +9,7 @@ import (
 )
 
 type fieldDevice struct {
-	devicePK int
+	devicePK            int
 	deviceID            string
 	longitude, latitude float64
 }
