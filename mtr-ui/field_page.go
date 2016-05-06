@@ -10,23 +10,23 @@ import (
 
 type fieldPage struct {
 	page
-	Path    string
-	Summary map[string]int
-	Metrics []idCount
-	Devices []device
+	Path         string
+	Summary      map[string]int
+	Metrics      []idCount
+	DeviceModels []deviceModel
 }
 
-type devices []device
+type deviceModels []deviceModel
 
-func (m devices) Len() int {
+func (m deviceModels) Len() int {
 	return len(m)
 }
 
-func (m devices) Less(i, j int) bool {
+func (m deviceModels) Less(i, j int) bool {
 	return m[i].ModelId < m[j].ModelId
 }
 
-func (m devices) Swap(i, j int) {
+func (m deviceModels) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
 
@@ -44,7 +44,7 @@ func (m idCounts) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
 
-type device struct {
+type deviceModel struct {
 	ModelId   string
 	TypeCount int
 	Types     []idCount
@@ -204,12 +204,12 @@ func (p *fieldPage) getDevicesSummary() (err error) {
 		return
 	}
 
-	p.Devices = make([]device, 0)
+	p.DeviceModels = make([]deviceModel, 0)
 	for _, r := range f.Result {
-		p.Devices = updateFieldDevice(p.Devices, r)
+		p.DeviceModels = updateFieldDevice(p.DeviceModels, r)
 	}
 
-	sort.Sort(devices(p.Devices))
+	sort.Sort(deviceModels(p.DeviceModels))
 	return
 }
 
@@ -228,7 +228,7 @@ func updateFieldMetric(m []idCount, result *mtrpb.FieldMetricSummary) []idCount 
 }
 
 // Increase count if Id exists in slice, append to slice if it's a new Id
-func updateFieldDevice(m []device, result *mtrpb.FieldMetricSummary) []device {
+func updateFieldDevice(m []deviceModel, result *mtrpb.FieldMetricSummary) []deviceModel {
 	for i, r := range m {
 		if r.ModelId == result.ModelID {
 			r.TypeCount++
@@ -251,7 +251,7 @@ func updateFieldDevice(m []device, result *mtrpb.FieldMetricSummary) []device {
 	incFieldCount(c, result)
 
 	t := []idCount{{Id: result.TypeID, Count: c}}
-	return append(m, device{ModelId: result.ModelID, Types: t, TypeCount: 1})
+	return append(m, deviceModel{ModelId: result.ModelID, Types: t, TypeCount: 1})
 }
 
 func incFieldCount(m map[string]int, r *mtrpb.FieldMetricSummary) {

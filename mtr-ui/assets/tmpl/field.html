@@ -11,5 +11,5 @@
 </div>
 {{if eq .Path "/field"}}{{template "field_main" .Summary}}{{end}}
 {{if eq .Path "/field/metrics"}}{{template "field_metrics" .Metrics}}{{end}}
-{{if eq .Path "/field/devices"}}{{template "field_devices" .Devices}}{{end}}
+{{if eq .Path "/field/devices"}}{{template "field_device_models" .DeviceModels}}{{end}}
 {{end}}
