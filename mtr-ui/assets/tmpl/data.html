@@ -1,0 +1,15 @@
+{{define "body"}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Path "/"}}class="active"{{end}}><a href="/">Home</a></li>
+            <li role="presentation" {{if eq .Path "/data"}}class="active"{{end}}><a href="/data">Data</a></li>
+            <li role="presentation" {{if eq .Path "/data/sites"}}class="active"{{end}}><a href="/data/sites">Sites</a></li>
+            <li role="presentation" {{if eq .Path "/data/metrics"}}class="active"{{end}}><a href="/data/metrics">Metrics</a></li>
+        </ul>
+    </div>
+</div>
+{{if eq .Path "/data"}}{{template "data_main" .Summary}}{{end}}
+{{if eq .Path "/data/sites"}}{{template "data_sites" .Sites}}{{end}}
+{{if eq .Path "/data/metrics"}}{{template "data_metrics" .Metrics}}{{end}}
+{{end}}

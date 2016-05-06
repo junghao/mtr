@@ -159,7 +159,7 @@ func getFieldSummary() (m map[string]int, err error) {
 	devices := make(map[string]bool)
 	for _, r := range f.Result {
 		devices[r.DeviceID] = true
-		incCount(m, r)
+		incFieldCount(m, r)
 	}
 	m["devices"] = len(devices)
 	return
@@ -182,7 +182,7 @@ func (p *fieldPage) getMetricsSummary() (err error) {
 
 	p.Metrics = make([]idCount, 0)
 	for _, r := range f.Result {
-		p.Metrics = updateMetric(p.Metrics, r)
+		p.Metrics = updateFieldMetric(p.Metrics, r)
 	}
 
 	sort.Sort(idCounts(p.Metrics))
@@ -206,7 +206,7 @@ func (p *fieldPage) getDevicesSummary() (err error) {
 
 	p.Devices = make([]device, 0)
 	for _, r := range f.Result {
-		p.Devices = updateDevice(p.Devices, r)
+		p.Devices = updateFieldDevice(p.Devices, r)
 	}
 
 	sort.Sort(devices(p.Devices))
@@ -214,48 +214,47 @@ func (p *fieldPage) getDevicesSummary() (err error) {
 }
 
 // Increase count if Id exists in slice, append to slice if it's a new Id
-func updateMetric(m []idCount, result *mtrpb.FieldMetricSummary) []idCount {
+func updateFieldMetric(m []idCount, result *mtrpb.FieldMetricSummary) []idCount {
 	for _, r := range m {
 		if r.Id == result.TypeID {
-			incCount(r.Count, result)
+			incFieldCount(r.Count, result)
 			return m
 		}
 	}
 
 	c := make(map[string]int)
-	incCount(c, result)
+	incFieldCount(c, result)
 	return append(m, idCount{Id: result.TypeID, Count: c})
 }
 
 // Increase count if Id exists in slice, append to slice if it's a new Id
-func updateDevice(m []device, result *mtrpb.FieldMetricSummary) []device {
+func updateFieldDevice(m []device, result *mtrpb.FieldMetricSummary) []device {
 	for i, r := range m {
 		if r.ModelId == result.ModelID {
 			r.TypeCount++
 			for j, rt := range r.Types {
 				if rt.Id == result.TypeID {
-					incCount(rt.Count, result)
+					incFieldCount(rt.Count, result)
 					r.Types[j] = rt
 					m[i] = r
 					return m
 				}
 			}
 			// create a new typeId in this modelId
-			c := make([]idCount, 0)
-			r.Types = updateMetric(c, result)
+			r.Types = updateFieldMetric(r.Types, result)
 			m[i] = r
 			return m
 		}
 	}
 
 	c := make(map[string]int)
-	incCount(c, result)
+	incFieldCount(c, result)
 
-	t := []idCount{idCount{Id: result.TypeID, Count: c}}
+	t := []idCount{{Id: result.TypeID, Count: c}}
 	return append(m, device{ModelId: result.ModelID, Types: t, TypeCount: 1})
 }
 
-func incCount(m map[string]int, r *mtrpb.FieldMetricSummary) {
+func incFieldCount(m map[string]int, r *mtrpb.FieldMetricSummary) {
 	switch {
 	case r.Upper == 0 && r.Lower == 0:
 		m["unknown"] = m["unknown"] + 1

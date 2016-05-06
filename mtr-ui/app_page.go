@@ -65,7 +65,7 @@ func getAppSummary() (m map[string]int, err error) {
 	devices := make(map[string]bool)
 	for _, r := range f.Result {
 		devices[r.DeviceID] = true
-		incCount(m, r)
+		incFieldCount(m, r)
 	}
 	m["devices"] = len(devices)
 	return
