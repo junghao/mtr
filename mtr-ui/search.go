@@ -2,7 +2,8 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/golang/protobuf/proto"
 	"net/http"
 	"net/url"
 )
@@ -32,10 +33,7 @@ func newSearchPage(apiUrl *url.URL) (s *searchPage, err error) {
 func (s *searchPage) matchingMetrics(tagQuery string) (err error) {
 
 	u := *s.mtrApiUrl
-	u.Path = "/field/metric/tag"
-	q := u.Query()
-	q.Set("tag", tagQuery)
-	u.RawQuery = q.Encode()
+	u.Path = "/tag/" + tagQuery
 
 	if s.MatchingMetrics, err = getMatchingMetrics(u.String()); err != nil {
 		return err
@@ -67,14 +65,32 @@ func (s *searchPage) fetchIcons() (err error) {
 
 func getMatchingMetrics(urlString string) (parsedTags matchingMetrics, err error) {
 
-	body, err := getBytes(urlString, "application/json;version=1")
+	b, err := getBytes(urlString, "application/x-protobuf")
 	if err != nil {
 		return nil, err
 	}
 
-	if err = json.Unmarshal(body, &parsedTags); err != nil {
+	var tr mtrpb.TagSearchResult
+
+	if err = proto.Unmarshal(b, &tr); err != nil {
 		return nil, err
 	}
+
+	if tr.FieldMetric != nil {
+		for _, v := range tr.FieldMetric {
+			m := metricInfo{
+				TypeID: v.TypeID,
+				DeviceID: v.DeviceID,
+				// TODO - not sure what the Tag is
+				//Tag      string
+				// TODO - not sure what this is
+				//IconUrl  string
+			}
+			parsedTags = append(parsedTags, m)
+		}
+	}
+
+	// TODO add DataLatency.
 
 	return parsedTags, nil
 }
