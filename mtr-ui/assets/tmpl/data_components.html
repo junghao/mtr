@@ -1,11 +1,11 @@
 {{define "data_main"}}
-<a href="/#TODO">
+<a href="/data/sites">
     <div class="row mtr-size mtr-callout mtr-sub-title">
         <div class="col-xs-12 col-md-12">Sites {{index . "sites"}}</div>
     </div>
 </a>
 
-<a href="/#TODO">
+<a href="/data/metrics">
     <div class="row mtr-size mtr-callout">
         <div class="col-xs-12 col-md-12">Metrics {{index . "metrics"}}</div>
     </div>
@@ -34,4 +34,32 @@
     </div>
 </a>
 
+{{end}}
+{{define "data_metrics"}}
+{{range .}}
+<div class="row">
+    <div class="col-xs-3 col-md-2 h4">{{.Id}}: {{index .Count "total"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">other {{index .Count "unknown"}}</div>
+</div>
+{{end}}
+{{end}}
+
+{{define "data_sites"}}
+{{range .}}
+<div class="row">
+    <div class="col-xs-12 col-md-12 h3">{{.SiteId}}: {{.TypeCount}}</div>
+</div>
+{{range .Types}}
+<div class="row">
+    <div class="col-xs-3 col-md-2 h4">{{.Id}}:</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
+    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">unknown {{index .Count "unknown"}}</div>
+</div>
+{{end}}
+{{end}}
 {{end}}
