@@ -60,6 +60,29 @@ func tagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		return t.save(r)
 	case "DELETE":
 		return t.delete(r)
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return t.single(r, h, b)
+		default:
+			return &notAcceptable
+		}
+	default:
+		return &methodNotAllowed
+	}
+}
+
+func tagsHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	var t tag
+
+	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return t.all(r, h, b)
+		default:
+			return &notAcceptable
+		}
 
 	default:
 		return &methodNotAllowed

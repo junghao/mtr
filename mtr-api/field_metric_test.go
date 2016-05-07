@@ -51,6 +51,23 @@ func addFieldMetrics(t *testing.T) {
 	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 200, t)
 	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=15100", 429, t)
 
+	// Tags
+
+	doRequest("DELETE", "*/*", "/tag/LINZ", 200, t)
+
+	// tag must exist before it can be added to a metric
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 400, t)
+
+	doRequest("PUT", "*/*", "/tag/LINZ", 200, t)
+	doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
+
+	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 200, t)
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
+
+	// Delete a tag on a metric
+	doRequest("DELETE", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
+
 	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
 		t.Error(err)
 	}
@@ -73,24 +90,6 @@ func TestFieldMetrics(t *testing.T) {
 	// Delete a threshold on a metric then create it again
 	doRequest("DELETE", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage", 200, t)
 	doRequest("PUT", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=15000", 200, t)
-
-	// Tags
-
-	doRequest("DELETE", "*/*", "/tag?tag=TAUP", 200, t)
-	doRequest("DELETE", "*/*", "/tag?tag=LINZ", 200, t)
-
-	// tag must exist before it can be added to a metric
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 400, t)
-
-	doRequest("PUT", "*/*", "/tag?tag=LINZ", 200, t)
-	doRequest("PUT", "*/*", "/tag?tag=TAUP", 200, t)
-
-	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 200, t)
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
-
-	// Delete a tag on a metric
-	doRequest("DELETE", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
 
 	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
 		t.Error(err)
