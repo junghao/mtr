@@ -17,6 +17,7 @@ type fieldPage struct {
 	Devices      []device
 	ModelId      string
 	TypeId       string
+	MtrApiUrl    string
 }
 
 type deviceModels []deviceModel
@@ -146,6 +147,7 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	// We create a page struct with variables to substitute into the loaded template
 	p := fieldPage{}
 	p.Path = r.URL.Path
+	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR"
 
 	if err = p.populateTags(); err != nil {

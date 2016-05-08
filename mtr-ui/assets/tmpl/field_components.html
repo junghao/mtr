@@ -48,7 +48,7 @@
 {{end}}
 
 {{define "field_device_models"}}
-{{range .}}
+{{range .DeviceModels}}
 {{$modelId := .ModelId}}
 <div class="row">
     <div class="col-xs-12 col-md-12 h3">{{.ModelId}}: {{.TypeCount}}</div>
@@ -68,12 +68,13 @@
 {{end}}
 
 {{define "field_devices"}}
-{{range .}}
+{{$mtrApiUrl:=.MtrApiUrl}}
+{{range .Devices}}
 <div class="row">
     <!-- TBD: link to mtr-api should be without host name -->
-    <a href="https://mtr-api.geonet.org.nz/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}">
+    <a href="{{$mtrApiUrl}}/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}">
     <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.Id}}:</div>
-    <div class="col-xs-6 col-md-6"><img src="https://mtr-api.geonet.org.nz/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}&plot=spark"/></div>
+    <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}&plot=spark"/></div>
     </a>
 </div>
 {{end}}

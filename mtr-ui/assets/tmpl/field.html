@@ -13,12 +13,12 @@
 {{if eq .Path "/field/metrics"}}{{template "field_metrics" .Metrics}}{{end}}
 {{if eq .Path "/field/devices"}}
 {{if .DeviceModels}}
-{{template "field_device_models" .DeviceModels}}
+{{template "field_device_models" .}}
 {{else if .Devices}}
 <div class="col-xs-12 col-md-12 h3">Model:{{.ModelId}}</div>
 <div class="col-xs-12 col-md-12 h3">Type:{{.TypeId}}</div>
 <div class="col-xs-12 col-md-12 h4">Count:{{len .Devices}}</div>
-{{template "field_devices" .Devices}}
+{{template "field_devices" .}}
 {{end}}
 {{end}}
 {{end}}
