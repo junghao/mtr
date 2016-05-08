@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package mtrpb;
+option go_package = "mtrpb";
+
+import "data.proto";
+import "field.proto";
+
+message Tag {
+    string tag = 1;
+}
+
+message TagResult {
+    repeated Tag used = 1;
+}
+
+message TagSearchResult {
+    repeated FieldMetricSummary field_metric = 1;
+    repeated DataLatencySummary data_latency = 2;
+}

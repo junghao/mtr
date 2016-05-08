@@ -100,6 +100,19 @@ func loadFieldType(typeID string) (fieldType, *result) {
 	return fieldType{}, badRequest("invalid type " + typeID)
 }
 
+func (f *fieldType) loadPK(r *http.Request) *result {
+	var t fieldType
+	var res *result
+
+	if t, res = loadFieldType(r.URL.Query().Get("typeID")); !res.ok {
+		return res
+	}
+
+	f.typePK = t.typePK
+
+	return &statusOK
+}
+
 func (f *fieldType) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	if res := checkQuery(r, []string{}, []string{}); !res.ok {
 		return res

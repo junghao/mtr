@@ -73,19 +73,13 @@ CREATE TABLE field.threshold (
 CREATE INDEX on field.threshold (devicePK);
 CREATE INDEX on field.threshold (typePK);
 
-CREATE TABLE field.tag (
-	tagPK SERIAL PRIMARY KEY,
-	tag TEXT NOT NULL UNIQUE
-);
-
 CREATE TABLE field.metric_tag(
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
-	tagPK INTEGER REFERENCES field.tag(tagPK)  ON DELETE CASCADE NOT NULL,
+	tagPK INTEGER REFERENCES mtr.tag(tagPK) ON DELETE CASCADE NOT NULL,
 	PRIMARY KEY(devicePK, typePK, tagPK)
 );
 
 CREATE INDEX on field.metric_tag (devicePK);
 CREATE INDEX on field.metric_tag (typePK);
 CREATE INDEX on field.metric_tag (tagPK);
-

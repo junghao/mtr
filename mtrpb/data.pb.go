@@ -8,12 +8,16 @@ Package mtrpb is a generated protocol buffer package.
 It is generated from these files:
 	data.proto
 	field.proto
+	tag.proto
 
 It has these top-level messages:
 	DataLatencySummary
 	DataLatencySummaryResult
 	FieldMetricSummary
 	FieldMetricSummaryResult
+	Tag
+	TagResult
+	TagSearchResult
 */
 package mtrpb
 

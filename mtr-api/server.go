@@ -26,10 +26,12 @@ func init() {
 	keyR = os.Getenv("MTR_KEY_R")
 
 	mux = http.NewServeMux()
+	mux.HandleFunc("/tag/", toHandler(tagHandler))
+	mux.HandleFunc("/tag", toHandler(tagsHandler))
 	mux.HandleFunc("/app/metric", toHandler(appMetricHandler))
 	mux.HandleFunc("/field/model", toHandler(fieldModelHandler))
 	mux.HandleFunc("/field/device", toHandler(fieldDeviceHandler))
-	mux.HandleFunc("/field/tag", toHandler(fieldTagHandler))
+	//mux.HandleFunc("/field/tag", toHandler(fieldTagHandler))
 	mux.HandleFunc("/field/type", toHandler(fieldTypeHandler))
 	mux.HandleFunc("/field/metric", toHandler(fieldMetricHandler))
 	mux.HandleFunc("/field/metric/summary", toHandler(fieldMetricLatestHandler))
@@ -39,6 +41,7 @@ func init() {
 	mux.HandleFunc("/data/site", toHandler(dataSiteHandler))
 	mux.HandleFunc("/data/latency", toHandler(dataLatencyHandler))
 	mux.HandleFunc("/data/latency/summary", toHandler(dataLatencySummaryHandler))
+	mux.HandleFunc("/data/latency/tag", toHandler(dataLatencyTagHandler))
 	mux.HandleFunc("/data/latency/threshold", toHandler(dataLatencyThresholdHandler))
 }
 

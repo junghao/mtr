@@ -14,6 +14,7 @@ import (
 
 var statusTooManyRequests = result{ok: false, code: http.StatusTooManyRequests, msg: "Already data for the minute"}
 
+// TODO this should contain a device and type
 type fieldMetric struct {
 	deviceID  string
 	devicePK  int
@@ -231,7 +232,7 @@ func (f *fieldMetric) tags() (t []string, res *result) {
 	var rows *sql.Rows
 	var err error
 
-	if rows, err = dbR.Query(`SELECT tag FROM field.metric_tag JOIN field.tag USING (tagpk) WHERE 
+	if rows, err = dbR.Query(`SELECT tag FROM field.metric_tag JOIN mtr.tag USING (tagpk) WHERE
 		devicePK = $1 AND typePK = $2
 		ORDER BY tag asc`,
 		f.devicePK, f.fieldType.typePK); err != nil {

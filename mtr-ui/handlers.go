@@ -2,13 +2,14 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/golang/protobuf/proto"
 )
 
 type page struct {
@@ -64,7 +65,7 @@ func init() {
 // Enables the use of a simple typeahead search using html5 and datalist.
 func (p *page) populateTags() (err error) {
 	u := *mtrApiUrl
-	u.Path = "/field/tag"
+	u.Path = "/tag"
 	if p.Border.TagList, err = getAllTagIDs(u.String()); err != nil {
 		return err
 	}
@@ -156,20 +157,22 @@ func getAllTagIDs(urlString string) (tagIDs []string, err error) {
 	type tagIdBody struct {
 		Tag string
 	}
-	var tagStructs []tagIdBody
 
-	body, err := getBytes(urlString, "application/json;version=1")
+	b, err := getBytes(urlString, "application/x-protobuf")
 	if err != nil {
 		return nil, err
 	}
 
-	// make a slice of structs {'Tag': string} to populate from json and construct a slice of strings instead
-	if err = json.Unmarshal(body, &tagStructs); err != nil {
-		return nil, err
+	var tr mtrpb.TagResult
+
+	if err = proto.Unmarshal(b, &tr); err != nil {
+	return nil, err
 	}
 
-	for _, value := range tagStructs {
-		tagIDs = append(tagIDs, value.Tag)
+	if tr.Used != nil {
+		for _, value := range tr.Used {
+			tagIDs = append(tagIDs, value.Tag)
+		}
 	}
 
 	return tagIDs, nil

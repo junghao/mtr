@@ -46,14 +46,6 @@ func addDataMetrics(t *testing.T) {
 		t.Error(err)
 	}
 
-}
-
-func TestDataMetrics(t *testing.T) {
-	setup(t)
-	defer teardown()
-
-	addDataMetrics(t)
-
 	// Add another site, some latency data, then delete.
 	doRequest("DELETE", "*/*", "/data/site?siteID=WGTN", 200, t)
 	doRequest("PUT", "*/*", "/data/site?siteID=WGTN&latitude=-38.74270&longitude=176.08100", 200, t)
@@ -75,6 +67,30 @@ func TestDataMetrics(t *testing.T) {
 	// Delete a threshold then create it again
 	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
 	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
+
+	// Tags
+
+	doRequest("DELETE", "*/*", "/tag/FRED", 200, t)
+	doRequest("DELETE", "*/*", "/tag/DAGG", 200, t)
+
+	// tag must exist before it can be added to a metric
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=FRED&typeID=latency.strong&tag=TAUP", 400, t)
+
+	doRequest("PUT", "*/*", "/tag/FRED", 200, t)
+	doRequest("PUT", "*/*", "/tag/DAGG", 200, t)
+	doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
+
+	// Create a tag on a latency.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=FRED", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=DAGG", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", 200, t)
+}
+
+func TestDataMetrics(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	addDataMetrics(t)
 
 	// Latency plots.  Resolution is optional on plots and sparks.  yrange is also optional.  If not set autoranges on the data.
 	// Options for the plot parameter:

@@ -1,5 +1,7 @@
 package main
 
+import "net/http"
+
 type dataType struct {
 	typePK int
 	Scale  float64 // used to scale the stored metric for display
@@ -32,6 +34,17 @@ var dataTypes = map[string]dataType{
 		Name:   "latency tsunami data",
 		Unit:   "ms",
 	},
+}
+
+func (d *dataType) loadPK(r *http.Request) *result {
+	var res *result
+	var t dataType
+	if t, res = loadDataType(r.URL.Query().Get("typeID")); !res.ok {
+		return res
+	}
+
+	d.typePK = t.typePK
+	return &statusOK
 }
 
 func loadDataType(typeID string) (dataType, *result) {

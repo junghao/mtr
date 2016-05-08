@@ -13,22 +13,29 @@ import (
 )
 
 type dataLatency struct {
-	sitePK   int
-	dataType dataType
+	dataSite
+	dataType
+	pk                            *result // for tracking pkLoad()
+	t                             time.Time
+	mean, min, max, fifty, ninety int
 }
 
-func (d *dataLatency) loadPK(r *http.Request) (res *result) {
-	if d.dataType, res = loadDataType(r.URL.Query().Get("typeID")); !res.ok {
-		return res
+// TODO adopt this no-op approach further?
+// Also pass the http.Resquest every where?
+func (d *dataLatency) loadPK(r *http.Request) *result {
+	if d.pk == nil {
+		if d.pk = d.dataType.loadPK(r); !d.pk.ok {
+			return d.pk
+		}
+
+		if d.pk = d.dataSite.loadPK(r); !d.pk.ok {
+			return d.pk
+		}
+
+		d.pk = &statusOK
 	}
 
-	if d.sitePK, res = dataSitePK(r.URL.Query().Get("siteID")); !res.ok {
-		return res
-	}
-
-	res = &statusOK
-
-	return
+	return d.pk
 }
 
 /*
@@ -53,38 +60,35 @@ func (d *dataLatency) save(r *http.Request) *result {
 
 	var err error
 
-	var t time.Time
-	var mean, min, max, fifty, ninety int
-
-	if mean, err = strconv.Atoi(r.URL.Query().Get("mean")); err != nil {
+	if d.mean, err = strconv.Atoi(r.URL.Query().Get("mean")); err != nil {
 		return badRequest("invalid value for mean")
 	}
 
 	if r.URL.Query().Get("min") != "" {
-		if min, err = strconv.Atoi(r.URL.Query().Get("min")); err != nil {
+		if d.min, err = strconv.Atoi(r.URL.Query().Get("min")); err != nil {
 			return badRequest("invalid value for min")
 		}
 	}
 
 	if r.URL.Query().Get("max") != "" {
-		if max, err = strconv.Atoi(r.URL.Query().Get("max")); err != nil {
+		if d.max, err = strconv.Atoi(r.URL.Query().Get("max")); err != nil {
 			return badRequest("invalid value for max")
 		}
 	}
 
 	if r.URL.Query().Get("fifty") != "" {
-		if fifty, err = strconv.Atoi(r.URL.Query().Get("fifty")); err != nil {
+		if d.fifty, err = strconv.Atoi(r.URL.Query().Get("fifty")); err != nil {
 			return badRequest("invalid value for fifty")
 		}
 	}
 
 	if r.URL.Query().Get("ninety") != "" {
-		if ninety, err = strconv.Atoi(r.URL.Query().Get("ninety")); err != nil {
+		if d.ninety, err = strconv.Atoi(r.URL.Query().Get("ninety")); err != nil {
 			return badRequest("invalid value for ninety")
 		}
 	}
 
-	if t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
+	if d.t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
 		return badRequest("invalid time")
 	}
 
@@ -93,7 +97,8 @@ func (d *dataLatency) save(r *http.Request) *result {
 	}
 
 	if _, err = db.Exec(`INSERT INTO data.latency(sitePK, typePK, rate_limit, time, mean, min, max, fifty, ninety) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		d.sitePK, d.dataType.typePK, t.Truncate(time.Minute).Unix(), t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
+		d.sitePK, d.dataType.typePK, d.t.Truncate(time.Minute).Unix(),
+		d.t, int32(d.mean), int32(d.min), int32(d.max), int32(d.fifty), int32(d.ninety)); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			return &statusTooManyRequests
 		} else {
@@ -126,10 +131,14 @@ func (d *dataLatency) delete(r *http.Request) *result {
 		return internalServerError(err)
 	}
 
-	// TODO when add latency tags add delete here.
-
 	if _, err = txn.Exec(`DELETE FROM data.latency_threshold WHERE sitePK = $1 AND typePK = $2`,
 		d.sitePK, d.dataType.typePK); err != nil {
+		txn.Rollback()
+		return internalServerError(err)
+	}
+
+	if _, err = txn.Exec(`DELETE FROM data.latency_tag WHERE sitePK = $1 AND typePK = $2`,
+		d.sitePK, d.typePK); err != nil {
 		txn.Rollback()
 		return internalServerError(err)
 	}
@@ -188,14 +197,14 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	if !(lower == 0 && upper == 0) {
 		p.SetThreshold(float64(lower)*d.dataType.Scale, float64(upper)*d.dataType.Scale)
 	}
-	//
-	//var tags []string
-	//
-	//if tags, res = f.tags(); !res.ok {
-	//	return res
-	//}
-	//
-	//p.SetSubTitle("Tags: " + strings.Join(tags, ","))
+
+	var tags []string
+
+	if tags, res = d.tags(r); !res.ok {
+		return res
+	}
+
+	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
 
 	p.SetTitle(fmt.Sprintf("Site: %s - %s", r.URL.Query().Get("siteID"), strings.Title(d.dataType.Name)))
 
@@ -292,4 +301,36 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
 	return &statusOK
+}
+
+func (f *dataLatency) tags(r *http.Request) (t []string, res *result) {
+	if res = f.loadPK(r); !res.ok {
+		return
+	}
+
+	var rows *sql.Rows
+	var err error
+
+	if rows, err = dbR.Query(`SELECT tag FROM data.latency_tag JOIN mtr.tag USING (tagpk) WHERE
+		sitePK = $1 AND typePK = $2
+		ORDER BY tag asc`,
+		f.sitePK, f.typePK); err != nil {
+		res = internalServerError(err)
+		return
+	}
+
+	defer rows.Close()
+
+	var s string
+
+	for rows.Next() {
+		if err = rows.Scan(&s); err != nil {
+			res = internalServerError(err)
+			return
+		}
+		t = append(t, s)
+	}
+
+	res = &statusOK
+	return
 }
