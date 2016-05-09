@@ -341,7 +341,7 @@ func updateFieldDevice(m []deviceModel, result *mtrpb.FieldMetricSummary) []devi
 
 func incFieldCount(m map[string]int, r *mtrpb.FieldMetricSummary) {
 	s := statusString(r)
-	m[s] = m["s"] + 1
+	m[s] = m[s] + 1
 	m["total"] = m["total"] + 1
 }
 
