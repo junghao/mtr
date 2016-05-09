@@ -175,7 +175,7 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	return &statusOK
 }
 
-func fieldSvgPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.ok {
 		return res
 	}

@@ -37,7 +37,7 @@ func init() {
 	mux.HandleFunc("/field", toHandler(fieldPageHandler))
 	mux.HandleFunc("/field/metrics", toHandler(fieldMetricsPageHandler))
 	mux.HandleFunc("/field/devices", toHandler(fieldDevicesPageHandler))
-	mux.HandleFunc("/field/svg", toHandler(fieldSvgPageHandler))
+	mux.HandleFunc("/field/plot", toHandler(fieldPlotPageHandler))
 	mux.HandleFunc("/data", toHandler(dataPageHandler))
 	mux.HandleFunc("/data/sites", toHandler(dataSitesPageHandler))
 	mux.HandleFunc("/data/metrics", toHandler(dataMetricsPageHandler))

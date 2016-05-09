@@ -1,5 +1,5 @@
 {{define "body"}}
-{{if ne .Path "/field/svg"}}
+{{if ne .Path "/field/plot"}}
 <div class="row">
     <div class="col-xs-12 col-md-12">
         <ul class="nav nav-pills">
@@ -13,7 +13,7 @@
 {{end}}
 {{if eq .Path "/field"}}{{template "field_main" .Summary}}
 {{else if eq .Path "/field/metrics"}}{{template "field_metrics" .Metrics}}
-{{else if eq .Path "/field/svg"}}{{template "field_device_metric" .}}
+{{else if eq .Path "/field/plot"}}{{template "field_device_metric" .}}
 {{else if eq .Path "/field/devices"}}
 {{if .DeviceModels}}
 {{template "field_device_models" .}}
