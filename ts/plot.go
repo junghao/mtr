@@ -210,7 +210,7 @@ func (p *Plot) scaleData() {
 		p.plt.YMax = p.plt.YMin + (float64(p.plt.height) * (1 / p.plt.dy))
 	default:
 		p.plt.YMin = p.plt.Min.Value
-		p.plt.YMax = p.plt.Max.Value
+		p.plt.YMax = math.Max(p.plt.Max.Value, p.plt.Threshold.Max)
 
 		// Always set y min to zero when autoranging
 		if p.plt.YMin > 0 {
