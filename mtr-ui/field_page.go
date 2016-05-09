@@ -16,7 +16,9 @@ type fieldPage struct {
 	DeviceModels []deviceModel
 	Devices      []device
 	ModelId      string
+	DeviceId     string
 	TypeId       string
+	Resolution   string
 	MtrApiUrl    string
 }
 
@@ -167,6 +169,29 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 		}
 	}
 	if err = fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
+		return internalServerError(err)
+	}
+
+	return &statusOK
+}
+
+func fieldSvgPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.ok {
+		return res
+	}
+	p := fieldPage{}
+	p.Path = r.URL.Path
+	p.MtrApiUrl = mtrApiUrl.String()
+	p.Border.Title = "GeoNet MTR"
+	q := r.URL.Query()
+	p.DeviceId = q.Get("deviceID")
+	p.TypeId = q.Get("typeID")
+	p.Resolution = q.Get("resolution")
+	if p.Resolution == "" {
+		p.Resolution = "minute"
+	}
+
+	if err := fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return internalServerError(err)
 	}
 
