@@ -113,7 +113,7 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 }
 
 func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{"plot", "resolution", "yrange"}); !res.ok {
+	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{"plot", "resolution"}); !res.ok {
 		return res
 	}
 
@@ -121,91 +121,19 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return res
 	}
 
-	var p ts.Plot
-
-	resolution := r.URL.Query().Get("resolution")
-
-	switch resolution {
-	case "", "minute":
-		resolution = "minute"
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
-		p.SetXLabel("12 hours")
-	case "five_minutes":
-		resolution = "five_minutes"
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*3), time.Now().UTC())
-		p.SetXLabel("48 hours")
-	case "hour":
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
-		p.SetXLabel("4 weeks")
-	default:
-		return badRequest("invalid value for resolution")
-	}
-
-	var err error
-
-	if r.URL.Query().Get("yrange") != "" {
-		y := strings.Split(r.URL.Query().Get("yrange"), `,`)
-
-		var ymin, ymax float64
-
-		if len(y) != 2 {
-			return badRequest("invalid yrange query param.")
-		}
-		if ymin, err = strconv.ParseFloat(y[0], 64); err != nil {
-			return badRequest("invalid yrange query param.")
-		}
-		if ymax, err = strconv.ParseFloat(y[1], 64); err != nil {
-			return badRequest("invalid yrange query param.")
-		}
-		p.SetYAxis(ymin, ymax)
-	}
-
-	if res := f.loadPlot(resolution, &p); !res.ok {
-		return res
-	}
-
-	p.SetUnit(f.fieldType.Unit)
-
-	var lower, upper int
-	var res *result
-
-	if lower, upper, res = f.threshold(); !res.ok {
-		return res
-	}
-
-	if !(lower == 0 && upper == 0) {
-		p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
-	}
-
-	var tags []string
-
-	if tags, res = f.tags(); !res.ok {
-		return res
-	}
-
-	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
-
-	var mod string
-
-	if mod, res = f.model(); !res.ok {
-		return res
-	}
-
-	p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
-
 	switch r.URL.Query().Get("plot") {
-	case "spark", "spark-line":
-		err = ts.SparkLine.Draw(p, b)
-	case "spark-scatter":
-		err = ts.SparkScatter.Draw(p, b)
 	case "", "line":
-		err = ts.Line.Draw(p, b)
-	case "scatter":
-		err = ts.Scatter.Draw(p, b)
-	}
-
-	if err != nil {
-		return internalServerError(err)
+		resolution := r.URL.Query().Get("resolution")
+		if resolution == "" {
+			resolution = "minute"
+		}
+		if res := f.plot(resolution, b); !res.ok {
+			return res
+		}
+	default:
+		if res := f.spark(b); !res.ok {
+			return res
+		}
 	}
 
 	h.Set("Content-Type", "image/svg+xml")
@@ -269,15 +197,49 @@ func (f *fieldMetric) model() (s string, res *result) {
 }
 
 /*
-loadPlot loads plot data.  Assumes f.load has been called first.
+plot draws an svg plot to b.  Assumes f.load has been called first.
+Valid values for resolution are 'minute', 'five_minutes', 'hour'.
 */
-func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
-	var err error
+func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *result {
+	var p ts.Plot
+
+	p.SetUnit(f.fieldType.Unit)
+
+	var lower, upper int
+	var res *result
+
+	if lower, upper, res = f.threshold(); !res.ok {
+		return res
+	}
+
+	if !(lower == 0 && upper == 0) {
+		p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
+	}
+
+	var tags []string
+
+	if tags, res = f.tags(); !res.ok {
+		return res
+	}
+
+	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
+
+	var mod string
+
+	if mod, res = f.model(); !res.ok {
+		return res
+	}
+
+	p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
 
 	var rows *sql.Rows
+	var err error
 
 	switch resolution {
 	case "minute":
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
+		p.SetXLabel("12 hours")
+
 		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
 		devicePK = $1 AND typePK = $2
 		AND time > now() - interval '12 hours'
@@ -285,6 +247,9 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 		ORDER BY t ASC`,
 			f.devicePK, f.fieldType.typePK)
 	case "five_minutes":
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*2), time.Now().UTC())
+		p.SetXLabel("48 hours")
+
 		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
 		 avg(value) FROM field.metric WHERE
 		devicePK = $1 AND typePK = $2
@@ -293,6 +258,9 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 		ORDER BY t ASC`,
 			f.devicePK, f.fieldType.typePK)
 	case "hour":
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
+		p.SetXLabel("4 weeks")
+
 		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
 		devicePK = $1 AND typePK = $2
 		AND time > now() - interval '28 days'
@@ -300,7 +268,7 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 		ORDER BY t ASC`,
 			f.devicePK, f.fieldType.typePK)
 	default:
-		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+		return badRequest("invalid resolution")
 	}
 	if err != nil {
 		return internalServerError(err)
@@ -335,6 +303,51 @@ func (f *fieldMetric) loadPlot(resolution string, p *ts.Plot) *result {
 	p.SetLatest(ts.Point{DateTime: t, Value: float64(value) * f.fieldType.Scale}, "deepskyblue")
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
+
+	if err = ts.Line.Draw(p, b); err != nil {
+		return internalServerError(err)
+	}
+
+	return &statusOK
+}
+
+// spark draws an svg spark line to b.  Assumes loadPK has been called already.
+func (f *fieldMetric) spark(b *bytes.Buffer) *result {
+	var p ts.Plot
+
+	p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
+
+	var err error
+	var rows *sql.Rows
+
+	if rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
+		 avg(value) FROM field.metric WHERE
+		devicePK = $1 AND typePK = $2
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
+		ORDER BY t ASC`,
+		f.devicePK, f.fieldType.typePK); err != nil {
+		return internalServerError(err)
+	}
+	defer rows.Close()
+
+	var t time.Time
+	var avg float64
+	var pts []ts.Point
+
+	for rows.Next() {
+		if err = rows.Scan(&t, &avg); err != nil {
+			return internalServerError(err)
+		}
+		pts = append(pts, ts.Point{DateTime: t, Value: avg * f.fieldType.Scale})
+	}
+	rows.Close()
+
+	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
+
+	if err = ts.SparkLine.Draw(p, b); err != nil {
+		return internalServerError(err)
+	}
 
 	return &statusOK
 }

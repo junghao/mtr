@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"log"
 )
 
 type dataLatency struct {
@@ -24,7 +25,7 @@ type dataLatency struct {
 // Also pass the http.Resquest every where?
 func (d *dataLatency) loadPK(r *http.Request) *result {
 	if d.pk == nil {
-		if d.pk = d.dataType.loadPK(r); !d.pk.ok {
+		if d.pk = d.dataType.load(r); !d.pk.ok {
 			return d.pk
 		}
 
@@ -159,33 +160,33 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return res
 	}
 
+	switch r.URL.Query().Get("plot") {
+	case "", "line":
+		resolution := r.URL.Query().Get("resolution")
+		if resolution == "" {
+			resolution = "minute"
+		}
+		if res := d.plot(resolution, b); !res.ok {
+			return res
+		}
+	default:
+		if res := d.spark(b); !res.ok {
+			return res
+		}
+	}
+
+	h.Set("Content-Type", "image/svg+xml")
+
+	return &statusOK
+}
+
+/*
+plot draws an svg plot to b.  Assumes f.loadPK has been called first.
+*/
+func (d *dataLatency) plot(resolution string, b *bytes.Buffer) *result {
 	var p ts.Plot
 
-	resolution := r.URL.Query().Get("resolution")
-
-	switch resolution {
-	case "", "minute":
-		resolution = "minute"
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
-		p.SetXLabel("12 hours")
-	case "five_minutes":
-		resolution = "five_minutes"
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*3), time.Now().UTC())
-		p.SetXLabel("48 hours")
-	case "hour":
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
-		p.SetXLabel("4 weeks")
-	default:
-		return badRequest("invalid value for resolution")
-	}
-
-	if res := d.loadPlot(resolution, &p); !res.ok {
-		return res
-	}
-
 	p.SetUnit(d.dataType.Unit)
-
-	// TODO tags
 
 	var lower, upper int
 	var res *result
@@ -200,48 +201,24 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	var tags []string
 
-	if tags, res = d.tags(r); !res.ok {
+	if tags, res = d.tags(); !res.ok {
 		return res
 	}
 
 	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
 
-	p.SetTitle(fmt.Sprintf("Site: %s - %s", r.URL.Query().Get("siteID"), strings.Title(d.dataType.Name)))
+	p.SetTitle(fmt.Sprintf("Site: %s - %s", d.siteID, strings.Title(d.dataType.Name)))
 
 	var err error
-
-	switch r.URL.Query().Get("plot") {
-	case "spark", "spark-line":
-		err = ts.SparkLine.Draw(p, b)
-	case "spark-scatter":
-		err = ts.SparkScatter.Draw(p, b)
-	case "", "line":
-		err = ts.Line.Draw(p, b)
-	case "scatter":
-		err = ts.Scatter.Draw(p, b)
-	}
-
-	if err != nil {
-		return internalServerError(err)
-	}
-
-	h.Set("Content-Type", "image/svg+xml")
-
-	return &statusOK
-}
-
-/*
-loadPlot loads plot data.  Assumes f.loadPK has been called first.
-*/
-func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
-	var err error
-
 	var rows *sql.Rows
 
 	// TODO - loading avg(mean) at each resolution.  Need to add max(fifty) and max(ninety) when there are some values.
 
 	switch resolution {
 	case "minute":
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
+		p.SetXLabel("12 hours")
+
 		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
 		AND time > now() - interval '12 hours'
@@ -249,6 +226,9 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 		ORDER BY t ASC`,
 			d.sitePK, d.dataType.typePK)
 	case "five_minutes":
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*2), time.Now().UTC())
+		p.SetXLabel("48 hours")
+
 		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
 		 avg(mean) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
@@ -257,6 +237,9 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 		ORDER BY t ASC`,
 			d.sitePK, d.dataType.typePK)
 	case "hour":
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
+		p.SetXLabel("4 weeks")
+
 		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
 		AND time > now() - interval '28 days'
@@ -264,7 +247,7 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 		ORDER BY t ASC`,
 			d.sitePK, d.dataType.typePK)
 	default:
-		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+		return badRequest("invalid resolution")
 	}
 	if err != nil {
 		return internalServerError(err)
@@ -280,6 +263,7 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 		if err = rows.Scan(&t, &avg); err != nil {
 			return internalServerError(err)
 		}
+		log.Print(t, avg)
 		pts = append(pts, ts.Point{DateTime: t, Value: avg * d.dataType.Scale})
 	}
 	rows.Close()
@@ -300,14 +284,59 @@ func (d *dataLatency) loadPlot(resolution string, p *ts.Plot) *result {
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
+	if err = ts.Line.Draw(p, b); err != nil {
+		return internalServerError(err)
+	}
+
 	return &statusOK
 }
 
-func (f *dataLatency) tags(r *http.Request) (t []string, res *result) {
-	if res = f.loadPK(r); !res.ok {
-		return
+/*
+spark draws an svg spark line to b.  Assumes f.loadPK has been called first.
+*/
+func (d *dataLatency) spark(b *bytes.Buffer) *result {
+	var p ts.Plot
+
+	p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*3), time.Now().UTC())
+
+	var err error
+	var rows *sql.Rows
+
+	if rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
+		 avg(mean) FROM data.latency WHERE
+		sitePK = $1 AND typePK = $2
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
+		ORDER BY t ASC`,
+		d.sitePK, d.dataType.typePK); err != nil {
+		return internalServerError(err)
 	}
 
+	defer rows.Close()
+
+	var t time.Time
+	var avg float64
+	var pts []ts.Point
+
+	for rows.Next() {
+		if err = rows.Scan(&t, &avg); err != nil {
+			return internalServerError(err)
+		}
+		pts = append(pts, ts.Point{DateTime: t, Value: avg * d.dataType.Scale})
+	}
+	rows.Close()
+
+	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
+
+	if err = ts.SparkLine.Draw(p, b); err != nil {
+		return internalServerError(err)
+	}
+
+	return &statusOK
+}
+
+// tags returns tags for f.  Assumes loadPK has been called.
+func (f *dataLatency) tags() (t []string, res *result) {
 	var rows *sql.Rows
 	var err error
 
