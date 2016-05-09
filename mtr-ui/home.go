@@ -36,10 +36,6 @@ func homepageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		return internalServerError(err)
 	}
 
-	if p.AppSummary, err = getAppSummary(); err != nil {
-		return internalServerError(err)
-	}
-
 	if err = homepageTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return internalServerError(err)
 	}

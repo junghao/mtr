@@ -3,13 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/golang/protobuf/proto"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strings"
-	"github.com/GeoNet/mtr/mtrpb"
-	"github.com/golang/protobuf/proto"
 )
 
 type page struct {
@@ -137,9 +137,15 @@ func getBytes(urlString string, accept string) (body []byte, err error) {
 		return nil, err
 	}
 	defer response.Body.Close()
-
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Wrong response code for %s got %d expected %d", urlString, response.StatusCode, http.StatusOK)
+		msg := ""
+		if response.Body != nil {
+			if b, err := ioutil.ReadAll(response.Body); err == nil {
+				msg = ":" + string(b)
+			}
+		}
+
+		return nil, fmt.Errorf("Wrong response code for %s got %d expected %d %s", urlString, response.StatusCode, http.StatusOK, msg)
 	}
 
 	// Read body, could use io.LimitReader() to avoid a massive read (unlikely)
@@ -166,7 +172,7 @@ func getAllTagIDs(urlString string) (tagIDs []string, err error) {
 	var tr mtrpb.TagResult
 
 	if err = proto.Unmarshal(b, &tr); err != nil {
-	return nil, err
+		return nil, err
 	}
 
 	if tr.Used != nil {

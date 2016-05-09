@@ -79,7 +79,7 @@ func getMatchingMetrics(urlString string) (parsedTags matchingMetrics, err error
 	if tr.FieldMetric != nil {
 		for _, v := range tr.FieldMetric {
 			m := metricInfo{
-				TypeID: v.TypeID,
+				TypeID:   v.TypeID,
 				DeviceID: v.DeviceID,
 				// TODO - not sure what the Tag is
 				//Tag      string
