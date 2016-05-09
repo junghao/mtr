@@ -1,11 +1,10 @@
 package main
 
 import (
-	//"net/url"
-	//"reflect"
-	//"testing"
+//"net/url"
+//"reflect"
+//"testing"
 )
-
 
 // TODO - remove this?  It's an odd test - it's really testing mtr-api can serve
 // data.  This is well tested already.
