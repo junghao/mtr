@@ -74,7 +74,7 @@
     <!-- TBD: link to mtr-api should be without host name -->
     <a href="{{$mtrApiUrl}}/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}">
     <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.Id}}:</div>
-    <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}&plot=spark"/></div>
+    <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}&plot=spark&resolution=five_minutes"/></div>
     </a>
 </div>
 {{end}}
