@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"net/http"
 	"sort"
+	"strings"
 )
 
 type dataPage struct {
@@ -16,6 +17,7 @@ type dataPage struct {
 	Sites      []site
 	SiteId     string
 	TypeId     string
+	Status     string
 	Resolution string
 	MtrApiUrl  string
 }
@@ -35,8 +37,8 @@ func (m sites) Swap(i, j int) {
 }
 
 type site struct {
-	SiteId     string
-	TypeStatus []typeStatus
+	SiteId string
+	typeStatus
 }
 
 func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
@@ -99,7 +101,7 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{}, []string{"typeID", "status"}); !res.ok {
 		return res
 	}
 
@@ -113,8 +115,19 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return internalServerError(err)
 	}
 
-	if err = p.getSitesSummary(); err != nil {
-		return internalServerError(err)
+	q := r.URL.Query()
+	p.TypeId = q.Get("typeID")
+	p.Status = q.Get("status")
+
+	if p.TypeId != "" && p.Status != "" {
+		if err = p.getSitesByTypeStatus(); err != nil {
+			return internalServerError(err)
+		}
+
+	} else {
+		if err = p.getSitesSummary(); err != nil {
+			return internalServerError(err)
+		}
 	}
 
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
@@ -212,9 +225,38 @@ func (p *dataPage) getSitesSummary() (err error) {
 		return
 	}
 
+	p.Metrics = make([]idCount, 0)
+	for _, r := range f.Result {
+		p.Metrics = updateDataMetric(p.Metrics, r)
+	}
+
+	sort.Sort(idCounts(p.Metrics))
+	return
+}
+
+func (p *dataPage) getSitesByTypeStatus() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/data/latency/summary"
+
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var f mtrpb.DataLatencySummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
 	p.Sites = make([]site, 0)
 	for _, r := range f.Result {
-		p.Sites = updateDataSite(p.Sites, r)
+		if r.TypeID == p.TypeId && dataStatusString(r) == p.Status {
+			s := site{SiteId: r.SiteID}
+			s.TypeId = p.TypeId
+			s.Status = p.Status
+			p.Sites = append(p.Sites, s)
+		}
 	}
 
 	sort.Sort(sites(p.Sites))
@@ -232,25 +274,7 @@ func updateDataMetric(m []idCount, result *mtrpb.DataLatencySummary) []idCount {
 
 	c := make(map[string]int)
 	incDataCount(c, result)
-	return append(m, idCount{Id: result.TypeID, Count: c})
-}
-
-func updateDataSite(m []site, result *mtrpb.DataLatencySummary) []site {
-
-	t := typeStatus{TypeId: result.TypeID, Status: dataStatusString(result)}
-
-	for i, r := range m {
-		if r.SiteId == result.SiteID {
-			// create a new typeId in this SiteId
-			r.TypeStatus = append(r.TypeStatus, t)
-			m[i] = r
-			return m
-		}
-	}
-
-	// create a new site
-	ts := []typeStatus{t}
-	return append(m, site{SiteId: result.SiteID, TypeStatus: ts})
+	return append(m, idCount{Id: result.TypeID, Count: c, Description: removeTypeIdPrefix(result.TypeID)})
 }
 
 func incDataCount(m map[string]int, r *mtrpb.DataLatencySummary) {
@@ -284,4 +308,12 @@ func allGood(r *mtrpb.DataLatencySummary) bool {
 		return false
 	}
 	return true
+}
+
+func removeTypeIdPrefix(typeId string) string {
+	if strings.HasPrefix(typeId, "latency.") {
+		return strings.TrimPrefix(typeId, "latency.")
+	}
+
+	return typeId
 }

@@ -49,20 +49,62 @@
 {{end}}
 
 {{define "data_sites"}}
+{{if .Metrics}}
+{{template "data_sites_type" .}}
+{{else if .Sites}}
+{{template "data_sites_type_status" .}}
+{{else}}
+<h3>No metric available.</h3>
+{{end}}
+{{end}}
+
+{{define "data_sites_type"}}
 {{$mtrApiUrl:=.MtrApiUrl}}
-{{range .Sites}}
-{{$siteId := .SiteId}}
 <div class="row">
-    <div class="col-xs-12 col-md-12 h3">{{.SiteId}}: {{len .TypeStatus}}</div>
-</div>
-{{range .TypeStatus}}
-<div class="row">
-    <a href="/data/plot?siteID={{urlquery $siteId}}&typeID={{urlquery .TypeId}}">
-    <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.TypeId}}:</div>
-    <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/data/latency?siteID={{urlquery $siteId}}&typeID={{urlquery .TypeId}}&plot=spark&resolution=five_minutes"/></div>
-    </a>
+{{range .Metrics}}
+    <div class="col-xs-12 col-md-4">
+        <div class="row">
+            <div class="col-xs-12 col-md-12 h3">{{.Description}}</div>
+        </div>
+        <div class="row mtr-size mtr-callout">
+            <div class="col-xs-12 col-md-12">Metrics {{index .Count "total"}}</div>
+        </div>
+        <!-- TODO the links below should go to a metrics the are good bad etc.-->
+        <a href="/data/sites?typeID={{urlquery .Id}}&status=good">
+            <div class="row mtr-callout mtr-callout-good mtr-size">
+                <div class="col-xs-12 col-md-12">Good {{index .Count "good"}}</div>
+            </div>
+        </a>
+        <a href="/data/sites?typeID={{urlquery .Id}}&status=bad">
+            <div class="row mtr-callout mtr-callout-bad mtr-size">
+                <div class="col-xs-12 col-md-12">Bad {{index .Count "bad"}}</div>
+            </div>
+        </a>
+        <a href="/data/sites?typeID={{urlquery .Id}}&status=unknown">
+            <div class="row mtr-callout mtr-callout-unknown mtr-size">
+                <div class="col-xs-12 col-md-12">Unknown {{index .Count "unknown"}}</div>
+            </div>
+        </a>
+        <a href="/data/sites?typeID={{urlquery .Id}}&status=late">
+            <div class="row mtr-callout mtr-callout-late mtr-size">
+                <div class="col-xs-12 col-md-12">System Error {{index .Count "late"}}</div>
+            </div>
+        </a>
+    </div>
+{{end}}
 </div>
 {{end}}
+
+{{define "data_sites_type_status"}}
+{{$mtrApiUrl:=.MtrApiUrl}}
+{{$typeId := .TypeId}}
+{{range .Sites}}
+<div class="row">
+    <a href="/data/plot?siteID={{urlquery .SiteId}}&typeID={{urlquery $typeId}}">
+        <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.SiteId}}:</div>
+        <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/data/latency?siteID={{urlquery .SiteId}}&typeID={{urlquery $typeId}}&plot=spark&resolution=five_minutes"/></div>
+    </a>
+</div>
 {{end}}
 {{end}}
 

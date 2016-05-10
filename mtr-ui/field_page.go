@@ -84,8 +84,9 @@ type typeStatus struct {
 }
 
 type idCount struct {
-	Id    string
-	Count map[string]int
+	Id          string
+	Description string
+	Count       map[string]int
 }
 
 func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {

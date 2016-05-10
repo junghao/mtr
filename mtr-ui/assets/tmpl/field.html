@@ -27,6 +27,8 @@
     <div class="col-xs-12 col-md-12 h4">{{.ModelId}} (Total: {{len .Devices}})</div>
 </div>
 {{template "field_devices" .}}
+{{else}}
+<h3>No metric available.</h3>
 {{end}}
 {{end}}
 {{end}}
