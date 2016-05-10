@@ -36,14 +36,18 @@ var dataTypes = map[string]dataType{
 	},
 }
 
-func (d *dataType) loadPK(r *http.Request) *result {
+func (d *dataType) load(r *http.Request) *result {
 	var res *result
 	var t dataType
 	if t, res = loadDataType(r.URL.Query().Get("typeID")); !res.ok {
 		return res
 	}
 
+	// TODO - do we need to copy the values like this?  Revisit.
 	d.typePK = t.typePK
+	d.Scale = t.Scale
+	d.Name = t.Name
+	d.Unit = t.Unit
 	return &statusOK
 }
 

@@ -92,21 +92,14 @@ func TestDataMetrics(t *testing.T) {
 
 	addDataMetrics(t)
 
-	// Latency plots.  Resolution is optional on plots and sparks.  yrange is also optional.  If not set autoranges on the data.
+	// Latency plots.  Resolution is optional on plots and sparks.
 	// Options for the plot parameter:
-	// default = line plot.
-	// line
-	// scatter
-	// spark (line)
-	// spark-line
-	// spark-scatter
-	//
-	// if yrange is not set then the yaxis autoranges between 0 and ymax.
+	// line [default] = line plot.
+	// spark = spark line.
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong", 200, t)
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", 200, t)
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=five_minutes", 200, t)
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&yrange=0.0,25.0", 200, t)
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", 200, t)
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
 	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=day", 400, t)

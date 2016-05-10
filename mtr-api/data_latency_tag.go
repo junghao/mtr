@@ -17,7 +17,7 @@ func (f *dataLatencyTag) loadPK(r *http.Request) *result {
 		return res
 	}
 
-	if res := f.dataType.loadPK(r); !res.ok {
+	if res := f.dataType.load(r); !res.ok {
 		return res
 	}
 
