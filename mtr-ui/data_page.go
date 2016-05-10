@@ -10,10 +10,14 @@ import (
 
 type dataPage struct {
 	page
-	Path    string
-	Summary map[string]int
-	Metrics []idCount
-	Sites   []site
+	Path       string
+	Summary    map[string]int
+	Metrics    []idCount
+	Sites      []site
+	SiteId     string
+	TypeId     string
+	Resolution string
+	MtrApiUrl  string
 }
 
 type sites []site
@@ -31,9 +35,8 @@ func (m sites) Swap(i, j int) {
 }
 
 type site struct {
-	SiteId    string
-	TypeCount int
-	Types     []idCount
+	SiteId     string
+	TypeStatus []typeStatus
 }
 
 func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
@@ -104,6 +107,7 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	p := dataPage{}
 	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR"
+	p.MtrApiUrl = mtrApiUrl.String()
 
 	if err = p.populateTags(); err != nil {
 		return internalServerError(err)
@@ -114,6 +118,29 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	}
 
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
+		return internalServerError(err)
+	}
+
+	return &statusOK
+}
+
+func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+	if res := checkQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.ok {
+		return res
+	}
+	p := dataPage{}
+	p.Path = r.URL.Path
+	p.MtrApiUrl = mtrApiUrl.String()
+	p.Border.Title = "GeoNet MTR"
+	q := r.URL.Query()
+	p.SiteId = q.Get("siteID")
+	p.TypeId = q.Get("typeID")
+	p.Resolution = q.Get("resolution")
+	if p.Resolution == "" {
+		p.Resolution = "minute"
+	}
+
+	if err := dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return internalServerError(err)
 	}
 
@@ -208,40 +235,31 @@ func updateDataMetric(m []idCount, result *mtrpb.DataLatencySummary) []idCount {
 	return append(m, idCount{Id: result.TypeID, Count: c})
 }
 
-// Increase count if Id exists in slice, append to slice if it's a new Id
 func updateDataSite(m []site, result *mtrpb.DataLatencySummary) []site {
+
+	t := typeStatus{TypeId: result.TypeID, Status: dataStatusString(result)}
+
 	for i, r := range m {
 		if r.SiteId == result.SiteID {
-			r.TypeCount++
-			for j, rt := range r.Types {
-				if rt.Id == result.TypeID {
-					incDataCount(rt.Count, result)
-					r.Types[j] = rt
-					m[i] = r
-					return m
-				}
-			}
 			// create a new typeId in this SiteId
-			r.Types = updateDataMetric(r.Types, result)
+			r.TypeStatus = append(r.TypeStatus, t)
 			m[i] = r
 			return m
 		}
 	}
 
-	c := make(map[string]int)
-	incDataCount(c, result)
-
-	t := []idCount{{Id: result.TypeID, Count: c}}
-	return append(m, site{SiteId: result.SiteID, Types: t, TypeCount: 1})
+	// create a new site
+	ts := []typeStatus{t}
+	return append(m, site{SiteId: result.SiteID, TypeStatus: ts})
 }
 
 func incDataCount(m map[string]int, r *mtrpb.DataLatencySummary) {
-	s := getStatusString(r)
+	s := dataStatusString(r)
 	m[s] = m[s] + 1
 	m["total"] = m["total"] + 1
 }
 
-func getStatusString(r *mtrpb.DataLatencySummary) string {
+func dataStatusString(r *mtrpb.DataLatencySummary) string {
 	switch {
 	case r.Upper == 0 && r.Lower == 0:
 		return "unknown"

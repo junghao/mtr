@@ -220,10 +220,10 @@ func (p *Plot) scaleData() {
 		p.plt.dy = float64(p.plt.height) / math.Abs(p.plt.YMax-p.plt.YMin)
 	}
 
-	for i, _ := range p.plt.Data {
+	for i := range p.plt.Data {
 		p.plt.Data[i].Pts = make([]pt, len(p.plt.Data[i].Series.Points))
 
-		for j, _ := range p.plt.Data[i].Series.Points {
+		for j := range p.plt.Data[i].Series.Points {
 			p.plt.Data[i].Pts[j] = pt{
 				X: int((p.plt.Data[i].Series.Points[j].DateTime.Sub(p.plt.First.DateTime).Seconds()*p.plt.dx)+0.5) + p.plt.xShift,
 				Y: p.plt.height - int(((p.plt.Data[i].Series.Points[j].Value-p.plt.YMin)*p.plt.dy)+0.5),

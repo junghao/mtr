@@ -1,4 +1,5 @@
 {{define "body"}}
+{{if ne .Path "/data/plot"}}
 <div class="row">
     <div class="col-xs-12 col-md-12">
         <ul class="nav nav-pills">
@@ -9,7 +10,10 @@
         </ul>
     </div>
 </div>
-{{if eq .Path "/data"}}{{template "data_main" .Summary}}{{end}}
-{{if eq .Path "/data/sites"}}{{template "data_sites" .Sites}}{{end}}
-{{if eq .Path "/data/metrics"}}{{template "data_metrics" .Metrics}}{{end}}
+{{end}}
+{{if eq .Path "/data"}}{{template "data_main" .Summary}}
+{{else if eq .Path "/data/plot"}}{{template "data_site_latency" .}}
+{{else if eq .Path "/data/sites"}}{{template "data_sites" .}}
+{{else if eq .Path "/data/metrics"}}{{template "data_metrics" .Metrics}}
+{{end}}
 {{end}}

@@ -43,7 +43,7 @@ func (m devices) Len() int {
 }
 
 func (m devices) Less(i, j int) bool {
-	return m[i].Id < m[j].Id
+	return m[i].DeviceId < m[j].DeviceId
 }
 
 func (m devices) Swap(i, j int) {
@@ -65,16 +65,21 @@ func (m idCounts) Swap(i, j int) {
 }
 
 type deviceModel struct {
-	ModelId   string
-	TypeCount int
-	Types     []idCount
+	ModelId     string
+	TypeCount   int
+	DeviceCount int
+	Types       []idCount
 }
 
 type device struct {
-	ModelId string
-	TypeId  string
-	Status  string
-	Id      string
+	DeviceId string
+	ModelId  string
+	typeStatus
+}
+
+type typeStatus struct {
+	TypeId string
+	Status string
 }
 
 type idCount struct {
@@ -290,7 +295,10 @@ func (p *fieldPage) getDevicesByModelType() (err error) {
 	p.Devices = make([]device, 0)
 	for _, r := range f.Result {
 		if r.ModelID == p.ModelId && r.TypeID == p.TypeId {
-			p.Devices = append(p.Devices, device{TypeId: p.TypeId, ModelId: p.ModelId, Id: r.DeviceID, Status: statusString(r)})
+			t := device{ModelId: p.ModelId, DeviceId: r.DeviceID}
+			t.TypeId = p.TypeId
+			t.Status = fieldStatusString(r)
+			p.Devices = append(p.Devices, t)
 		}
 	}
 
@@ -340,12 +348,12 @@ func updateFieldDevice(m []deviceModel, result *mtrpb.FieldMetricSummary) []devi
 }
 
 func incFieldCount(m map[string]int, r *mtrpb.FieldMetricSummary) {
-	s := statusString(r)
+	s := fieldStatusString(r)
 	m[s] = m[s] + 1
 	m["total"] = m["total"] + 1
 }
 
-func statusString(r *mtrpb.FieldMetricSummary) string {
+func fieldStatusString(r *mtrpb.FieldMetricSummary) string {
 	switch {
 	case r.Upper == 0 && r.Lower == 0:
 		return "unknown"

@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"github.com/GeoNet/mtr/ts"
 	"github.com/lib/pq"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
-	"log"
 )
 
 type dataLatency struct {

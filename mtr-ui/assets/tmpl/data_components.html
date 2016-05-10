@@ -48,18 +48,34 @@
 {{end}}
 
 {{define "data_sites"}}
-{{range .}}
+{{$mtrApiUrl:=.MtrApiUrl}}
+{{range .Sites}}
+{{$siteId := .SiteId}}
 <div class="row">
-    <div class="col-xs-12 col-md-12 h3">{{.SiteId}}: {{.TypeCount}}</div>
+    <div class="col-xs-12 col-md-12 h3">{{.SiteId}}: {{len .TypeStatus}}</div>
 </div>
-{{range .Types}}
+{{range .TypeStatus}}
 <div class="row">
-    <div class="col-xs-3 col-md-2 h4">{{.Id}}:</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">unknown {{index .Count "unknown"}}</div>
+    <a href="/data/plot?siteID={{urlquery $siteId}}&typeID={{urlquery .TypeId}}">
+    <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.TypeId}}:</div>
+    <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/data/latency?siteID={{urlquery $siteId}}&typeID={{urlquery .TypeId}}&plot=spark&resolution=five_minutes"/></div>
+    </a>
 </div>
 {{end}}
 {{end}}
 {{end}}
+
+{{define "data_site_latency"}}
+<div class="col-xs-12 col-md-12">
+    <ul class="nav nav-pills">
+        <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteId}}&typeID={{urlquery .TypeId}}&resolution=minute">12 Hours</a></li>
+        <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteId}}&typeID={{urlquery .TypeId}}&resolution=five_minutes">48 Hours</a></li>
+        <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteId}}&typeID={{urlquery .TypeId}}&resolution=hour">28 Days</a></li>
+    </ul>
+</div>
+<div class="row">
+    <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/latency?siteID={{urlquery .SiteId}}&typeID={{urlquery .TypeId}}&resolution={{.Resolution}}"/></div>
+</div>
+{{end}}
+
+
