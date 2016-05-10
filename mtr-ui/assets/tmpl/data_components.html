@@ -39,7 +39,7 @@
 {{define "data_metrics"}}
 {{range .}}
 <div class="row">
-    <div class="col-xs-3 col-md-2 h4">{{.Id}}: {{index .Count "total"}}</div>
+    <div class="col-xs-3 col-md-2 h4">{{.Description}}: {{index .Count "total"}}</div>
     <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
     <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
     <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
