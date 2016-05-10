@@ -10,7 +10,7 @@ import (
 
 type searchPage struct {
 	page
-	mtrApiUrl       *url.URL
+	MtrApiUrl       *url.URL
 	TagName         string
 	MatchingMetrics matchingMetrics
 }
@@ -20,45 +20,24 @@ type matchingMetrics []metricInfo
 type metricInfo struct {
 	TypeID   string
 	DeviceID string
+	SiteID   string
 	Tag      string
-	IconUrl  string
+	Status   string
 }
 
 func newSearchPage(apiUrl *url.URL) (s *searchPage, err error) {
-	s = &searchPage{mtrApiUrl: apiUrl}
+	s = &searchPage{MtrApiUrl: apiUrl}
 	s.Border.Title = "GeoNet MTR - Search Results"
 	return s, nil
 }
 
 func (s *searchPage) matchingMetrics(tagQuery string) (err error) {
-
-	u := *s.mtrApiUrl
+	u := *s.MtrApiUrl
 	u.Path = "/tag/" + tagQuery
-
 	if s.MatchingMetrics, err = getMatchingMetrics(u.String()); err != nil {
 		return err
 	}
-
-	// also keep track of the Tag ID we searched for
 	s.TagName = tagQuery
-
-	return nil
-}
-
-func (s *searchPage) fetchIcons() (err error) {
-
-	u := *s.mtrApiUrl
-	u.Path = "/field/metric"
-
-	for idx, val := range s.MatchingMetrics {
-		q := u.Query()
-		q.Set("deviceID", val.DeviceID)
-		q.Set("typeID", val.TypeID)
-		q.Set("resolution", "hour")
-		q.Set("plot", "spark")
-		u.RawQuery = q.Encode()
-		s.MatchingMetrics[idx].IconUrl = u.String()
-	}
 
 	return nil
 }
@@ -81,17 +60,22 @@ func getMatchingMetrics(urlString string) (parsedTags matchingMetrics, err error
 			m := metricInfo{
 				TypeID:   v.TypeID,
 				DeviceID: v.DeviceID,
-				// TODO - not sure what the Tag is
-				//Tag      string
-				// TODO - not sure what this is
-				//IconUrl  string
+				Status:   fieldStatusString(v),
 			}
 			parsedTags = append(parsedTags, m)
 		}
 	}
 
-	// TODO add DataLatency.
-
+	if tr.DataLatency != nil {
+		for _, v := range tr.DataLatency {
+			m := metricInfo{
+				TypeID: v.TypeID,
+				SiteID: v.SiteID,
+				Status: dataStatusString(v),
+			}
+			parsedTags = append(parsedTags, m)
+		}
+	}
 	return parsedTags, nil
 }
 
@@ -118,10 +102,6 @@ func searchHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	}
 
 	if err = p.matchingMetrics(tagQuery); err != nil {
-		return internalServerError(err)
-	}
-
-	if err = p.fetchIcons(); err != nil {
 		return internalServerError(err)
 	}
 

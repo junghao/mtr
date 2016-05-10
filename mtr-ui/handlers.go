@@ -159,11 +159,6 @@ func getBytes(urlString string, accept string) (body []byte, err error) {
 
 // fetch all unique "Tag"s from the mtr-api and return an unordered slice of strings and err
 func getAllTagIDs(urlString string) (tagIDs []string, err error) {
-
-	type tagIdBody struct {
-		Tag string
-	}
-
 	b, err := getBytes(urlString, "application/x-protobuf")
 	if err != nil {
 		return nil, err

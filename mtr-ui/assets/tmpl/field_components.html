@@ -51,7 +51,7 @@
 {{range .DeviceModels}}
 {{$modelId := .ModelId}}
 <div class="row">
-    <div class="col-xs-12 col-md-12 h3">{{.ModelId}}: {{.TypeCount}}</div>
+    <div class="col-xs-12 col-md-12 h3">{{.ModelId}} - {{.TypeCount}} metrics total</div>
 </div>
 {{range .Types}}
 <div class="row">
@@ -71,10 +71,9 @@
 {{$mtrApiUrl:=.MtrApiUrl}}
 {{range .Devices}}
 <div class="row">
-    <!-- TBD: link to mtr-api should be without host name -->
-    <a href="/field/plot?deviceID={{.Id}}&typeID={{.TypeId}}" target="_blank">
-    <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.Id}}:</div>
-    <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/field/metric?deviceID={{.Id}}&typeID={{.TypeId}}&plot=spark&resolution=five_minutes"/></div>
+    <a href="/field/plot?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}">
+    <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.DeviceId}}:</div>
+    <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&plot=spark&resolution=five_minutes"/></div>
     </a>
 </div>
 {{end}}
@@ -83,13 +82,13 @@
 {{define "field_device_metric"}}
 <div class="col-xs-12 col-md-12">
     <ul class="nav nav-pills">
-        <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/field/plot?deviceID={{.DeviceId}}&typeID={{.TypeId}}&resolution=minute">12 Hours</a></li>
-        <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/field/plot?deviceID={{.DeviceId}}&typeID={{.TypeId}}&resolution=five_minutes">48 Hours</a></li>
-        <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/field/plot?deviceID={{.DeviceId}}&typeID={{.TypeId}}&resolution=hour">28 Days</a></li>
+        <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&resolution=minute">12 Hours</a></li>
+        <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&resolution=five_minutes">48 Hours</a></li>
+        <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&resolution=hour">28 Days</a></li>
     </ul>
 </div>
 <div class="row">
-    <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/field/metric?deviceID={{.DeviceId}}&typeID={{.TypeId}}&resolution={{.Resolution}}"/></div>
+    <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&resolution={{.Resolution}}"/></div>
 </div>
 {{end}}
 

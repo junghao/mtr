@@ -1,33 +1,37 @@
 {{define "body"}}
-
-{{ if .MatchingMetrics }}
+{{$mtrApiUrl:=.MtrApiUrl}}
+<div class="container">
+{{if .MatchingMetrics}}
 <h3>Search Results for Tag: {{.TagName}}</h3>
-
-{{ range .MatchingMetrics }}
-<a href="/field/metric?deviceID={{.DeviceID}}&typeID={{.TypeID}}" >
-    <!--<div class="row mmi-callout mmi-callout-3">-->
-    <div class="container-fluid">
-        <div class="row mmi-callout">
-            <div class="col-xs-2 col-md-2">
-                A map could go here :)
-            </div>
-            <div class="col-xs-4 col-md-4">
-                <dl class="quake-dl-horizontal">
-                    <dt>DeviceID</dt>
-                    <dd>{{.DeviceID}}</dd>
-                    <dt>TypeID</dt>
-                    <dd>{{.TypeID}}</dd>
-                </dl>
-            </div>
-            <div class="col-xs-6 col-md-6">
-                <img src="{{.IconUrl}}" class="img-responsive" alt="small graph of metric" style="width:100%">
-            </div>
+    <div class="col-xs-12 col-md-12">
+    {{range .MatchingMetrics}}
+    {{if .DeviceID}}
+        <div class="row">
+            <a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{.TypeID}}">
+                <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  Device:{{.DeviceID}}</div>
+                <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/field/metric?deviceID={{.DeviceID}}&typeID={{.TypeID}}&plot=spark&resolution=five_minutes"/></div>
+            </a>
         </div>
+    {{else if .SiteID}}
+        <div class="row">
+            <a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{.TypeID}}">
+                <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  Site:{{.SiteID}}</div>
+                <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/data/latency?siteID={{.SiteID}}&typeID={{.TypeID}}&plot=spark&resolution=five_minutes"/></div>
+            </a>
+        </div>
+    {{end}}
     </div>
-</a>
-<br />
-{{end}}
-{{ else }}
+    {{end}}
+{{else}}
 <h3>No Results for Tag: {{.TagName}}</h3>
 {{end}}
+</div>
+{{end}}
+
+{{define "tag_name_item"}}
+<div class="row">
+    <a href="/search?tagQuery={{urlquery .}}">
+        <h4>{{.}}</h4>
+    </a>
+</div>
 {{end}}
