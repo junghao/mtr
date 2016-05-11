@@ -17,16 +17,18 @@
         {{template "field_main" .Summary}}
     </div>
 </div>
-{{else if eq .Path "/field/metrics"}}{{template "field_metrics" .Metrics}}
+{{else if eq .Path "/field/metrics"}}{{template "field_metrics" .}}
 {{else if eq .Path "/field/plot"}}{{template "field_device_metric" .}}
 {{else if eq .Path "/field/devices"}}
 {{if .DeviceModels}}
 {{template "field_device_models" .}}
 {{else if .Devices}}
 <div class="row">
-    <div class="col-xs-12 col-md-12 h4">{{.ModelId}} (Total: {{len .Devices}})</div>
+    <div class="col-xs-12 col-md-12 h4">{{.ModelID}} (Total: {{len .Devices}})</div>
 </div>
 {{template "field_devices" .}}
+{{else}}
+<h3>No metric available.</h3>
 {{end}}
 {{end}}
 {{end}}

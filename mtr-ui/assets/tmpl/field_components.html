@@ -11,25 +11,25 @@
     </div>
 </a>
 
-<a href="/field/metric/good">
+<a href="/field/metrics?status=good">
     <div class="row mtr-size mtr-callout mtr-callout-good">
         <div class="col-xs-12 col-md-12">Good {{index . "good"}}</div>
     </div>
 </a>
 
-<a href="/field/metric/bad">
+<a href="/field/metrics?status=bad">
     <div class="row mtr-size mtr-callout mtr-callout-bad">
         <div class="col-xs-12 col-md-12">Bad {{index . "bad"}}</div>
     </div>
 </a>
 
-<a href="/field/metric/unknown">
+<a href="/field/metrics?status=unknown">
     <div class="row mtr-size mtr-callout mtr-callout-unknown">
         <div class="col-xs-12 col-md-12">Unknown {{index . "unknown"}}</div>
     </div>
 </a>
 
-<a href="/field/metric/late">
+<a href="/field/metrics?status=late">
     <div class="row mtr-size mtr-callout mtr-callout-late">
         <div class="col-xs-12 col-md-12">System Error {{index . "late"}}</div>
     </div>
@@ -37,14 +37,35 @@
 {{end}}
 
 {{define "field_metrics"}}
-{{range .}}
-<div class="row">
-    <div class="col-xs-3 col-md-2">{{.Id}}: {{index .Count "total"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">other {{index .Count "unknown"}}</div>
-</div>
+{{$mtrApiUrl:=.MtrApiUrl}}
+{{if .Status}}
+    {{$status:=.Status}}
+    {{if .Devices}}
+        {{range .Devices}}
+            <div class="row">
+                <a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}">
+                <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{$status}}">{{$status}}</span>  {{.DeviceID}}:{{.TypeID}}</div>
+                <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&plot=spark&resolution=five_minutes"/></div>
+                </a>
+            </div>
+        {{end}}
+    {{else}}
+        <h3>No metric available.</h3>
+    {{end}}
+{{else}}
+    {{if .Metrics}}
+        {{range .Metrics}}
+        <div class="row">
+            <div class="col-xs-3 col-md-2">{{.ID}}: {{index .Count "total"}}</div>
+            <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
+            <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
+            <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
+            <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">other {{index .Count "unknown"}}</div>
+        </div>
+        {{end}}
+    {{else}}
+        <h3>No metric available.</h3>
+    {{end}}
 {{end}}
 {{end}}
 
@@ -53,36 +74,34 @@
 <div class="row">
     {{range .DeviceModels}}
     <div class="col-xs-12 col-md-4">
-        {{$modelId := .ModelId}}
         <div class="row">
-            <div class="col-xs-12 col-md-12 h3">{{.ModelId}}</div>
+            <div class="col-xs-12 col-md-12 h3">{{.ModelID}}</div>
         </div>
         <div class="row mtr-size mtr-callout">
             <div class="col-xs-12 col-md-12">Metrics {{.TypeCount}}</div>
         </div>
-        <!-- TODO the links below should go to a metrics the are good bad etc.-->
-        <a href="/field/devices?modelID={{urlquery $modelId}}&status=good">
+        <a href="/field/devices?modelID={{urlquery .ModelID}}&status=good">
             <div class="row mtr-callout mtr-callout-good mtr-size">
                 <div class="col-xs-12 col-md-12">Good {{index .Count "good"}}</div>
             </div>
         </a>
-        <a href="/field/devices?modelID={{urlquery $modelId}}&status=bad">
+        <a href="/field/devices?modelID={{urlquery .ModelID}}&status=bad">
             <div class="row mtr-callout mtr-callout-bad mtr-size">
                 <div class="col-xs-12 col-md-12">Bad {{index .Count "bad"}}</div>
             </div>
         </a>
-        <a href="/field/devices?modelID={{urlquery $modelId}}&status=unknown">
+        <a href="/field/devices?modelID={{urlquery .ModelID}}&status=unknown">
             <div class="row mtr-callout mtr-callout-unknown mtr-size">
                 <div class="col-xs-12 col-md-12">Unknown {{index .Count "unknown"}}</div>
             </div>
         </a>
-        <a href="/field/devices?modelID={{urlquery $modelId}}&status=late">
+        <a href="/field/devices?modelID={{urlquery .ModelID}}&status=late">
             <div class="row mtr-callout mtr-callout-late mtr-size">
                 <div class="col-xs-12 col-md-12">System Error {{index .Count "late"}}</div>
             </div>
         </a>
     </div>
-        {{end}}
+    {{end}}
 </div>
 {{end}}
 
@@ -91,22 +110,22 @@
 <div class="row">
 {{range .Devices}}
     <div class="col-xs-12 col-md-6">
-        <a href="/field/plot?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}">
+        <a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}">
             <div class="row mtr-callout mtr-callout-{{.Status}}">
                 <div class="col-xs-6 col-md-6">
                     <dl class="mtr-dl-horizontal">
                         <dt>Device</dt>
-                        <dd>{{.DeviceId}}</dd>
+                        <dd>{{.DeviceID}}</dd>
                         <dt>Model</dt>
-                        <dd>{{.ModelId}}</dd>
+                        <dd>{{.ModelID}}</dd>
                         <dt>Metric</dt>
-                        <dd>{{.TypeId}}</dd>
+                        <dd>{{.TypeID}}</dd>
                         <dt>Status</dt>
                         <dd class="text-capitalize">{{.Status}}</dd>
                     </dl>
                 </div>
                 <div class="col-xs-6 col-md-6">
-                    <img src="{{$mtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&plot=spark&resolution=five_minutes"/>
+                    <img src="{{$mtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&plot=spark&resolution=five_minutes"/>
                 </div>
             </div>
         </a>
@@ -119,15 +138,15 @@
 <div class="row">
 <div class="col-xs-12 col-md-12">
     <ul class="nav nav-pills">
-        <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&resolution=minute">12 Hours</a></li>
-        <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&resolution=five_minutes">48 Hours</a></li>
-        <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&resolution=hour">28 Days</a></li>
+        <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
+        <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
+        <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
     </ul>
 </div>
 </div>
 <div class="row">
     <div class="col-xs-12 col-md-12">
-        <img src="{{.MtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceId}}&typeID={{urlquery .TypeId}}&resolution={{.Resolution}}"/>
+        <img src="{{.MtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/>
     </div>
 </div>
 {{end}}

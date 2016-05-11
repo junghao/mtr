@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"net/http"
 	"sort"
+	"strings"
 )
 
 type dataPage struct {
@@ -14,8 +15,9 @@ type dataPage struct {
 	Summary    map[string]int
 	Metrics    []idCount
 	Sites      []site
-	SiteId     string
-	TypeId     string
+	SiteID     string
+	TypeID     string
+	Status     string
 	Resolution string
 	MtrApiUrl  string
 }
@@ -27,7 +29,7 @@ func (m sites) Len() int {
 }
 
 func (m sites) Less(i, j int) bool {
-	return m[i].SiteId < m[j].SiteId
+	return m[i].SiteID < m[j].SiteID
 }
 
 func (m sites) Swap(i, j int) {
@@ -35,8 +37,8 @@ func (m sites) Swap(i, j int) {
 }
 
 type site struct {
-	SiteId     string
-	TypeStatus []typeStatus
+	SiteID string
+	typeStatus
 }
 
 func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
@@ -71,7 +73,7 @@ func dataMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *re
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{}, []string{"status"}); !res.ok {
 		return res
 	}
 
@@ -79,13 +81,22 @@ func dataMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *re
 	p := dataPage{}
 	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR"
+	p.MtrApiUrl = mtrApiUrl.String()
 
 	if err = p.populateTags(); err != nil {
 		return internalServerError(err)
 	}
+	q := r.URL.Query()
+	p.Status = q.Get("status")
 
-	if err = p.getMetricsSummary(); err != nil {
-		return internalServerError(err)
+	if p.Status != "" {
+		if err = p.getSitesByStatus(); err != nil {
+			return internalServerError(err)
+		}
+	} else {
+		if err = p.getMetricsSummary(); err != nil {
+			return internalServerError(err)
+		}
 	}
 
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
@@ -99,7 +110,7 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+	if res := checkQuery(r, []string{}, []string{"typeID", "status"}); !res.ok {
 		return res
 	}
 
@@ -113,8 +124,19 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return internalServerError(err)
 	}
 
-	if err = p.getSitesSummary(); err != nil {
-		return internalServerError(err)
+	q := r.URL.Query()
+	p.TypeID = q.Get("typeID")
+	p.Status = q.Get("status")
+
+	if p.TypeID != "" && p.Status != "" {
+		if err = p.getSitesByTypeStatus(); err != nil {
+			return internalServerError(err)
+		}
+
+	} else {
+		if err = p.getSitesSummary(); err != nil {
+			return internalServerError(err)
+		}
 	}
 
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
@@ -133,8 +155,8 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resul
 	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR"
 	q := r.URL.Query()
-	p.SiteId = q.Get("siteID")
-	p.TypeId = q.Get("typeID")
+	p.SiteID = q.Get("siteID")
+	p.TypeID = q.Get("typeID")
 	p.Resolution = q.Get("resolution")
 	if p.Resolution == "" {
 		p.Resolution = "minute"
@@ -212,19 +234,77 @@ func (p *dataPage) getSitesSummary() (err error) {
 		return
 	}
 
+	p.Metrics = make([]idCount, 0)
+	for _, r := range f.Result {
+		p.Metrics = updateDataMetric(p.Metrics, r)
+	}
+
+	sort.Sort(idCounts(p.Metrics))
+	return
+}
+
+func (p *dataPage) getSitesByTypeStatus() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/data/latency/summary"
+
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var f mtrpb.DataLatencySummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
 	p.Sites = make([]site, 0)
 	for _, r := range f.Result {
-		p.Sites = updateDataSite(p.Sites, r)
+		if r.TypeID == p.TypeID && dataStatusString(r) == p.Status {
+			s := site{SiteID: r.SiteID}
+			s.TypeID = p.TypeID
+			s.Status = p.Status
+			p.Sites = append(p.Sites, s)
+		}
 	}
 
 	sort.Sort(sites(p.Sites))
 	return
 }
 
-// Increase count if Id exists in slice, append to slice if it's a new Id
+func (p *dataPage) getSitesByStatus() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/data/latency/summary"
+
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var f mtrpb.DataLatencySummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
+	p.Sites = make([]site, 0)
+	for _, r := range f.Result {
+		if dataStatusString(r) == p.Status {
+			s := site{SiteID: r.SiteID}
+			s.TypeID = r.TypeID
+			s.Status = p.Status
+			p.Sites = append(p.Sites, s)
+		}
+	}
+
+	sort.Sort(sites(p.Sites))
+	return
+}
+
+// Increase count if ID exists in slice, append to slice if it's a new ID
 func updateDataMetric(m []idCount, result *mtrpb.DataLatencySummary) []idCount {
 	for _, r := range m {
-		if r.Id == result.TypeID {
+		if r.ID == result.TypeID {
 			incDataCount(r.Count, result)
 			return m
 		}
@@ -232,25 +312,7 @@ func updateDataMetric(m []idCount, result *mtrpb.DataLatencySummary) []idCount {
 
 	c := make(map[string]int)
 	incDataCount(c, result)
-	return append(m, idCount{Id: result.TypeID, Count: c})
-}
-
-func updateDataSite(m []site, result *mtrpb.DataLatencySummary) []site {
-
-	t := typeStatus{TypeId: result.TypeID, Status: dataStatusString(result)}
-
-	for i, r := range m {
-		if r.SiteId == result.SiteID {
-			// create a new typeId in this SiteId
-			r.TypeStatus = append(r.TypeStatus, t)
-			m[i] = r
-			return m
-		}
-	}
-
-	// create a new site
-	ts := []typeStatus{t}
-	return append(m, site{SiteId: result.SiteID, TypeStatus: ts})
+	return append(m, idCount{ID: result.TypeID, Count: c, Description: removeTypeIDPrefix(result.TypeID)})
 }
 
 func incDataCount(m map[string]int, r *mtrpb.DataLatencySummary) {
@@ -284,4 +346,12 @@ func allGood(r *mtrpb.DataLatencySummary) bool {
 		return false
 	}
 	return true
+}
+
+func removeTypeIDPrefix(typeID string) string {
+	if strings.HasPrefix(typeID, "latency.") {
+		return strings.TrimPrefix(typeID, "latency.")
+	}
+
+	return typeID
 }

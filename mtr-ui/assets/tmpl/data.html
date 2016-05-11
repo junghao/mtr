@@ -19,6 +19,6 @@
 </div>
 {{else if eq .Path "/data/plot"}}{{template "data_site_latency" .}}
 {{else if eq .Path "/data/sites"}}{{template "data_sites" .}}
-{{else if eq .Path "/data/metrics"}}{{template "data_metrics" .Metrics}}
+{{else if eq .Path "/data/metrics"}}{{template "data_metrics" .}}
 {{end}}
 {{end}}
