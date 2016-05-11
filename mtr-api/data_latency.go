@@ -160,6 +160,8 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return res
 	}
 
+	d.siteID = r.URL.Query().Get("siteID")
+
 	switch r.URL.Query().Get("plot") {
 	case "", "line":
 		resolution := r.URL.Query().Get("resolution")
