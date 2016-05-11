@@ -1,0 +1,26 @@
+{{define "body"}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-tabs">
+            <li role="presentation"><a href="/">Home</a></li>
+            <li role="presentation"><a href="/data">Data</a></li>
+            <li role="presentation"><a href="/field">Field</a></li>
+            <li role="presentation" class="active"><a href="/map">Map</a></li>
+        </ul>
+    </div>
+</div>
+<div class="row" style="margin-top:20px;">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .TypeID "voltage"}}class="active"{{end}}><a href="/map/voltage">Voltage</a></li>
+            <li role="presentation" {{if eq .TypeID "conn"}}class="active"{{end}}><a href="/map/conn">Conn</a></li>
+            <li role="presentation" {{if eq .TypeID "ping"}}class="active"{{end}}><a href="/map/ping">Ping</a></li>
+        </ul>
+    </div>
+</div>
+<div class="row" style="margin-top:20px;">
+    <div class="col-xs-12 col-md-12">
+        <img width="90%" src="{{.MtrApiUrl}}/field/metric/summary?bbox=NewZealand&width=800&typeID={{.TypeID}}">
+    </div>
+</div>
+{{end}}
