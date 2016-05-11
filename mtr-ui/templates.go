@@ -11,6 +11,7 @@ var (
 	dataTemplate         *template.Template
 	tagsTemplate         *template.Template
 	metricDetailTemplate *template.Template
+	mapTemplate          *template.Template
 )
 
 func init() {
@@ -24,5 +25,6 @@ func loadTemplates() {
 	dataTemplate = template.Must(template.New("t").ParseFiles("assets/tmpl/data.html", "assets/tmpl/tag_list.html", "assets/tmpl/border.html", "assets/tmpl/data_components.html"))
 	tagsTemplate = template.Must(template.New("t").ParseFiles("assets/tmpl/tags.html", "assets/tmpl/tag_list.html", "assets/tmpl/border.html"))
 	metricDetailTemplate = template.Must(template.New("t").ParseFiles("assets/tmpl/metric_detail.html", "assets/tmpl/tag_list.html", "assets/tmpl/border.html"))
+	mapTemplate = template.Must(template.New("t").ParseFiles("assets/tmpl/map.html", "assets/tmpl/tag_list.html", "assets/tmpl/border.html"))
 	log.Println("Done loading templates.")
 }

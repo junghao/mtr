@@ -42,6 +42,7 @@ func init() {
 	mux.HandleFunc("/data/sites", toHandler(dataSitesPageHandler))
 	mux.HandleFunc("/data/metrics", toHandler(dataMetricsPageHandler))
 	mux.HandleFunc("/data/plot", toHandler(dataPlotPageHandler))
+	mux.HandleFunc("/map/", toHandler(mapPageHandler))
 	mux.HandleFunc("/field/metric", toHandler(metricDetailHandler))
 	mux.HandleFunc("/search", toHandler(searchHandler))
 }
