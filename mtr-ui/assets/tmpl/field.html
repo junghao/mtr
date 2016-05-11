@@ -1,16 +1,13 @@
 {{define "body"}}
-{{if ne .Path "/field/plot"}}
 <div class="row">
     <div class="col-xs-12 col-md-12">
-        <ul class="nav nav-pills">
-            <li role="presentation" {{if eq .Path "/"}}class="active"{{end}}><a href="/">Home</a></li>
-            <li role="presentation" {{if eq .Path "/field"}}class="active"{{end}}><a href="/field">Field</a></li>
-            <li role="presentation" {{if eq .Path "/field/devices"}}class="active"{{end}}><a href="/field/devices">Devices</a></li>
-            <li role="presentation" {{if eq .Path "/field/metrics"}}class="active"{{end}}><a href="/field/metrics">Metrics</a></li>
+        <ul class="nav nav-tabs">
+            <li role="presentation"><a href="/">Home</a></li>
+            <li role="presentation"><a href="/data">Data</a></li>
+            <li role="presentation" class="active"><a href="/field">Field</a></li>
         </ul>
     </div>
 </div>
-{{end}}
 {{if eq .Path "/field"}}
 <div class="row">
     <div class="col-xs-12 col-md-4">

@@ -1,31 +1,41 @@
 {{define "body"}}
 {{$mtrApiUrl:=.MtrApiUrl}}
-<div class="container">
 {{if .MatchingMetrics}}
 <h3>Search Results for Tag: {{.TagName}}</h3>
-    <div class="col-xs-12 col-md-12">
+<div class="row">
     {{range .MatchingMetrics}}
     {{if .DeviceID}}
-        <div class="row">
-            <a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{.TypeID}}">
-                <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  Device:{{.DeviceID}}</div>
-                <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/field/metric?deviceID={{.DeviceID}}&typeID={{.TypeID}}&plot=spark&resolution=five_minutes"/></div>
-            </a>
-        </div>
+    <div class="col-xs-12 col-md-6">
+        <a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}">
+            <div class="row mtr-callout mtr-callout-{{.Status}}">
+                <div class="col-xs-8 col-md-8">
+                    {{.DeviceID}} {{.TypeID}} {{.Status}}
+                </div>
+                <div class="col-xs-4 col-md-4">
+                    <img src="{{$mtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&plot=spark&resolution=five_minutes"/>
+                </div>
+            </div>
+        </a>
+    </div>
     {{else if .SiteID}}
-        <div class="row">
-            <a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{.TypeID}}">
-                <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  Site:{{.SiteID}}</div>
-                <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/data/latency?siteID={{.SiteID}}&typeID={{.TypeID}}&plot=spark&resolution=five_minutes"/></div>
+        <div class="col-xs-12 col-md-6">
+            <a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}">
+                <div class="row mtr-callout mtr-callout-{{.Status}}">
+                    <div class="col-xs-8 col-md-8">
+                        {{.SiteID}} {{.TypeID}} {{.Status}}
+                    </div>
+                    <div class="col-xs-4 col-md-4">
+                        <img src="{{$mtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&plot=spark&resolution=five_minutes"/>
+                    </div>
+                </div>
             </a>
         </div>
+    {{end}}
     {{end}}
     </div>
-    {{end}}
 {{else}}
 <h3>No Results for Tag: {{.TagName}}</h3>
 {{end}}
-</div>
 {{end}}
 
 {{define "tag_name_item"}}
