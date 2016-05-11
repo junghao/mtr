@@ -123,22 +123,6 @@
 				font-size: 7.0vw;
 			}
 		}
-
-		.mtr-dl-horizontal dt {
-			float: left;
-			width: 80px;
-			overflow: hidden;
-			clear: left;
-			text-align: right;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-			font-weight: normal;
-			color: #777;
-		}
-		.mtr-dl-horizontal dd {
-			margin-left: 100px;
-			color: #333;
-		}
 	</style>
 </head>
 <body>
@@ -165,7 +149,8 @@
     </nav>
 
     <div class="container-fluid">
-        {{template "body" .}}
+
+		{{template "body" .}}
         <div id="footer" class="footer">
             <div class="row">
                 <div class="col-sm-3 hidden-xs">

@@ -160,6 +160,8 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		return res
 	}
 
+	d.siteID = r.URL.Query().Get("siteID")
+
 	switch r.URL.Query().Get("plot") {
 	case "", "line":
 		resolution := r.URL.Query().Get("resolution")
@@ -297,7 +299,7 @@ spark draws an svg spark line to b.  Assumes f.loadPK has been called first.
 func (d *dataLatency) spark(b *bytes.Buffer) *result {
 	var p ts.Plot
 
-	p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*3), time.Now().UTC())
+	p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
 
 	var err error
 	var rows *sql.Rows
@@ -305,7 +307,7 @@ func (d *dataLatency) spark(b *bytes.Buffer) *result {
 	if rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
 		 avg(mean) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '2 days'
+		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
 		ORDER BY t ASC`,
 		d.sitePK, d.dataType.typePK); err != nil {
