@@ -100,7 +100,7 @@ templates are composed.  Any template using base must also define
 'data' for plotting the template and 'keyMarker'.
 */
 const plotBaseTemplate = `<?xml version="1.0"?>
-<svg viewBox="0,0,800,270" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="lightgray">
+<svg viewBox="0,0,800,300" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="lightgray">
 <g transform="translate(10,10)">
 <text x="0" y="0" text-anchor="start" dominant-baseline="hanging" font-size="14px" fill="darkslategray">{{.Axes.Title}}</text>
 <text x="0" y="18" text-anchor="start" dominant-baseline="hanging" font-size="12px" fill="darkslategray">{{.Axes.SubTitle}}</text>
@@ -141,7 +141,7 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 `
 
 const plotAppMetricsTemplate = `<?xml version="1.0"?>
-<svg viewBox="0,0,800,270" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="lightgray">
+<svg viewBox="0,0,800,300" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="lightgray">
 <g transform="translate(10,10)">
 <text x="0" y="0" text-anchor="start" dominant-baseline="hanging" font-size="14px" fill="darkslategray">{{.Axes.Title}}</text>
 <text x="0" y="18" text-anchor="start" dominant-baseline="hanging" font-size="12px" fill="darkslategray">{{.Axes.SubTitle}}</text>
