@@ -61,28 +61,26 @@
             <div class="col-xs-12 col-md-12">Metrics {{.TypeCount}}</div>
         </div>
         <!-- TODO the links below should go to a metrics the are good bad etc.-->
-        {{range .Types}}
-        <a href="/field/devices?modelID={{urlquery $modelId}}&typeID={{urlquery .Id}}">
+        <a href="/field/devices?modelID={{urlquery $modelId}}&status=good">
             <div class="row mtr-callout mtr-callout-good mtr-size">
                 <div class="col-xs-12 col-md-12">Good {{index .Count "good"}}</div>
             </div>
         </a>
-        <a href="/field/devices?modelID={{urlquery $modelId}}&typeID={{urlquery .Id}}">
+        <a href="/field/devices?modelID={{urlquery $modelId}}&status=bad">
             <div class="row mtr-callout mtr-callout-bad mtr-size">
                 <div class="col-xs-12 col-md-12">Bad {{index .Count "bad"}}</div>
             </div>
         </a>
-        <a href="/field/devices?modelID={{urlquery $modelId}}&typeID={{urlquery .Id}}">
+        <a href="/field/devices?modelID={{urlquery $modelId}}&status=unknown">
             <div class="row mtr-callout mtr-callout-unknown mtr-size">
                 <div class="col-xs-12 col-md-12">Unknown {{index .Count "unknown"}}</div>
             </div>
         </a>
-        <a href="/field/devices?modelID={{urlquery $modelId}}&typeID={{urlquery .Id}}">
+        <a href="/field/devices?modelID={{urlquery $modelId}}&status=late">
             <div class="row mtr-callout mtr-callout-late mtr-size">
                 <div class="col-xs-12 col-md-12">System Error {{index .Count "late"}}</div>
             </div>
         </a>
-        {{end}}
     </div>
         {{end}}
 </div>

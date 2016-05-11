@@ -18,6 +18,7 @@ type fieldPage struct {
 	ModelId      string
 	DeviceId     string
 	TypeId       string
+	Status       string
 	Resolution   string
 	MtrApiUrl    string
 }
@@ -68,7 +69,7 @@ type deviceModel struct {
 	ModelId     string
 	TypeCount   int
 	DeviceCount int
-	Types       []idCount
+	Count       map[string]int
 }
 
 type device struct {
@@ -147,7 +148,7 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{"modelID", "typeID"}); !res.ok {
+	if res := checkQuery(r, []string{}, []string{"modelID", "typeID", "status"}); !res.ok {
 		return res
 	}
 
@@ -164,12 +165,17 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	q := r.URL.Query()
 	p.ModelId = q.Get("modelID")
 	p.TypeId = q.Get("typeID")
-	if p.ModelId == "" || p.TypeId == "" { // if any parameter is missing, we give summary
-		if err = p.getDevicesSummary(); err != nil {
+	p.Status = q.Get("status")
+	if p.ModelId != "" && p.TypeId != "" {
+		if err = p.getDevicesByModelType(); err != nil {
+			return internalServerError(err)
+		}
+	} else if p.ModelId != "" && p.Status != "" {
+		if err = p.getDevicesByModelStatus(); err != nil {
 			return internalServerError(err)
 		}
 	} else {
-		if err = p.getDevicesByModelType(); err != nil {
+		if err = p.getDevicesSummary(); err != nil {
 			return internalServerError(err)
 		}
 	}
@@ -277,6 +283,35 @@ func (p *fieldPage) getDevicesSummary() (err error) {
 	return
 }
 
+func (p *fieldPage) getDevicesByModelStatus() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/field/metric/summary"
+
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var f mtrpb.FieldMetricSummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
+	p.Devices = make([]device, 0)
+	for _, r := range f.Result {
+		if r.ModelID == p.ModelId && fieldStatusString(r) == p.Status {
+			t := device{ModelId: p.ModelId, DeviceId: r.DeviceID}
+			t.TypeId = r.TypeID
+			t.Status = fieldStatusString(r)
+			p.Devices = append(p.Devices, t)
+		}
+	}
+
+	sort.Sort(devices(p.Devices))
+	return
+}
+
 func (p *fieldPage) getDevicesByModelType() (err error) {
 	u := *mtrApiUrl
 	u.Path = "/field/metric/summary"
@@ -296,7 +331,7 @@ func (p *fieldPage) getDevicesByModelType() (err error) {
 	for _, r := range f.Result {
 		if r.ModelID == p.ModelId && r.TypeID == p.TypeId {
 			t := device{ModelId: p.ModelId, DeviceId: r.DeviceID}
-			t.TypeId = p.TypeId
+			t.TypeId = r.TypeID
 			t.Status = fieldStatusString(r)
 			p.Devices = append(p.Devices, t)
 		}
@@ -325,16 +360,7 @@ func updateFieldDevice(m []deviceModel, result *mtrpb.FieldMetricSummary) []devi
 	for i, r := range m {
 		if r.ModelId == result.ModelID {
 			r.TypeCount++
-			for j, rt := range r.Types {
-				if rt.Id == result.TypeID {
-					incFieldCount(rt.Count, result)
-					r.Types[j] = rt
-					m[i] = r
-					return m
-				}
-			}
-			// create a new typeId in this modelId
-			r.Types = updateFieldMetric(r.Types, result)
+			incFieldCount(r.Count, result)
 			m[i] = r
 			return m
 		}
@@ -343,8 +369,7 @@ func updateFieldDevice(m []deviceModel, result *mtrpb.FieldMetricSummary) []devi
 	c := make(map[string]int)
 	incFieldCount(c, result)
 
-	t := []idCount{{Id: result.TypeID, Count: c}}
-	return append(m, deviceModel{ModelId: result.ModelID, Types: t, TypeCount: 1})
+	return append(m, deviceModel{ModelId: result.ModelID, Count: c, TypeCount: 1})
 }
 
 func incFieldCount(m map[string]int, r *mtrpb.FieldMetricSummary) {
