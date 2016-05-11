@@ -339,10 +339,10 @@ func allGood(r *mtrpb.DataLatencySummary) bool {
 	if r.Mean < r.Lower || r.Mean > r.Upper {
 		return false
 	}
-	if r.Fifty < r.Lower || r.Fifty > r.Upper {
+	if r.Fifty != 0 && (r.Fifty < r.Lower || r.Fifty > r.Upper) {
 		return false
 	}
-	if r.Ninety < r.Lower || r.Ninety > r.Upper {
+	if r.Ninety != 0 && (r.Ninety < r.Lower || r.Ninety > r.Upper) {
 		return false
 	}
 	return true
