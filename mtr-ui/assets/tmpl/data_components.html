@@ -11,50 +11,72 @@
     </div>
 </a>
 
-<a href="/#TODO">
+<a href="/data/metrics?status=good">
     <div class="row mtr-size mtr-callout mtr-callout-good">
         <div class="col-xs-12 col-md-12">Good {{index . "good"}}</div>
     </div>
 </a>
 
-<a href="/#TODO">
+<a href="/data/metrics?status=bad">
     <div class="row mtr-size mtr-callout mtr-callout-bad">
         <div class="col-xs-12 col-md-12">Bad {{index . "bad"}}</div>
     </div>
 </a>
 
-<a href="/#TODO">
+<a href="/data/metrics?status=unknown">
     <div class="row mtr-size mtr-callout mtr-callout-unknown">
         <div class="col-xs-12 col-md-12">Unknown {{index . "unknown"}}</div>
     </div>
 </a>
 
-<a href="/#TODO">
+<a href="/data/metrics?status=late">
     <div class="row mtr-size mtr-callout mtr-callout-late">
         <div class="col-xs-12 col-md-12">System Error {{index . "late"}}</div>
     </div>
 </a>
 
 {{end}}
+
 {{define "data_metrics"}}
-{{range .}}
-<div class="row">
-    <div class="col-xs-3 col-md-2 h4">{{.Description}}: {{index .Count "total"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
-    <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">other {{index .Count "unknown"}}</div>
-</div>
+{{$mtrApiUrl:=.MtrApiUrl}}
+{{if .Status}}
+    {{$status:=.Status}}
+    {{if .Sites}}
+        {{range .Sites}}
+        <div class="row">
+            <a href="/data/latency?siteID={{.SiteID}}&typeID={{.TypeID}}">
+            <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{$status}}">{{$status}}</span>  {{.SiteID}}:{{.TypeID}}</div>
+            <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&plot=spark&resolution=five_minutes"/></div>
+            </a>
+        </div>
+        {{end}}
+    {{else}}
+        <h3>No metric available.</h3>
+    {{end}}
+{{else}}
+    {{if .Metrics}}
+        {{range .Metrics}}
+        <div class="row">
+            <div class="col-xs-3 col-md-2 h4">{{.Description}}: {{index .Count "total"}}</div>
+            <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-good">good {{index .Count "good"}}</div>
+            <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-bad">bad {{index .Count "bad"}}</div>
+            <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-late">late {{index .Count "late"}}</div>
+            <div class="col-xs-3 col-md-2 mtr-callout mtr-callout-unknown">other {{index .Count "unknown"}}</div>
+        </div>
+        {{end}}
+    {{else}}
+        <h3>No metric available.</h3>
+    {{end}}
 {{end}}
 {{end}}
 
 {{define "data_sites"}}
 {{if .Metrics}}
-{{template "data_sites_type" .}}
+    {{template "data_sites_type" .}}
 {{else if .Sites}}
-{{template "data_sites_type_status" .}}
+    {{template "data_sites_type_status" .}}
 {{else}}
-<h3>No metric available.</h3>
+    <h3>No metric available.</h3>
 {{end}}
 {{end}}
 
@@ -70,22 +92,22 @@
             <div class="col-xs-12 col-md-12">Metrics {{index .Count "total"}}</div>
         </div>
         <!-- TODO the links below should go to a metrics the are good bad etc.-->
-        <a href="/data/sites?typeID={{urlquery .Id}}&status=good">
+        <a href="/data/sites?typeID={{urlquery .ID}}&status=good">
             <div class="row mtr-callout mtr-callout-good mtr-size">
                 <div class="col-xs-12 col-md-12">Good {{index .Count "good"}}</div>
             </div>
         </a>
-        <a href="/data/sites?typeID={{urlquery .Id}}&status=bad">
+        <a href="/data/sites?typeID={{urlquery .ID}}&status=bad">
             <div class="row mtr-callout mtr-callout-bad mtr-size">
                 <div class="col-xs-12 col-md-12">Bad {{index .Count "bad"}}</div>
             </div>
         </a>
-        <a href="/data/sites?typeID={{urlquery .Id}}&status=unknown">
+        <a href="/data/sites?typeID={{urlquery .ID}}&status=unknown">
             <div class="row mtr-callout mtr-callout-unknown mtr-size">
                 <div class="col-xs-12 col-md-12">Unknown {{index .Count "unknown"}}</div>
             </div>
         </a>
-        <a href="/data/sites?typeID={{urlquery .Id}}&status=late">
+        <a href="/data/sites?typeID={{urlquery .ID}}&status=late">
             <div class="row mtr-callout mtr-callout-late mtr-size">
                 <div class="col-xs-12 col-md-12">System Error {{index .Count "late"}}</div>
             </div>
@@ -97,12 +119,12 @@
 
 {{define "data_sites_type_status"}}
 {{$mtrApiUrl:=.MtrApiUrl}}
-{{$typeId := .TypeId}}
+{{$typeID := .TypeID}}
 {{range .Sites}}
 <div class="row">
-    <a href="/data/plot?siteID={{urlquery .SiteId}}&typeID={{urlquery $typeId}}">
-        <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.SiteId}}:</div>
-        <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/data/latency?siteID={{urlquery .SiteId}}&typeID={{urlquery $typeId}}&plot=spark&resolution=five_minutes"/></div>
+    <a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery $typeID}}">
+        <div class="col-xs-6 col-md-6 h4"><span class="mtr-callout mtr-callout-{{.Status}}">{{.Status}}</span>  {{.SiteID}}:</div>
+        <div class="col-xs-6 col-md-6"><img src="{{$mtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery $typeID}}&plot=spark&resolution=five_minutes"/></div>
     </a>
 </div>
 {{end}}
@@ -111,13 +133,13 @@
 {{define "data_site_latency"}}
 <div class="col-xs-12 col-md-12">
     <ul class="nav nav-pills">
-        <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteId}}&typeID={{urlquery .TypeId}}&resolution=minute">12 Hours</a></li>
-        <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteId}}&typeID={{urlquery .TypeId}}&resolution=five_minutes">48 Hours</a></li>
-        <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteId}}&typeID={{urlquery .TypeId}}&resolution=hour">28 Days</a></li>
+        <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
+        <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
+        <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
     </ul>
 </div>
 <div class="row">
-    <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/latency?siteID={{urlquery .SiteId}}&typeID={{urlquery .TypeId}}&resolution={{.Resolution}}"/></div>
+    <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/></div>
 </div>
 {{end}}
 
