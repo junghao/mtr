@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
 	"net/http"
 	"sort"
@@ -41,11 +42,11 @@ type site struct {
 	typeStatus
 }
 
-func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -54,26 +55,26 @@ func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	p.Border.Title = "GeoNet MTR"
 
 	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if p.Summary, err = getDataSummary(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	p.Path = r.URL.Path
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func dataMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func dataMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{"status"}); !res.ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"status"}); !res.Ok {
 		return res
 	}
 
@@ -84,33 +85,33 @@ func dataMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *re
 	p.MtrApiUrl = mtrApiUrl.String()
 
 	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 	q := r.URL.Query()
 	p.Status = q.Get("status")
 
 	if p.Status != "" {
 		if err = p.getSitesByStatus(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	} else {
 		if err = p.getMetricsSummary(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{"typeID", "status"}); !res.ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"typeID", "status"}); !res.Ok {
 		return res
 	}
 
@@ -121,7 +122,7 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	p.MtrApiUrl = mtrApiUrl.String()
 
 	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	q := r.URL.Query()
@@ -130,24 +131,24 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	if p.TypeID != "" && p.Status != "" {
 		if err = p.getSitesByTypeStatus(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 
 	} else {
 		if err = p.getSitesSummary(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.ok {
+func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
 		return res
 	}
 	p := dataPage{}
@@ -163,10 +164,10 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resul
 	}
 
 	if err := dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
 func getDataSummary() (m map[string]int, err error) {

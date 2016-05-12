@@ -5,6 +5,7 @@ package main
 
 import (
 	_ "github.com/GeoNet/log/logentries"
+	"github.com/GeoNet/weft"
 	"log"
 	"net/http"
 	"net/url"
@@ -33,18 +34,18 @@ func init() {
 	}
 
 	mux = http.NewServeMux()
-	mux.HandleFunc("/", toHandler(homepageHandler))
-	mux.HandleFunc("/field", toHandler(fieldPageHandler))
-	mux.HandleFunc("/field/metrics", toHandler(fieldMetricsPageHandler))
-	mux.HandleFunc("/field/devices", toHandler(fieldDevicesPageHandler))
-	mux.HandleFunc("/field/plot", toHandler(fieldPlotPageHandler))
-	mux.HandleFunc("/data", toHandler(dataPageHandler))
-	mux.HandleFunc("/data/sites", toHandler(dataSitesPageHandler))
-	mux.HandleFunc("/data/metrics", toHandler(dataMetricsPageHandler))
-	mux.HandleFunc("/data/plot", toHandler(dataPlotPageHandler))
-	mux.HandleFunc("/map/", toHandler(mapPageHandler))
-	mux.HandleFunc("/field/metric", toHandler(metricDetailHandler))
-	mux.HandleFunc("/search", toHandler(searchHandler))
+	mux.HandleFunc("/", weft.MakeHandlerPage(homepageHandler))
+	mux.HandleFunc("/field", weft.MakeHandlerPage(fieldPageHandler))
+	mux.HandleFunc("/field/metrics", weft.MakeHandlerPage(fieldMetricsPageHandler))
+	mux.HandleFunc("/field/devices", weft.MakeHandlerPage(fieldDevicesPageHandler))
+	mux.HandleFunc("/field/plot", weft.MakeHandlerPage(fieldPlotPageHandler))
+	mux.HandleFunc("/data", weft.MakeHandlerPage(dataPageHandler))
+	mux.HandleFunc("/data/sites", weft.MakeHandlerPage(dataSitesPageHandler))
+	mux.HandleFunc("/data/metrics", weft.MakeHandlerPage(dataMetricsPageHandler))
+	mux.HandleFunc("/data/plot", weft.MakeHandlerPage(dataPlotPageHandler))
+	mux.HandleFunc("/map/", weft.MakeHandlerPage(mapPageHandler))
+	mux.HandleFunc("/field/metric", weft.MakeHandlerPage(metricDetailHandler))
+	mux.HandleFunc("/search", weft.MakeHandlerPage(searchHandler))
 }
 
 func main() {

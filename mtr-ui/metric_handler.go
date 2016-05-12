@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/GeoNet/weft"
 	"net/http"
 	"net/url"
 )
@@ -19,13 +20,13 @@ type metricDetail struct {
 }
 
 // handler that serves an html page for detailed metric information
-func metricDetailHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func metricDetailHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var (
 		err error
 	)
 
-	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.ok {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -40,12 +41,12 @@ func metricDetailHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resul
 	p.MetricDetail.TypeID = typeID
 
 	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if err = metricDetailTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
