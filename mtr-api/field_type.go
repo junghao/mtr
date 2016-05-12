@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/GeoNet/weft"
 	"net/http"
 )
 
@@ -91,40 +92,40 @@ var fieldTypes = map[string]fieldType{
 	},
 }
 
-func loadFieldType(typeID string) (fieldType, *result) {
+func loadFieldType(typeID string) (fieldType, *weft.Result) {
 
 	if f, ok := fieldTypes[typeID]; ok {
-		return f, &statusOK
+		return f, &weft.StatusOK
 	}
 
-	return fieldType{}, badRequest("invalid type " + typeID)
+	return fieldType{}, weft.BadRequest("invalid type " + typeID)
 }
 
-func (f *fieldType) loadPK(r *http.Request) *result {
+func (f *fieldType) loadPK(r *http.Request) *weft.Result {
 	var t fieldType
-	var res *result
+	var res *weft.Result
 
-	if t, res = loadFieldType(r.URL.Query().Get("typeID")); !res.ok {
+	if t, res = loadFieldType(r.URL.Query().Get("typeID")); !res.Ok {
 		return res
 	}
 
 	f.typePK = t.typePK
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *fieldType) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+func (f *fieldType) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
 
 	if by, err := json.Marshal(fieldTypes); err == nil {
 		b.Write(by)
 	} else {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	h.Set("Content-Type", "application/json;version=1")
 
-	return &statusOK
+	return &weft.StatusOK
 }

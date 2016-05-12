@@ -20,6 +20,11 @@
 			"revisionTime": "2016-02-16T21:06:50+13:00"
 		},
 		{
+			"path": "github.com/GeoNet/weft",
+			"revision": "53cad5eb6e41d631600d3c5de983108563fcd8ee",
+			"revisionTime": "2016-05-02T16:28:30+12:00"
+		},
+		{
 			"path": "github.com/golang/groupcache",
 			"revision": "604ed5785183e59ae2789449d89e73f3a2a77987",
 			"revisionTime": "2015-01-25T10:08:32-08:00"

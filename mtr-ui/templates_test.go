@@ -23,4 +23,5 @@ func TestTemplates(t *testing.T) {
 	if err := metricDetailTemplate.ExecuteTemplate(&b, "border", md); err != nil {
 		t.Error(err)
 	}
+
 }

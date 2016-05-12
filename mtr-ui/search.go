@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
 	"net/http"
 	"net/url"
@@ -79,7 +80,7 @@ func getMatchingMetrics(urlString string) (parsedTags matchingMetrics, err error
 	return parsedTags, nil
 }
 
-func searchHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func searchHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 	var p *searchPage
@@ -90,24 +91,24 @@ func searchHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	// Javascript should handle empty query value
 	// Non existent value comes from unauthorized submit
 	if tagQuery == "" {
-		return badRequest("missing required query parameter: tagQuery")
+		return weft.BadRequest("missing required query parameter: tagQuery")
 	}
 
 	if p, err = newSearchPage(mtrApiUrl); err != nil {
-		return badRequest("error creating searchPage object")
+		return weft.BadRequest("error creating searchPage object")
 	}
 
 	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if err = p.matchingMetrics(tagQuery); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if err := tagsTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }

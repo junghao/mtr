@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
 	"net/http"
 	"sort"
@@ -89,11 +90,11 @@ type idCount struct {
 	Count       map[string]int
 }
 
-func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -103,25 +104,25 @@ func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	p.Border.Title = "GeoNet MTR"
 
 	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if p.Summary, err = getFieldSummary(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if err = fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func fieldMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{"status"}); !res.ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"status"}); !res.Ok {
 		return res
 	}
 
@@ -134,31 +135,31 @@ func fieldMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	p.Status = q.Get("status")
 
 	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if p.Status != "" {
 		if err = p.getDevicesByStatus(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	} else {
 		if err = p.getMetricsSummary(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 
 	if err = fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 
-	if res := checkQuery(r, []string{}, []string{"modelID", "typeID", "status"}); !res.ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"modelID", "typeID", "status"}); !res.Ok {
 		return res
 	}
 
@@ -169,7 +170,7 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	p.Border.Title = "GeoNet MTR"
 
 	if err = p.populateTags(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	q := r.URL.Query()
@@ -178,26 +179,26 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *r
 	p.Status = q.Get("status")
 	if p.ModelID != "" && p.TypeID != "" {
 		if err = p.getDevicesByModelType(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	} else if p.ModelID != "" && p.Status != "" {
 		if err = p.getDevicesByModelStatus(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	} else {
 		if err = p.getDevicesSummary(); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 	if err = fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.ok {
+func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
 		return res
 	}
 	p := fieldPage{}
@@ -213,10 +214,10 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	}
 
 	if err := fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
 func getFieldSummary() (m map[string]int, err error) {

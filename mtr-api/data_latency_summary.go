@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
 	"net/http"
 	"time"
@@ -12,8 +13,8 @@ import (
 type dataLatencySummary struct {
 }
 
-func (d *dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{}, []string{"typeID"}); !res.ok {
+func (d *dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
 		return res
 	}
 
@@ -32,7 +33,7 @@ func (d *dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buff
 		WHERE typeID = $1;`, typeID)
 	}
 	if err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
@@ -46,7 +47,7 @@ func (d *dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buff
 
 		if err = rows.Scan(&dls.SiteID, &dls.TypeID, &t, &dls.Mean, &dls.Fifty, &dls.Ninety,
 			&dls.Lower, &dls.Upper); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 
 		dls.Seconds = t.Unix()
@@ -58,12 +59,12 @@ func (d *dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buff
 	var by []byte
 
 	if by, err = proto.Marshal(&dlsr); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	b.Write(by)
 
 	h.Set("Content-Type", "application/x-protobuf")
 
-	return &statusOK
+	return &weft.StatusOK
 }

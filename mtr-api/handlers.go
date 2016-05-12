@@ -2,10 +2,11 @@ package main
 
 import (
 	"bytes"
+	"github.com/GeoNet/weft"
 	"net/http"
 )
 
-func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var a appMetric
 
 	switch r.Method {
@@ -17,11 +18,11 @@ func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 			return a.svg(r, h, b)
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldMetric
 
 	switch r.Method {
@@ -35,11 +36,11 @@ func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result
 			return f.svg(r, h, b)
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldMetricTag
 
 	switch r.Method {
@@ -48,11 +49,11 @@ func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *res
 	case "DELETE":
 		return f.delete(r, h, b)
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func tagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func tagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var t tag
 
 	switch r.Method {
@@ -65,14 +66,14 @@ func tagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		case "application/x-protobuf":
 			return t.single(r, h, b)
 		default:
-			return &notAcceptable
+			return &weft.NotAcceptable
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func tagsHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func tagsHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var t tag
 
 	switch r.Method {
@@ -81,15 +82,15 @@ func tagsHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		case "application/x-protobuf":
 			return t.all(r, h, b)
 		default:
-			return &notAcceptable
+			return &weft.NotAcceptable
 		}
 
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func fieldModelHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldModelHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldModel
 
 	switch r.Method {
@@ -102,14 +103,14 @@ func fieldModelHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result 
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
 		default:
-			return &notAcceptable
+			return &weft.NotAcceptable
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func fieldDeviceHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldDeviceHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldDevice
 
 	switch r.Method {
@@ -122,14 +123,14 @@ func fieldDeviceHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
 		default:
-			return &notAcceptable
+			return &weft.NotAcceptable
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func fieldTypeHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldTypeHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldType
 
 	switch r.Method {
@@ -138,14 +139,14 @@ func fieldTypeHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
 		default:
-			return &notAcceptable
+			return &weft.NotAcceptable
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func fieldThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldThreshold
 
 	switch r.Method {
@@ -158,14 +159,14 @@ func fieldThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer) *res
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
 		default:
-			return &notAcceptable
+			return &weft.NotAcceptable
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func fieldMetricLatestHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func fieldMetricLatestHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldLatest
 
 	switch r.Method {
@@ -177,11 +178,11 @@ func fieldMetricLatestHandler(r *http.Request, h http.Header, b *bytes.Buffer) *
 			return f.svg(r, h, b)
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var d dataSite
 
 	switch r.Method {
@@ -190,11 +191,11 @@ func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
 	case "DELETE":
 		return d.delete(r)
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var d dataLatency
 
 	switch r.Method {
@@ -208,11 +209,11 @@ func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result
 			return d.svg(r, h, b)
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func dataLatencyThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func dataLatencyThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var d dataLatencyThreshold
 
 	switch r.Method {
@@ -225,14 +226,14 @@ func dataLatencyThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer
 	//	case "application/json;version=1":
 	//		return f.jsonV1(r, h, b)
 	//	default:
-	//		return &notAcceptable
+	//		return &weft.NotAcceptable
 	//	}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func dataLatencyTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func dataLatencyTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f dataLatencyTag
 
 	switch r.Method {
@@ -241,11 +242,11 @@ func dataLatencyTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *res
 	case "DELETE":
 		return f.delete(r, h, b)
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }
 
-func dataLatencySummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) *result {
+func dataLatencySummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var d dataLatencySummary
 
 	switch r.Method {
@@ -256,9 +257,9 @@ func dataLatencySummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) 
 			//default:
 			//	return f.svg(r, h, b)
 		default:
-			return &notAcceptable
+			return &weft.NotAcceptable
 		}
 	default:
-		return &methodNotAllowed
+		return &weft.MethodNotAllowed
 	}
 }

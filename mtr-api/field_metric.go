@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/GeoNet/mtr/ts"
+	"github.com/GeoNet/weft"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-var statusTooManyRequests = result{ok: false, code: http.StatusTooManyRequests, msg: "Already data for the minute"}
+var statusTooManyRequests = weft.Result{Ok: false, Code: http.StatusTooManyRequests, Msg: "Already data for the minute"}
 
 // TODO this should contain a device and type
 type fieldMetric struct {
@@ -21,24 +22,24 @@ type fieldMetric struct {
 	fieldType fieldType
 }
 
-func (f *fieldMetric) loadPK(r *http.Request) (res *result) {
+func (f *fieldMetric) loadPK(r *http.Request) (res *weft.Result) {
 	f.deviceID = r.URL.Query().Get("deviceID")
 
-	if f.devicePK, res = fieldDevicePK(f.deviceID); !res.ok {
+	if f.devicePK, res = fieldDevicePK(f.deviceID); !res.Ok {
 		return
 	}
 
-	if f.fieldType, res = loadFieldType(r.URL.Query().Get("typeID")); !res.ok {
+	if f.fieldType, res = loadFieldType(r.URL.Query().Get("typeID")); !res.Ok {
 		return
 	}
 
-	res = &statusOK
+	res = &weft.StatusOK
 
 	return
 }
 
-func (f *fieldMetric) save(r *http.Request) *result {
-	if res := checkQuery(r, []string{"deviceID", "typeID", "time", "value"}, []string{}); !res.ok {
+func (f *fieldMetric) save(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "time", "value"}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -48,14 +49,14 @@ func (f *fieldMetric) save(r *http.Request) *result {
 	var v int
 
 	if v, err = strconv.Atoi(r.URL.Query().Get("value")); err != nil {
-		return badRequest("invalid value")
+		return weft.BadRequest("invalid value")
 	}
 
 	if t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
-		return badRequest("invalid time")
+		return weft.BadRequest("invalid time")
 	}
 
-	if res := f.loadPK(r); !res.ok {
+	if res := f.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -64,19 +65,19 @@ func (f *fieldMetric) save(r *http.Request) *result {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			return &statusTooManyRequests
 		} else {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *fieldMetric) delete(r *http.Request) *result {
-	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.ok {
+func (f *fieldMetric) delete(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.Ok {
 		return res
 	}
 
-	if res := f.loadPK(r); !res.ok {
+	if res := f.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -84,40 +85,40 @@ func (f *fieldMetric) delete(r *http.Request) *result {
 	var txn *sql.Tx
 
 	if txn, err = db.Begin(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.metric WHERE devicePK = $1 AND typePK = $2`,
 		f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.metric_tag WHERE devicePK = $1 AND typePK = $2`,
 		f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.threshold WHERE devicePK = $1 AND typePK = $2`,
 		f.devicePK, f.fieldType.typePK); err != nil {
 		txn.Rollback()
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if err = txn.Commit(); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{"plot", "resolution"}); !res.ok {
+func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"plot", "resolution"}); !res.Ok {
 		return res
 	}
 
-	if res := f.loadPK(r); !res.ok {
+	if res := f.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -127,36 +128,36 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		if resolution == "" {
 			resolution = "minute"
 		}
-		if res := f.plot(resolution, b); !res.ok {
+		if res := f.plot(resolution, b); !res.Ok {
 			return res
 		}
 	default:
-		if res := f.spark(b); !res.ok {
+		if res := f.spark(b); !res.Ok {
 			return res
 		}
 	}
 
 	h.Set("Content-Type", "image/svg+xml")
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
 /*
 loadThreshold loads thresholds for the metric.  Assumes f.load has been called first.
 */
-func (f *fieldMetric) threshold() (lower, upper int, res *result) {
-	res = &statusOK
+func (f *fieldMetric) threshold() (lower, upper int, res *weft.Result) {
+	res = &weft.StatusOK
 
 	if err := dbR.QueryRow(`SELECT lower,upper FROM field.threshold
 		WHERE devicePK = $1 AND typePK = $2`,
 		f.devicePK, f.fieldType.typePK).Scan(&lower, &upper); err != nil && err != sql.ErrNoRows {
-		res = internalServerError(err)
+		res = weft.InternalServerError(err)
 	}
 
 	return
 }
 
-func (f *fieldMetric) tags() (t []string, res *result) {
+func (f *fieldMetric) tags() (t []string, res *weft.Result) {
 	var rows *sql.Rows
 	var err error
 
@@ -164,7 +165,7 @@ func (f *fieldMetric) tags() (t []string, res *result) {
 		devicePK = $1 AND typePK = $2
 		ORDER BY tag asc`,
 		f.devicePK, f.fieldType.typePK); err != nil {
-		res = internalServerError(err)
+		res = weft.InternalServerError(err)
 		return
 	}
 
@@ -174,23 +175,23 @@ func (f *fieldMetric) tags() (t []string, res *result) {
 
 	for rows.Next() {
 		if err = rows.Scan(&s); err != nil {
-			res = internalServerError(err)
+			res = weft.InternalServerError(err)
 			return
 		}
 		t = append(t, s)
 	}
 
-	res = &statusOK
+	res = &weft.StatusOK
 	return
 }
 
-func (f *fieldMetric) model() (s string, res *result) {
-	res = &statusOK
+func (f *fieldMetric) model() (s string, res *weft.Result) {
+	res = &weft.StatusOK
 
 	if err := dbR.QueryRow(`SELECT modelid FROM field.device JOIN field.model using (modelpk)
 		WHERE devicePK = $1`,
 		f.devicePK).Scan(&s); err != nil && err != sql.ErrNoRows {
-		res = internalServerError(err)
+		res = weft.InternalServerError(err)
 	}
 
 	return
@@ -200,15 +201,15 @@ func (f *fieldMetric) model() (s string, res *result) {
 plot draws an svg plot to b.  Assumes f.load has been called first.
 Valid values for resolution are 'minute', 'five_minutes', 'hour'.
 */
-func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *result {
+func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 	var p ts.Plot
 
 	p.SetUnit(f.fieldType.Unit)
 
 	var lower, upper int
-	var res *result
+	var res *weft.Result
 
-	if lower, upper, res = f.threshold(); !res.ok {
+	if lower, upper, res = f.threshold(); !res.Ok {
 		return res
 	}
 
@@ -218,7 +219,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *result {
 
 	var tags []string
 
-	if tags, res = f.tags(); !res.ok {
+	if tags, res = f.tags(); !res.Ok {
 		return res
 	}
 
@@ -226,7 +227,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *result {
 
 	var mod string
 
-	if mod, res = f.model(); !res.ok {
+	if mod, res = f.model(); !res.Ok {
 		return res
 	}
 
@@ -268,10 +269,10 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *result {
 		ORDER BY t ASC`,
 			f.devicePK, f.fieldType.typePK)
 	default:
-		return badRequest("invalid resolution")
+		return weft.BadRequest("invalid resolution")
 	}
 	if err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
@@ -282,7 +283,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *result {
 
 	for rows.Next() {
 		if err = rows.Scan(&t, &avg); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		pts = append(pts, ts.Point{DateTime: t, Value: avg * f.fieldType.Scale})
 	}
@@ -296,7 +297,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *result {
 			ORDER BY time DESC
 			LIMIT 1`,
 		f.devicePK, f.fieldType.typePK).Scan(&t, &value); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	pts = append(pts, ts.Point{DateTime: t, Value: float64(value) * f.fieldType.Scale})
@@ -305,14 +306,14 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *result {
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
 	if err = ts.Line.Draw(p, b); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
 // spark draws an svg spark line to b.  Assumes loadPK has been called already.
-func (f *fieldMetric) spark(b *bytes.Buffer) *result {
+func (f *fieldMetric) spark(b *bytes.Buffer) *weft.Result {
 	var p ts.Plot
 
 	p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
@@ -327,7 +328,7 @@ func (f *fieldMetric) spark(b *bytes.Buffer) *result {
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
 		ORDER BY t ASC`,
 		f.devicePK, f.fieldType.typePK); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
 
@@ -337,7 +338,7 @@ func (f *fieldMetric) spark(b *bytes.Buffer) *result {
 
 	for rows.Next() {
 		if err = rows.Scan(&t, &avg); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		pts = append(pts, ts.Point{DateTime: t, Value: avg * f.fieldType.Scale})
 	}
@@ -346,8 +347,8 @@ func (f *fieldMetric) spark(b *bytes.Buffer) *result {
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
 	if err = ts.SparkLine.Draw(p, b); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }

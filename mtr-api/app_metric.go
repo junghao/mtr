@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/GeoNet/mtr/internal"
 	"github.com/GeoNet/mtr/ts"
+	"github.com/GeoNet/weft"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -48,17 +49,17 @@ func (l InstanceMetrics) Len() int           { return len(l) }
 func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].instancePK }
 func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
-func (a *appMetric) loadPK(r *http.Request) (res *result) {
+func (a *appMetric) loadPK(r *http.Request) (res *weft.Result) {
 	a.applicationID = r.URL.Query().Get("applicationID")
 
 	err := dbR.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`, a.applicationID).Scan(&a.applicationPK)
 	switch err {
 	case nil:
-		return &statusOK
+		return &weft.StatusOK
 	case sql.ErrNoRows:
-		return &notFound
+		return &weft.NotFound
 	default:
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 }
 
@@ -71,13 +72,13 @@ Handles requests like
 /app/metric?applicationID=mtr-api&group=routines
 
 */
-func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	var res *result
-	if res = checkQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.ok {
+func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var res *weft.Result
+	if res = weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.Ok {
 		return res
 	}
 
-	if res = a.loadPK(r); !res.ok {
+	if res = a.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -98,7 +99,7 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
 	default:
-		return badRequest("invalid value for resolution")
+		return weft.BadRequest("invalid value for resolution")
 	}
 
 	var err error
@@ -109,13 +110,13 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 		var ymin, ymax float64
 
 		if len(y) != 2 {
-			return badRequest("invalid yrange query param.")
+			return weft.BadRequest("invalid yrange query param.")
 		}
 		if ymin, err = strconv.ParseFloat(y[0], 64); err != nil {
-			return badRequest("invalid yrange query param.")
+			return weft.BadRequest("invalid yrange query param.")
 		}
 		if ymax, err = strconv.ParseFloat(y[1], 64); err != nil {
-			return badRequest("invalid yrange query param.")
+			return weft.BadRequest("invalid yrange query param.")
 		}
 		p.SetYAxis(ymin, ymax)
 	}
@@ -126,14 +127,14 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 
 	switch r.URL.Query().Get("group") {
 	case "counters":
-		if res := a.loadCounters(resolution, &p); !res.ok {
+		if res := a.loadCounters(resolution, &p); !res.Ok {
 			return res
 		}
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Counters - Sum per %s", a.applicationID, resTitle))
 		err = ts.MixedAppMetrics.Draw(p, b)
 	case "timers":
-		if res := a.loadTimers(resolution, &p); !res.ok {
+		if res := a.loadTimers(resolution, &p); !res.Ok {
 			return res
 		}
 
@@ -141,7 +142,7 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 			a.applicationID, resTitle))
 		err = ts.MixedAppMetrics.Draw(p, b)
 	case "memory":
-		if res := a.loadMemory(resolution, &p); !res.ok {
+		if res := a.loadMemory(resolution, &p); !res.Ok {
 			return res
 		}
 
@@ -149,7 +150,7 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 			a.applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	case "objects":
-		if res := a.loadAppMetrics(resolution, internal.MemHeapObjects, &p); !res.ok {
+		if res := a.loadAppMetrics(resolution, internal.MemHeapObjects, &p); !res.Ok {
 			return res
 		}
 
@@ -157,27 +158,27 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result
 			a.applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	case "routines":
-		if res := a.loadAppMetrics(resolution, internal.Routines, &p); !res.ok {
+		if res := a.loadAppMetrics(resolution, internal.Routines, &p); !res.Ok {
 			return res
 		}
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Routines (n) - Average per %s",
 			a.applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	default:
-		return badRequest("invalid value for type")
+		return weft.BadRequest("invalid value for type")
 	}
 
 	if err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	h.Set("Content-Type", "image/svg+xml")
 
-	return &statusOK
+	return &weft.StatusOK
 
 }
 
-func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *result {
+func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -205,10 +206,10 @@ func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *result {
 		GROUP BY date_trunc('`+resolution+`',time), typePK
 		ORDER BY t ASC`, a.applicationPK)
 	default:
-		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
 	if err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
@@ -220,7 +221,7 @@ func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *result {
 
 	for rows.Next() {
 		if err = rows.Scan(&typePK, &t, &count); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		pts[typePK] = append(pts[typePK], ts.Point{DateTime: t, Value: float64(count)})
 		total[typePK] += count
@@ -244,11 +245,11 @@ func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *result {
 
 	p.SetLables(lables)
 
-	return &statusOK
+	return &weft.StatusOK
 
 }
 
-func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *result {
+func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 	var err error
 
 	var rows *sql.Rows
@@ -278,10 +279,10 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *result {
 		GROUP BY date_trunc('`+resolution+`',time), sourcePK
 		ORDER BY t ASC`, a.applicationPK)
 	default:
-		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
 	if err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
@@ -294,7 +295,7 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *result {
 
 	for rows.Next() {
 		if err = rows.Scan(&sourcePK, &t, &avg, &n); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		pts[sourcePK] = append(pts[sourcePK], ts.Point{DateTime: t, Value: float64(avg)})
 		total[sourcePK] += n
@@ -310,14 +311,14 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *result {
 	sourceIDs := make(map[int]string)
 
 	if rows, err = dbR.Query(`SELECT sourcePK, sourceID FROM app.source`); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
 		if err = rows.Scan(&sourcePK, &sourceID); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		sourceIDs[sourcePK] = sourceID
 	}
@@ -337,11 +338,11 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *result {
 
 	p.SetLables(lables)
 
-	return &statusOK
+	return &weft.StatusOK
 
 }
 
-func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
+func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *weft.Result {
 	var err error
 
 	var rows *sql.Rows
@@ -370,10 +371,10 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
 		ORDER BY t ASC`, a.applicationPK)
 	default:
-		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
 	if err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
@@ -386,7 +387,7 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 
 	for rows.Next() {
 		if err = rows.Scan(&instancePK, &typePK, &t, &avg); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		key := InstanceMetric{instancePK: instancePK, typePK: typePK}
 		pts[key] = append(pts[key], ts.Point{DateTime: t, Value: avg})
@@ -396,14 +397,14 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 	instanceIDs := make(map[int]string)
 
 	if rows, err = dbR.Query(`SELECT instancePK, instanceID FROM app.instance`); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
 		if err = rows.Scan(&instancePK, &instanceID); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		instanceIDs[instancePK] = instanceID
 	}
@@ -418,11 +419,11 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *result {
 
 	p.SetLables(lables)
 
-	return &statusOK
+	return &weft.StatusOK
 
 }
 
-func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.Plot) *result {
+func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.Plot) *weft.Result {
 	var err error
 
 	var rows *sql.Rows
@@ -451,10 +452,10 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
 		ORDER BY t ASC`, a.applicationPK, int(typeID))
 	default:
-		return internalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
 	if err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
@@ -467,7 +468,7 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	for rows.Next() {
 		if err = rows.Scan(&instancePK, &typePK, &t, &avg); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		key := InstanceMetric{instancePK: instancePK, typePK: typePK}
 		pts[key] = append(pts[key], ts.Point{DateTime: t, Value: avg})
@@ -477,14 +478,14 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 	instanceIDs := make(map[int]string)
 
 	if rows, err = dbR.Query(`SELECT instancePK, instanceID FROM app.instance`); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
 		if err = rows.Scan(&instancePK, &instanceID); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		instanceIDs[instancePK] = instanceID
 	}
@@ -510,12 +511,12 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	p.SetLables(lables)
 
-	return &statusOK
+	return &weft.StatusOK
 
 }
 
-func (a *appMetric) save(r *http.Request) *result {
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+func (a *appMetric) save(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -524,11 +525,11 @@ func (a *appMetric) save(r *http.Request) *result {
 	var m internal.AppMetrics
 
 	if b, err = ioutil.ReadAll(r.Body); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if err = json.Unmarshal(b, &m); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	// Find  (and possibly create) the applicationPK for the applicationID
@@ -539,13 +540,13 @@ func (a *appMetric) save(r *http.Request) *result {
 	case nil:
 	case sql.ErrNoRows:
 		if _, err = db.Exec(`INSERT INTO app.application(applicationID) VALUES($1)`, m.ApplicationID); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		if err = db.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`, m.ApplicationID).Scan(&applicationPK); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	default:
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	// Find  (and possibly create) the instancePK for the instanceID
@@ -556,13 +557,13 @@ func (a *appMetric) save(r *http.Request) *result {
 	case nil:
 	case sql.ErrNoRows:
 		if _, err = db.Exec(`INSERT INTO app.instance(instanceID) VALUES($1)`, m.InstanceID); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 		if err = db.QueryRow(`SELECT instancePK FROM app.instance WHERE instanceID = $1`, m.InstanceID).Scan(&instancePK); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	default:
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	// Run the inserts in parallel
@@ -570,10 +571,10 @@ func (a *appMetric) save(r *http.Request) *result {
 	m2 := insertAppCounters(applicationPK, m.Counters)
 	m3 := insertAppTimers(applicationPK, m.Timers)
 
-	var resFinal = &statusOK
+	var resFinal = &weft.StatusOK
 
 	for res := range merge(m1, m2, m3) {
-		if !res.ok {
+		if !res.Ok {
 			resFinal = res
 		}
 	}
@@ -581,8 +582,8 @@ func (a *appMetric) save(r *http.Request) *result {
 	return resFinal
 }
 
-func insertAppMetrics(applicationPK, instancePK int, metrics []internal.Metric) <-chan *result {
-	out := make(chan *result)
+func insertAppMetrics(applicationPK, instancePK int, metrics []internal.Metric) <-chan *weft.Result {
+	out := make(chan *weft.Result)
 	go func() {
 		defer close(out)
 		var err error
@@ -590,19 +591,19 @@ func insertAppMetrics(applicationPK, instancePK int, metrics []internal.Metric) 
 		for _, v := range metrics {
 			if _, err = db.Exec(`INSERT INTO app.metric (applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`,
 				applicationPK, instancePK, v.MetricID, v.Time, v.Value, 1); err != nil {
-				out <- internalServerError(err)
+				out <- weft.InternalServerError(err)
 				return
 			}
 		}
 
-		out <- &statusOK
+		out <- &weft.StatusOK
 		return
 	}()
 	return out
 }
 
-func insertAppCounters(applicationPK int, counters []internal.Counter) <-chan *result {
-	out := make(chan *result)
+func insertAppCounters(applicationPK int, counters []internal.Counter) <-chan *weft.Result {
+	out := make(chan *weft.Result)
 	go func() {
 		defer close(out)
 		var err error
@@ -610,19 +611,19 @@ func insertAppCounters(applicationPK int, counters []internal.Counter) <-chan *r
 		for _, v := range counters {
 			if _, err = db.Exec(`INSERT INTO app.counter(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
 				applicationPK, v.CounterID, v.Time, v.Count); err != nil {
-				out <- internalServerError(err)
+				out <- weft.InternalServerError(err)
 				return
 			}
 		}
 
-		out <- &statusOK
+		out <- &weft.StatusOK
 		return
 	}()
 	return out
 }
 
-func insertAppTimers(applicationPK int, timers []internal.Timer) <-chan *result {
-	out := make(chan *result)
+func insertAppTimers(applicationPK int, timers []internal.Timer) <-chan *weft.Result {
+	out := make(chan *weft.Result)
 	go func() {
 		defer close(out)
 		var err error
@@ -640,22 +641,22 @@ func insertAppTimers(applicationPK int, timers []internal.Timer) <-chan *result 
 					// TODO ignoring error due to race on insert between calls to this func.  Use a transaction here?
 				}
 				if err = db.QueryRow(`SELECT sourcePK FROM app.source WHERE sourceID = $1`, v.TimerID).Scan(&sourcePK); err != nil {
-					out <- internalServerError(err)
+					out <- weft.InternalServerError(err)
 					return
 				}
 			default:
-				out <- internalServerError(err)
+				out <- weft.InternalServerError(err)
 				return
 			}
 
 			if _, err = db.Exec(`INSERT INTO app.timer(applicationPK, sourcePK, time, average, count, fifty, ninety) VALUES($1,$2,$3,$4,$5,$6,$7)`,
 				applicationPK, sourcePK, v.Time, v.Average, v.Count, v.Fifty, v.Ninety); err != nil {
-				out <- internalServerError(err)
+				out <- weft.InternalServerError(err)
 				return
 			}
 		}
 
-		out <- &statusOK
+		out <- &weft.StatusOK
 		return
 	}()
 	return out
@@ -667,13 +668,13 @@ cs to return.
 
 https://blog.golang.org/pipelines
 */
-func merge(cs ...<-chan *result) <-chan *result {
+func merge(cs ...<-chan *weft.Result) <-chan *weft.Result {
 	var wg sync.WaitGroup
-	out := make(chan *result)
+	out := make(chan *weft.Result)
 
 	// Start an output goroutine for each input channel in cs.  output
 	// copies values from c to out until c is closed, then calls wg.Done.
-	output := func(c <-chan *result) {
+	output := func(c <-chan *weft.Result) {
 		for err := range c {
 			out <- err
 		}

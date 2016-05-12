@@ -1,6 +1,9 @@
 package main
 
-import "net/http"
+import (
+	"github.com/GeoNet/weft"
+	"net/http"
+)
 
 type dataType struct {
 	typePK int
@@ -36,10 +39,10 @@ var dataTypes = map[string]dataType{
 	},
 }
 
-func (d *dataType) load(r *http.Request) *result {
-	var res *result
+func (d *dataType) load(r *http.Request) *weft.Result {
+	var res *weft.Result
 	var t dataType
-	if t, res = loadDataType(r.URL.Query().Get("typeID")); !res.ok {
+	if t, res = loadDataType(r.URL.Query().Get("typeID")); !res.Ok {
 		return res
 	}
 
@@ -48,14 +51,14 @@ func (d *dataType) load(r *http.Request) *result {
 	d.Scale = t.Scale
 	d.Name = t.Name
 	d.Unit = t.Unit
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func loadDataType(typeID string) (dataType, *result) {
+func loadDataType(typeID string) (dataType, *weft.Result) {
 
 	if f, ok := dataTypes[typeID]; ok {
-		return f, &statusOK
+		return f, &weft.StatusOK
 	}
 
-	return dataType{}, badRequest("invalid type " + typeID)
+	return dataType{}, weft.BadRequest("invalid type " + typeID)
 }

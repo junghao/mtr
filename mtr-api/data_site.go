@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"github.com/GeoNet/weft"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -13,8 +14,8 @@ type dataSite struct {
 	longitude, latitude float64
 }
 
-func (d *dataSite) save(r *http.Request) *result {
-	if res := checkQuery(r, []string{"siteID", "latitude", "longitude"}, []string{}); !res.ok {
+func (d *dataSite) save(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "latitude", "longitude"}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -23,11 +24,11 @@ func (d *dataSite) save(r *http.Request) *result {
 	var err error
 
 	if d.latitude, err = strconv.ParseFloat(r.URL.Query().Get("latitude"), 64); err != nil {
-		return badRequest("latitude invalid")
+		return weft.BadRequest("latitude invalid")
 	}
 
 	if d.longitude, err = strconv.ParseFloat(r.URL.Query().Get("longitude"), 64); err != nil {
-		return badRequest("longitude invalid")
+		return weft.BadRequest("longitude invalid")
 	}
 
 	// TODO convert to upsert with pg 9.5
@@ -36,38 +37,38 @@ func (d *dataSite) save(r *http.Request) *result {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			if _, err := db.Exec(`UPDATE data.site SET latitude=$2, longitude=$3 where siteID=$1`,
 				d.siteID, d.latitude, d.longitude); err != nil {
-				return internalServerError(err)
+				return weft.InternalServerError(err)
 			}
 		} else {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (d *dataSite) delete(r *http.Request) *result {
-	if res := checkQuery(r, []string{"siteID"}, []string{}); !res.ok {
+func (d *dataSite) delete(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID"}, []string{}); !res.Ok {
 		return res
 	}
 
 	d.siteID = r.URL.Query().Get("siteID")
 
 	if _, err := db.Exec(`DELETE FROM data.site where siteID = $1`, d.siteID); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (d *dataSite) loadPK(r *http.Request) *result {
+func (d *dataSite) loadPK(r *http.Request) *weft.Result {
 	if err := dbR.QueryRow(`SELECT sitePK FROM data.site where siteID = $1`,
 		r.URL.Query().Get("siteID")).Scan(&d.sitePK); err != nil {
 		if err == sql.ErrNoRows {
-			return badRequest("unknown siteID")
+			return weft.BadRequest("unknown siteID")
 		}
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
