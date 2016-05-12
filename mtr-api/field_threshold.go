@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/GeoNet/weft"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -11,24 +12,24 @@ type fieldThreshold struct {
 	lower, upper int
 }
 
-func (f *fieldThreshold) save(r *http.Request) *result {
-	if res := checkQuery(r, []string{"deviceID", "typeID", "lower", "upper"}, []string{}); !res.ok {
+func (f *fieldThreshold) save(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "lower", "upper"}, []string{}); !res.Ok {
 		return res
 	}
 
 	var err error
 
 	if f.lower, err = strconv.Atoi(r.URL.Query().Get("lower")); err != nil {
-		return badRequest("invalid lower")
+		return weft.BadRequest("invalid lower")
 	}
 
 	if f.upper, err = strconv.Atoi(r.URL.Query().Get("upper")); err != nil {
-		return badRequest("invalid upper")
+		return weft.BadRequest("invalid upper")
 	}
 
 	var fm fieldMetric
 
-	if res := fm.loadPK(r); !res.ok {
+	if res := fm.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -38,7 +39,7 @@ func (f *fieldThreshold) save(r *http.Request) *result {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 
@@ -48,14 +49,14 @@ func (f *fieldThreshold) save(r *http.Request) *result {
 		AND
 		typePK = $2`,
 		fm.devicePK, fm.fieldType.typePK, f.lower, f.upper); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *fieldThreshold) delete(r *http.Request) *result {
-	if res := checkQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.ok {
+func (f *fieldThreshold) delete(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -63,7 +64,7 @@ func (f *fieldThreshold) delete(r *http.Request) *result {
 
 	var fm fieldMetric
 
-	if res := fm.loadPK(r); !res.ok {
+	if res := fm.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -71,14 +72,14 @@ func (f *fieldThreshold) delete(r *http.Request) *result {
 		WHERE devicePK = $1
 		AND typePK = $2 `,
 		fm.devicePK, fm.fieldType.typePK); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *fieldThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+func (f *fieldThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -90,12 +91,12 @@ func (f *fieldThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer)
 		FROM 
 		field.threshold JOIN field.device USING (devicepk) 
 		JOIN field.type USING (typepk)) l`).Scan(&s); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	b.WriteString(s)
 
 	h.Set("Content-Type", "application/json;version=1")
 
-	return &statusOK
+	return &weft.StatusOK
 }

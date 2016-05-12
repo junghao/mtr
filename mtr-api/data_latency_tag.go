@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/GeoNet/weft"
 	"github.com/lib/pq"
 	"net/http"
 )
@@ -12,28 +13,28 @@ type dataLatencyTag struct {
 	dataType
 }
 
-func (f *dataLatencyTag) loadPK(r *http.Request) *result {
-	if res := f.tag.loadPK(r); !res.ok {
+func (f *dataLatencyTag) loadPK(r *http.Request) *weft.Result {
+	if res := f.tag.loadPK(r); !res.Ok {
 		return res
 	}
 
-	if res := f.dataType.load(r); !res.ok {
+	if res := f.dataType.load(r); !res.Ok {
 		return res
 	}
 
-	if res := f.dataSite.loadPK(r); !res.ok {
+	if res := f.dataSite.loadPK(r); !res.Ok {
 		return res
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *dataLatencyTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.ok {
+func (f *dataLatencyTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
 
-	if res := f.loadPK(r); !res.ok {
+	if res := f.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -43,19 +44,19 @@ func (f *dataLatencyTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.ok {
+func (f *dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
 
-	if res := f.loadPK(r); !res.ok {
+	if res := f.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -63,8 +64,8 @@ func (f *dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer)
 			WHERE sitePK = $1
 			AND typePK = $2
 			AND tagPK = $3`, f.sitePK, f.typePK, f.tagPK); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }

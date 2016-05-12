@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/GeoNet/weft"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -10,24 +11,24 @@ type dataLatencyThreshold struct {
 	lower, upper int
 }
 
-func (f *dataLatencyThreshold) save(r *http.Request) *result {
-	if res := checkQuery(r, []string{"siteID", "typeID", "lower", "upper"}, []string{}); !res.ok {
+func (f *dataLatencyThreshold) save(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "lower", "upper"}, []string{}); !res.Ok {
 		return res
 	}
 
 	var err error
 
 	if f.lower, err = strconv.Atoi(r.URL.Query().Get("lower")); err != nil {
-		return badRequest("invalid lower")
+		return weft.BadRequest("invalid lower")
 	}
 
 	if f.upper, err = strconv.Atoi(r.URL.Query().Get("upper")); err != nil {
-		return badRequest("invalid upper")
+		return weft.BadRequest("invalid upper")
 	}
 
 	var dm dataLatency
 
-	if res := dm.loadPK(r); !res.ok {
+	if res := dm.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -38,7 +39,7 @@ func (f *dataLatencyThreshold) save(r *http.Request) *result {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 	}
 
@@ -48,14 +49,14 @@ func (f *dataLatencyThreshold) save(r *http.Request) *result {
 		AND
 		typePK = $2`,
 		dm.sitePK, dm.dataType.typePK, f.lower, f.upper); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *dataLatencyThreshold) delete(r *http.Request) *result {
-	if res := checkQuery(r, []string{"siteID", "typeID"}, []string{}); !res.ok {
+func (f *dataLatencyThreshold) delete(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -63,7 +64,7 @@ func (f *dataLatencyThreshold) delete(r *http.Request) *result {
 
 	var dm dataLatency
 
-	if res := dm.loadPK(r); !res.ok {
+	if res := dm.loadPK(r); !res.Ok {
 		return res
 	}
 
@@ -71,14 +72,14 @@ func (f *dataLatencyThreshold) delete(r *http.Request) *result {
 		WHERE sitePK = $1
 		AND typePK = $2 `,
 		dm.sitePK, dm.dataType.typePK); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
 //func (f *dataLatencyThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-//	if res := checkQuery(r, []string{}, []string{}); !res.ok {
+//	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 //		return res
 //	}
 //
@@ -90,12 +91,12 @@ func (f *dataLatencyThreshold) delete(r *http.Request) *result {
 //		FROM
 //		field.threshold JOIN field.device USING (devicepk)
 //		JOIN field.type USING (typepk)) l`).Scan(&s); err != nil {
-//		return internalServerError(err)
+//		return weft.InternalServerError(err)
 //	}
 //
 //	b.WriteString(s)
 //
 //	h.Set("Content-Type", "application/json;version=1")
 //
-//	return &statusOK
+//	return &weft.StatusOK
 //}

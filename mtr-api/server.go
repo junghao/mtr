@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"github.com/GeoNet/map180"
+	"github.com/GeoNet/weft"
 	_ "github.com/lib/pq"
 	"log"
 	"net/http"
@@ -26,23 +27,23 @@ func init() {
 	keyR = os.Getenv("MTR_KEY_R")
 
 	mux = http.NewServeMux()
-	mux.HandleFunc("/tag/", toHandler(tagHandler))
-	mux.HandleFunc("/tag", toHandler(tagsHandler))
-	mux.HandleFunc("/app/metric", toHandler(appMetricHandler))
-	mux.HandleFunc("/field/model", toHandler(fieldModelHandler))
-	mux.HandleFunc("/field/device", toHandler(fieldDeviceHandler))
-	//mux.HandleFunc("/field/tag", toHandler(fieldTagHandler))
-	mux.HandleFunc("/field/type", toHandler(fieldTypeHandler))
-	mux.HandleFunc("/field/metric", toHandler(fieldMetricHandler))
-	mux.HandleFunc("/field/metric/summary", toHandler(fieldMetricLatestHandler))
-	mux.HandleFunc("/field/metric/threshold", toHandler(fieldThresholdHandler))
-	mux.HandleFunc("/field/metric/tag", toHandler(fieldMetricTagHandler))
+	mux.HandleFunc("/tag/", weft.MakeHandlerAPI(tagHandler))
+	mux.HandleFunc("/tag", weft.MakeHandlerAPI(tagsHandler))
+	mux.HandleFunc("/app/metric", weft.MakeHandlerAPI(appMetricHandler))
+	mux.HandleFunc("/field/model", weft.MakeHandlerAPI(fieldModelHandler))
+	mux.HandleFunc("/field/device", weft.MakeHandlerAPI(fieldDeviceHandler))
+	//mux.HandleFunc("/field/tag", weft.MakeHandlerAPI(fieldTagHandler))
+	mux.HandleFunc("/field/type", weft.MakeHandlerAPI(fieldTypeHandler))
+	mux.HandleFunc("/field/metric", weft.MakeHandlerAPI(fieldMetricHandler))
+	mux.HandleFunc("/field/metric/summary", weft.MakeHandlerAPI(fieldMetricLatestHandler))
+	mux.HandleFunc("/field/metric/threshold", weft.MakeHandlerAPI(fieldThresholdHandler))
+	mux.HandleFunc("/field/metric/tag", weft.MakeHandlerAPI(fieldMetricTagHandler))
 	mux.HandleFunc("/health", health)
-	mux.HandleFunc("/data/site", toHandler(dataSiteHandler))
-	mux.HandleFunc("/data/latency", toHandler(dataLatencyHandler))
-	mux.HandleFunc("/data/latency/summary", toHandler(dataLatencySummaryHandler))
-	mux.HandleFunc("/data/latency/tag", toHandler(dataLatencyTagHandler))
-	mux.HandleFunc("/data/latency/threshold", toHandler(dataLatencyThresholdHandler))
+	mux.HandleFunc("/data/site", weft.MakeHandlerAPI(dataSiteHandler))
+	mux.HandleFunc("/data/latency", weft.MakeHandlerAPI(dataLatencyHandler))
+	mux.HandleFunc("/data/latency/summary", weft.MakeHandlerAPI(dataLatencySummaryHandler))
+	mux.HandleFunc("/data/latency/tag", weft.MakeHandlerAPI(dataLatencyTagHandler))
+	mux.HandleFunc("/data/latency/threshold", weft.MakeHandlerAPI(dataLatencyThresholdHandler))
 }
 
 func main() {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/GeoNet/map180"
 	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
 	"math"
 	"net/http"
@@ -22,8 +23,8 @@ type point struct {
 	x, y                float64
 }
 
-func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{}, []string{"typeID"}); !res.ok {
+func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
 		return res
 	}
 
@@ -42,7 +43,7 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *re
 		WHERE typeID = $1;`, typeID)
 	}
 	if err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
@@ -56,7 +57,7 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *re
 
 		if err = rows.Scan(&fmr.DeviceID, &fmr.ModelID, &fmr.TypeID, &t, &fmr.Value,
 			&fmr.Lower, &fmr.Upper); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 
 		fmr.Seconds = t.Unix()
@@ -68,18 +69,18 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *re
 	var by []byte
 
 	if by, err = proto.Marshal(&fmlr); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	b.Write(by)
 
 	h.Set("Content-Type", "application/x-protobuf")
 
-	return &statusOK
+	return &weft.StatusOK
 }
 
-func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-	if res := checkQuery(r, []string{"bbox", "width", "typeID"}, []string{}); !res.ok {
+func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"bbox", "width", "typeID"}, []string{}); !res.Ok {
 		return res
 	}
 
@@ -91,16 +92,16 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 	bbox := r.URL.Query().Get("bbox")
 
 	if err = map180.ValidBbox(bbox); err != nil {
-		return badRequest(err.Error())
+		return weft.BadRequest(err.Error())
 	}
 
 	if width, err = strconv.Atoi(r.URL.Query().Get("width")); err != nil {
-		return badRequest("invalid width")
+		return weft.BadRequest("invalid width")
 	}
 
 	var raw map180.Raw
 	if raw, err = wm.MapRaw(bbox, width); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 
 	if rows, err = dbR.Query(`with p as (select geom, time, value, lower, upper,
@@ -109,7 +110,7 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 			where typeID = $1)
 			select ST_X(pt), ST_Y(pt)*-1, ST_X(geom::geometry),ST_Y(geom::geometry), time,
 			value, lower,upper from p`, f.typeID); err != nil {
-		return internalServerError(err)
+		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
 
@@ -126,7 +127,7 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 		var min, max, v int
 
 		if err = rows.Scan(&p.x, &p.y, &p.longitude, &p.latitude, &t, &v, &min, &max); err != nil {
-			return internalServerError(err)
+			return weft.InternalServerError(err)
 		}
 
 		// Does not handle crossing the equator.
@@ -190,5 +191,5 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *resu
 
 	h.Set("Content-Type", "image/svg+xml")
 
-	return &statusOK
+	return &weft.StatusOK
 }
