@@ -12,11 +12,13 @@ import (
 
 var client = &http.Client{}
 
-// adds some test field metrics.  Assumes the caller has already called
-//  setup(t)
-//  defer teardown()
-func addFieldMetrics(t *testing.T) {
-	// Device model
+func TestRoutes(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	/*
+		Field metrics
+	*/
 
 	// Creates a device model.  Repeated requests noop.
 	doRequest("PUT", "*/*", "/field/model?modelID=Trimble+NetR9", 200, t)
@@ -71,13 +73,6 @@ func addFieldMetrics(t *testing.T) {
 	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
 		t.Error(err)
 	}
-}
-
-func TestFieldMetrics(t *testing.T) {
-	setup(t)
-	defer teardown()
-
-	addFieldMetrics(t)
 
 	// Thresholds
 
@@ -138,14 +133,271 @@ func TestFieldMetrics(t *testing.T) {
 
 	// Metric types
 	doRequest("GET", "application/json;version=1", "/field/type", 200, t) // All metrics type
+
+	/*
+		Data Latency
+	*/
+
+	// Delete site - cascades to metrics
+	doRequest("DELETE", "*/*", "/data/site?siteID=TAUP", 200, t)
+
+	// create a site.  Lat lon are indicative only and may not be suitable for
+	// precise data use.
+	doRequest("PUT", "*/*", "/data/site?siteID=TAUP&latitude=-38.74270&longitude=176.08100", 200, t)
+	// update the site location
+	doRequest("PUT", "*/*", "/data/site?siteID=TAUP&latitude=-38.64270&longitude=176.08100", 200, t)
+	// delete then recreate
+	doRequest("DELETE", "*/*", "/data/site?siteID=TAUP", 200, t)
+	doRequest("PUT", "*/*", "/data/site?siteID=TAUP&latitude=-38.74270&longitude=176.08100", 200, t)
+
+	// Load some latency metrics (every 5 mins)
+	now = time.Now().UTC()
+	v = 14000
+	for i := -720; i < 0; i += 5 {
+		if i >= -100 {
+			v = int(14000*(1/(float64(i)+101.0))) + 10000
+			if v > 14000 {
+				v = 14000
+			}
+		}
+
+		doRequest("PUT", "*/*", fmt.Sprintf("/data/latency?siteID=TAUP&typeID=latency.strong&time=%s&mean=%d",
+			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v), 200, t)
+	}
+
+	// Should get a rate limit error for sends in the same minute
+	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=10000", 200, t)
+	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=14100", 429, t)
+
+	// Refresh the latency_summary view.  Usually done on timer in server.go
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
+		t.Error(err)
+	}
+
+	// Add another site, some latency data, then delete.
+	doRequest("DELETE", "*/*", "/data/site?siteID=WGTN", 200, t)
+	doRequest("PUT", "*/*", "/data/site?siteID=WGTN&latitude=-38.74270&longitude=176.08100", 200, t)
+
+	// min, max, fifty, ninety are optional latency values
+	doRequest("PUT", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong&time="+time.Now().UTC().Format(time.RFC3339)+
+		"&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", 200, t)
+
+	doRequest("DELETE", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong", 200, t)
+
+	// Create a threshold for latency.
+	// I assume a single threshold would be for mean, fifty, and ninety?
+	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
+
+	// Update a threshold
+	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=13000&upper=15000", 200, t)
+
+	// Delete a threshold then create it again
+	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
+
+	// Tags
+
+	doRequest("DELETE", "*/*", "/tag/FRED", 200, t)
+	doRequest("DELETE", "*/*", "/tag/DAGG", 200, t)
+
+	// tag must exist before it can be added to a metric
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=FRED&typeID=latency.strong&tag=TAUP", 400, t)
+
+	doRequest("PUT", "*/*", "/tag/FRED", 200, t)
+	doRequest("PUT", "*/*", "/tag/DAGG", 200, t)
+	doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
+
+	// Create a tag on a latency.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=FRED", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=DAGG", 200, t)
+	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", 200, t)
+
+	// Latency plots.  Resolution is optional on plots and sparks.
+	// Options for the plot parameter:
+	// line [default] = line plot.
+	// spark = spark line.
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=five_minutes", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=day", 400, t)
+	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&plot=spark", 200, t)
+
+	// Tags
+
+	doRequest("DELETE", "*/*", "/tag/LINZ", 200, t)
+
+	// tag must exist before it can be added to a metric
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 400, t)
+
+	doRequest("PUT", "*/*", "/tag/LINZ", 200, t)
+	doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
+
+	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 200, t)
+	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
+
+	// Delete a tag on a metric
+	doRequest("DELETE", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
+
+	//doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
+	//doRequest("DELETE", "*/*", "/tag/TAUP", 200, t)
+	//doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
+
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
+		t.Error(err)
+	}
+
+	testFieldMetricsSummary(t)
+	testDataLatencySummary(t)
+	testTagAllProto(t)
+	testTagProto(t)
 }
 
-func TestFieldMetricsSummary(t *testing.T) {
-	setup(t)
-	defer teardown()
+func testTagProto(t *testing.T) {
 
-	addFieldMetrics(t)
+	// searches for all metrics with the tag TAUP and returns a protobuf
+	// of summary results.
+	doRequest("GET", "application/x-protobuf", "/tag/TAUP", 200, t)
 
+	var b []byte
+	var err error
+
+	if b, err = getBytes("application/x-protobuf", "/tag/TAUP"); err != nil {
+		t.Error(err)
+	}
+
+	var tr mtrpb.TagSearchResult
+
+	if err = proto.Unmarshal(b, &tr); err != nil {
+		t.Error(err)
+	}
+
+	if tr.FieldMetric == nil {
+		t.Error("Got nil FieldMetric")
+	}
+
+	if tr.DataLatency == nil {
+		t.Error("Got nil DataLatency")
+	}
+
+	if tr.FieldMetric[0].DeviceID != "gps-taupoairport" {
+		t.Errorf("expected deviceID gps-taupoairport got %s", tr.FieldMetric[0].DeviceID)
+	}
+
+	if tr.DataLatency[0].SiteID != "TAUP" {
+		t.Errorf("expected siteID TAUP got %s", tr.DataLatency[0].SiteID)
+	}
+}
+
+func testTagAllProto(t *testing.T) {
+
+	// searches for all tags that have been added to a metric.
+	// returns a protobus of tag strings for use in the type ahead etc.
+	doRequest("GET", "application/x-protobuf", "/tag", 200, t)
+
+	var b []byte
+	var err error
+
+	if b, err = getBytes("application/x-protobuf", "/tag"); err != nil {
+		t.Error(err)
+	}
+
+	var tr mtrpb.TagResult
+
+	if err = proto.Unmarshal(b, &tr); err != nil {
+		t.Error(err)
+	}
+
+	if len(tr.Used) != 3 {
+		t.Errorf("expected 3 active tags got %d", len(tr.Used))
+	}
+
+	if tr.Used[0].Tag != "DAGG" {
+		t.Errorf("expected DAGG as the first tag got %s", tr.Used[0].Tag)
+	}
+}
+
+func testDataLatencySummary(t *testing.T) {
+
+	doRequest("GET", "application/x-protobuf", "/data/latency/summary", 200, t)
+
+	var err error
+	var b []byte
+
+	if b, err = getBytes("application/x-protobuf", "/data/latency/summary"); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.DataLatencySummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Error("expected 1 result.")
+	}
+
+	r := f.Result[0]
+
+	if r.SiteID != "TAUP" {
+		t.Errorf("expected TAUP got %s", r.SiteID)
+	}
+
+	if r.TypeID != "latency.strong" {
+		t.Errorf("expected latency.strong got %s", r.TypeID)
+	}
+
+	if r.Mean != 10000 {
+		t.Errorf("expected 10000 got %d", r.Mean)
+	}
+
+	if r.Fifty != 0 {
+		t.Errorf("expected 0 got %d", r.Fifty)
+	}
+
+	if r.Ninety != 0 {
+		t.Errorf("expected 0 got %d", r.Ninety)
+	}
+
+	if r.Seconds == 0 {
+		t.Error("unexpected zero seconds")
+	}
+
+	if r.Upper != 15000 {
+		t.Errorf("expected 15000 got %d", r.Upper)
+	}
+
+	if r.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", r.Lower)
+	}
+
+	doRequest("GET", "application/x-protobuf", "/data/latency/summary?typeID=latency.strong", 200, t)
+
+	if b, err = getBytes("application/x-protobuf", "/data/latency/summary?typeID=latency.strong"); err != nil {
+		t.Error(err)
+	}
+
+	f.Reset()
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Error("expected 1 result.")
+	}
+}
+
+func testFieldMetricsSummary(t *testing.T) {
 	doRequest("GET", "application/x-protobuf", "/field/metric/summary", 200, t)
 
 	var err error
@@ -187,12 +439,12 @@ func TestFieldMetricsSummary(t *testing.T) {
 		t.Error("unexpected zero seconds")
 	}
 
-	if r.Upper != 0 {
-		t.Errorf("expected 0 got %d", r.Upper)
+	if r.Upper != 45000 {
+		t.Errorf("expected 45000 got %d", r.Upper)
 	}
 
-	if r.Lower != 0 {
-		t.Errorf("expected 0 got %d", r.Lower)
+	if r.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", r.Lower)
 	}
 
 	// should be no errors and empty result for typeID=conn
