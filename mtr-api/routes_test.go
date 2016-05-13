@@ -255,6 +255,7 @@ func TestRoutes(t *testing.T) {
 		t.Error(err)
 	}
 
+	// These tests use the data loaded above.
 	testFieldMetricsSummary(t)
 	testDataLatencySummary(t)
 	testTagAllProto(t)
@@ -498,8 +499,24 @@ func doRequest(method, accept, uri string, status int, t *testing.T) {
 	if request, err = http.NewRequest(method, testServer.URL+uri, nil); err != nil {
 		t.Fatal(err)
 	}
-	request.SetBasicAuth(userW, keyW)
+
 	request.Header.Add("Accept", accept)
+
+	if method != "GET" {
+		// Check that we have to be authenticated for non GET requests.
+		// Run the all first with out auth
+		var resp *http.Response
+		if resp, err = client.Do(request); err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Errorf("Wrong response code for %s with no auth should be status.Unauthorized", l)
+		}
+
+		request.SetBasicAuth(userW, keyW)
+	}
 
 	if response, err = client.Do(request); err != nil {
 		t.Fatal(err)

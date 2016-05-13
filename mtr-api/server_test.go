@@ -39,7 +39,7 @@ func setup(t *testing.T) {
 	//	t.Fatalf("ERROR: problem with map180 config: %s", err)
 	//}
 
-	testServer = httptest.NewServer(mux)
+	testServer = httptest.NewServer(inbound(mux))
 }
 
 func teardown() {
