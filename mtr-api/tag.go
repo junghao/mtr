@@ -82,11 +82,7 @@ func (t *tag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT tag FROM data.latency_tag JOIN mtr.tag USING (tagPK)
-				  UNION
-				  SELECT tag FROM field.metric_tag JOIN mtr.tag USING (tagPK)
-				  ORDER BY TAG ASC
-				`); err != nil {
+	if rows, err = dbR.Query(`SELECT tag FROM mtr.tag ORDER BY TAG ASC`); err != nil {
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
@@ -100,7 +96,7 @@ func (t *tag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 			return weft.InternalServerError(err)
 		}
 
-		ts.Used = append(ts.Used, &t)
+		ts.Result = append(ts.Result, &t)
 	}
 
 	var by []byte

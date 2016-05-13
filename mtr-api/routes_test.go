@@ -317,12 +317,12 @@ func testTagAllProto(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(tr.Used) != 3 {
-		t.Errorf("expected 3 active tags got %d", len(tr.Used))
+	if len(tr.Result) != 4 {
+		t.Errorf("expected 4 tags got %d", len(tr.Result))
 	}
 
-	if tr.Used[0].Tag != "DAGG" {
-		t.Errorf("expected DAGG as the first tag got %s", tr.Used[0].Tag)
+	if tr.Result[0].Tag != "DAGG" {
+		t.Errorf("expected DAGG as the first tag got %s", tr.Result[0].Tag)
 	}
 }
 
