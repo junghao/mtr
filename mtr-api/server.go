@@ -9,22 +9,19 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"github.com/GeoNet/mtr/mtrapp"
 )
 
 var mux *http.ServeMux
 var db *sql.DB
 var dbR *sql.DB // Database connection with read only credentials
 var userW, keyW string
-var userR, keyR string
 var wm *map180.Map180
 
-var eol = []byte("\n")
 
 func init() {
 	userW = os.Getenv("MTR_USER")
 	keyW = os.Getenv("MTR_KEY")
-	userR = os.Getenv("MTR_USER_R")
-	keyR = os.Getenv("MTR_KEY_R")
 
 	mux = http.NewServeMux()
 	mux.HandleFunc("/tag/", weft.MakeHandlerAPI(tagHandler))
@@ -88,7 +85,28 @@ func main() {
 	go refreshViews()
 
 	log.Println("starting server")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8080", inbound(mux)))
+}
+
+func inbound(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "PUT", "DELETE", "POST":
+			if user, password, ok := r.BasicAuth(); ok && userW == user && keyW == password {
+				h.ServeHTTP(w, r)
+			} else {
+				http.Error(w, "Access denied", http.StatusUnauthorized)
+				mtrapp.StatusUnauthorized.Inc()
+				return
+			}
+		case "GET":
+			h.ServeHTTP(w, r)
+		default:
+			weft.Write(w, r, &weft.MethodNotAllowed)
+			weft.MethodNotAllowed.Count()
+			return
+		}
+	})
 }
 
 /*
