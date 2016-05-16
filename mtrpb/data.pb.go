@@ -15,6 +15,8 @@ It has these top-level messages:
 	DataLatencySummaryResult
 	FieldMetricSummary
 	FieldMetricSummaryResult
+	FieldMetricTag
+	FieldMetricTagResult
 	Tag
 	TagResult
 	TagSearchResult

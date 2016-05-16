@@ -48,6 +48,13 @@ func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 		return f.save(r, h, b)
 	case "DELETE":
 		return f.delete(r, h, b)
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return f.all(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
 	default:
 		return &weft.MethodNotAllowed
 	}

@@ -3,33 +3,29 @@ package main
 import (
 	"database/sql"
 	"github.com/GeoNet/map180"
+	"github.com/GeoNet/mtr/mtrapp"
 	"github.com/GeoNet/weft"
 	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
 	"time"
-	"github.com/GeoNet/mtr/mtrapp"
 )
 
 var mux *http.ServeMux
 var db *sql.DB
 var dbR *sql.DB // Database connection with read only credentials
-var userW, keyW string
 var wm *map180.Map180
-
+var userW = os.Getenv("MTR_USER")
+var keyW = os.Getenv("MTR_KEY")
 
 func init() {
-	userW = os.Getenv("MTR_USER")
-	keyW = os.Getenv("MTR_KEY")
-
 	mux = http.NewServeMux()
 	mux.HandleFunc("/tag/", weft.MakeHandlerAPI(tagHandler))
 	mux.HandleFunc("/tag", weft.MakeHandlerAPI(tagsHandler))
 	mux.HandleFunc("/app/metric", weft.MakeHandlerAPI(appMetricHandler))
 	mux.HandleFunc("/field/model", weft.MakeHandlerAPI(fieldModelHandler))
 	mux.HandleFunc("/field/device", weft.MakeHandlerAPI(fieldDeviceHandler))
-	//mux.HandleFunc("/field/tag", weft.MakeHandlerAPI(fieldTagHandler))
 	mux.HandleFunc("/field/type", weft.MakeHandlerAPI(fieldTypeHandler))
 	mux.HandleFunc("/field/metric", weft.MakeHandlerAPI(fieldMetricHandler))
 	mux.HandleFunc("/field/metric/summary", weft.MakeHandlerAPI(fieldMetricLatestHandler))
@@ -82,7 +78,7 @@ func main() {
 	}
 
 	go deleteMetrics()
-	go refreshViews()
+	go refreshViewsTimed()
 
 	log.Println("starting server")
 	log.Fatal(http.ListenAndServe(":8080", inbound(mux)))
@@ -150,19 +146,26 @@ func deleteMetrics() {
 	}
 }
 
-func refreshViews() {
+func refreshViewsTimed() {
 	ticker := time.NewTicker(time.Second * 20).C
-	var err error
 	for {
 		select {
 		case <-ticker:
-			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
-				log.Println(err)
-			}
-
-			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
+			if err := refreshViews(); err != nil {
 				log.Println(err)
 			}
 		}
 	}
+}
+
+func refreshViews() error {
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
+		return err
+	}
+
+	return nil
 }
