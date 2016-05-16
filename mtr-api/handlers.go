@@ -165,6 +165,8 @@ func fieldThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 		switch r.Header.Get("Accept") {
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
+		case "application/x-protobuf":
+			return f.proto(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}

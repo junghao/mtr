@@ -133,6 +133,9 @@ var routes = wt.Requests{
 	// Thresholds
 	{URL: "/field/metric/threshold", Accept: "application/json;version=1"},
 
+	// All field metric thresholds as protobuf
+	{URL: "/field/metric/threshold", Accept: "application/x-protobuf"},
+
 	// Metric types
 	{URL: "/field/type", Accept: "application/json;version=1"},
 
@@ -616,5 +619,53 @@ func TestFieldMetricsSummary(t *testing.T) {
 
 	if len(f.Result) != 0 {
 		t.Error("expected 0 results.")
+	}
+}
+
+// protobuf of field metric threshold info.
+func TestFieldMetricsThreshold(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/field/metric/threshold", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.FieldMetricThresholdResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Error("expected 1 result.")
+	}
+
+	d := f.Result[0]
+
+	if d.DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport got %s", d.DeviceID)
+	}
+
+	if d.TypeID != "voltage" {
+		t.Errorf("expected voltage got %s", d.TypeID)
+	}
+
+	if d.Upper != 45000 {
+		t.Errorf("expected 45000 got %d", d.Upper)
+	}
+
+	if d.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", d.Lower)
 	}
 }

@@ -17,6 +17,8 @@ It has these top-level messages:
 	FieldMetricSummaryResult
 	FieldMetricTag
 	FieldMetricTagResult
+	FieldMetricThreshold
+	FieldMetricThresholdResult
 	Tag
 	TagResult
 	TagSearchResult
