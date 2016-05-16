@@ -5,6 +5,10 @@ import (
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
+	"bytes"
+	"database/sql"
+	"github.com/GeoNet/mtr/mtrpb"
+	"github.com/golang/protobuf/proto"
 )
 
 type dataLatencyThreshold struct {
@@ -78,25 +82,41 @@ func (f *dataLatencyThreshold) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-//func (f *dataLatencyThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *result {
-//	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-//		return res
-//	}
-//
-//	var s string
-//
-//	if err := dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]')
-//		FROM (SELECT deviceID as "DeviceID", typeID as "TypeID",
-//		lower as "Lower", upper AS "Upper"
-//		FROM
-//		field.threshold JOIN field.device USING (devicepk)
-//		JOIN field.type USING (typepk)) l`).Scan(&s); err != nil {
-//		return weft.InternalServerError(err)
-//	}
-//
-//	b.WriteString(s)
-//
-//	h.Set("Content-Type", "application/json;version=1")
-//
-//	return &weft.StatusOK
-//}
+func (f *dataLatencyThreshold) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		return res
+	}
+
+	var err error
+	var rows *sql.Rows
+
+	if rows, err = dbR.Query(`SELECT siteID, typeID, lower, upper
+		FROM
+		data.latency_threshold JOIN data.site USING (sitepk)
+		JOIN data.type USING (typepk)`); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	var ts mtrpb.DataLatencyThresholdResult
+
+	for rows.Next() {
+		var t mtrpb.DataLatencyThreshold
+
+		if err = rows.Scan(&t.SiteID, &t.TypeID, &t.Lower, &t.Upper); err != nil {
+			return weft.InternalServerError(err)
+		}
+
+		ts.Result = append(ts.Result, &t)
+	}
+
+	var by []byte
+	if by, err = proto.Marshal(&ts); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	b.Write(by)
+
+	h.Set("Content-Type", "application/x-protobuf")
+
+	return &weft.StatusOK
+}

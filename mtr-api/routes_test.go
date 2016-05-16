@@ -25,6 +25,7 @@ func init() {
 		}
 	}
 }
+
 // routes test the API.
 var routes = wt.Requests{
 	// Creates a device model.  Repeated requests noop.
@@ -182,6 +183,9 @@ var routes = wt.Requests{
 	// Delete a threshold then create it again
 	{URL: "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", Method: "DELETE"},
 	{URL: "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", Method: "PUT"},
+
+	// protobuf of all latency thresholds
+	{URL: "/data/latency/threshold", Accept: "application/x-protobuf"},
 
 	// Tags
 
@@ -653,6 +657,10 @@ func TestFieldMetricsThreshold(t *testing.T) {
 		t.Error(err)
 	}
 
+	if f.Result == nil {
+		t.Error("got nil for /field/metric/threshold protobuf")
+	}
+
 	if len(f.Result) != 1 {
 		t.Error("expected 1 result.")
 	}
@@ -701,6 +709,10 @@ func TestDataSites(t *testing.T) {
 		t.Error(err)
 	}
 
+	if f.Result == nil {
+		t.Error("got nil for /data/site protobuf")
+	}
+
 	if len(f.Result) != 2 {
 		t.Error("expected 2 results.")
 	}
@@ -718,7 +730,7 @@ func TestDataSites(t *testing.T) {
 			if v.Longitude != 176.08100 {
 				t.Errorf("Data site TAUP got expected longitude 176.08100 got %f", v.Longitude)
 			}
- 		}
+		}
 	}
 
 	if !found {
@@ -769,5 +781,57 @@ func TestDataLatencyTag(t *testing.T) {
 
 	if tr.Result[0].TypeID != "latency.strong" {
 		t.Errorf("expected latency.stronge as the first typeID got %s", tr.Result[0].TypeID)
+	}
+}
+
+// protobuf of data latency threshold
+func TestDataLatencyThreshold(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/data/latency/threshold", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.DataLatencyThresholdResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if f.Result == nil {
+		t.Error("got nil for /data/latency/threshold protobuf")
+	}
+
+	if len(f.Result) != 1 {
+		t.Error("expected 1 result.")
+	}
+
+	d := f.Result[0]
+
+	if d.SiteID != "TAUP" {
+		t.Errorf("expected TAUP got %s", d.SiteID)
+	}
+
+	if d.TypeID != "latency.strong" {
+		t.Errorf("expected latency.strong got %s", d.TypeID)
+	}
+
+	if d.Upper != 15000 {
+		t.Errorf("expected 15000 got %d", d.Upper)
+	}
+
+	if d.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", d.Lower)
 	}
 }

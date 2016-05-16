@@ -55,3 +55,19 @@ message DataLatencyTagResult {
     repeated DataLatencyTag result = 1;
 }
 
+message DataLatencyThreshold {
+    // The siteID for the latency e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the latency e.g., latency.gnss.1hz
+    string type_iD  = 2;
+    // The lower threshold for the latency to be good.
+    int32 lower = 3;
+    // The upper threshold for the latency to be good.
+    int32 upper = 4;
+
+}
+
+message DataLatencyThresholdResult {
+    repeated DataLatencyThreshold result = 1;
+}
+
