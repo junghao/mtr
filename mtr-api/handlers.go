@@ -195,6 +195,13 @@ func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 	var d dataSite
 
 	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return d.proto(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
 	case "PUT":
 		return d.save(r)
 	case "DELETE":

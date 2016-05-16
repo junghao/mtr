@@ -29,5 +29,16 @@ message DataLatencySummaryResult {
     repeated DataLatencySummary result = 1;
 }
 
+message DataSite {
+    // The siteID for the metric e.g., TAUP
+    string site_iD = 1;
+    // The site latitude - not usually accurate enough for meta data
+    double latitude = 2;
+    // The site longitude - not usually accurate enough for meta data
+    double longitude = 3;
+}
 
+message DataSiteResult {
+    repeated DataSite result = 1;
+}
 

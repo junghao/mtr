@@ -163,6 +163,9 @@ var routes = wt.Requests{
 	{URL: "/data/site?siteID=WGTN", Method: "DELETE"},
 	{URL: "/data/site?siteID=WGTN&latitude=-38.74270&longitude=176.08100", Method: "PUT"},
 
+	// All data sites as protobuf
+	{URL: "/data/site", Accept: "application/x-protobuf"},
+
 	// min, max, fifty, ninety are optional latency values
 	{URL: "/data/latency?siteID=WGTN&typeID=latency.strong&time=2015-05-14T23:40:30Z&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", Method: "PUT"},
 
@@ -667,5 +670,55 @@ func TestFieldMetricsThreshold(t *testing.T) {
 
 	if d.Lower != 12000 {
 		t.Errorf("expected 12000 got %d", d.Lower)
+	}
+}
+
+// protobuf of data sites.
+func TestDataSites(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/data/site", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.DataSiteResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 2 {
+		t.Error("expected 2 results.")
+	}
+
+	var found bool
+
+	for _, v := range f.Result {
+		if v.SiteID == "TAUP" {
+			found = true
+
+			if v.Latitude != -38.74270 {
+				t.Errorf("Data site TAUP got expected latitude -38.74270 got %f", v.Latitude)
+			}
+
+			if v.Longitude != 176.08100 {
+				t.Errorf("Data site TAUP got expected longitude 176.08100 got %f", v.Longitude)
+			}
+ 		}
+	}
+
+	if !found {
+		t.Error("Didn't find site TAUP")
 	}
 }
