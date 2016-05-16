@@ -5,9 +5,9 @@ import (
 	_ "github.com/lib/pq"
 	"net/http/httptest"
 	"os"
-	"runtime"
-	"strconv"
 	"testing"
+	"log"
+	"io/ioutil"
 )
 
 var testServer *httptest.Server
@@ -40,6 +40,12 @@ func setup(t *testing.T) {
 	//}
 
 	testServer = httptest.NewServer(inbound(mux))
+
+	// Silence the logging unless running with
+	// go test -v
+	if !testing.Verbose() {
+		log.SetOutput(ioutil.Discard)
+	}
 }
 
 func teardown() {
@@ -48,8 +54,3 @@ func teardown() {
 	defer dbR.Close()
 }
 
-// loc returns a string representing the line of code 2 functions calls back.
-func loc() (loc string) {
-	_, _, l, _ := runtime.Caller(2)
-	return "L" + strconv.Itoa(l)
-}

@@ -3,38 +3,292 @@ package main
 import (
 	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
+	wt "github.com/GeoNet/weft/wefttest"
 	"github.com/golang/protobuf/proto"
-	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
 )
 
-var client = &http.Client{}
+func init() {
+	for i, _ := range routes {
+		switch routes[i].Method {
+		case "", "GET":
+			// default Surrogate-Control cache times.
+			if routes[i].Surrogate == "" {
+				routes[i].Surrogate = "max-age=10"
+			}
+		default:
+			// Any non GET requests need authentication
+			routes[i].User = userW
+			routes[i].Password = keyW
+		}
+	}
+}
+// routes test the API.
+var routes = wt.Requests{
+	// Creates a device model.  Repeated requests noop.
+	{URL: "/field/model?modelID=Trimble+NetR9", Method: "PUT"},
 
+	// Delete a model then recreate it.  Delete cascades to devices
+	// with that model (which cascades to metrics)
+	{URL: "/field/model?modelID=Trimble+NetR9", Method: "DELETE"},
+	{URL: "/field/model?modelID=Trimble+NetR9", Method: "PUT"},
+
+	// Devices are at a lat long
+	{URL: "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9&latitude=-38.74270&longitude=176.08100", Method: "PUT"},
+	{URL: "/field/device?deviceID=gps-taupoairport", Method: "DELETE"},
+	{URL: "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9&latitude=-38.74270&longitude=176.08100", Method: "PUT"},
+
+	// Delete all metrics typeID for a device
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage", Method: "DELETE"},
+
+	// Save a metrics
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=14100", Method: "PUT"},
+
+	// Should get a rate limit error for sends in the same minute
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=15100", Method: "PUT", Status: http.StatusTooManyRequests},
+
+	// Tags
+	{URL: "/tag/LINZ", Method: "DELETE"},
+
+	// tag must exist before it can be added to a metric
+	{URL: "/tag/LINZ", Method: "PUT"},
+	{URL: "/tag/TAUP", Method: "PUT"},
+
+	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", Method: "PUT"},
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "PUT"},
+
+	// Delete a tag on a metric
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "DELETE"},
+
+	// Tags
+	{URL: "/tag/LINZ", Method: "DELETE"},
+
+	// tag must exist before it can be added to a metric
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "PUT", Status: http.StatusBadRequest},
+	{URL: "/tag/LINZ", Method: "PUT"},
+	{URL: "/tag/TAUP", Method: "PUT"},
+
+	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", Method: "PUT"},
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "PUT"},
+
+	// Delete a tag on a metric
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "DELETE"},
+
+	// protobuf of all tagged field metrics
+	{URL: "/field/metric/tag", Accept: "application/x-protobuf"},
+
+	// Thresholds
+	// Create a threshold on a metric
+	{URL: "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=15000", Method: "PUT"},
+
+	// Update a threshold on a metric
+	{URL: "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=13000&upper=15000", Method: "PUT"},
+
+	// Delete a threshold on a metric then create it again
+	{URL: "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage", Method: "DELETE"},
+	{URL: "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=45000", Method: "PUT"},
+
+	// GET requests
+	// Non specific Accept headers return svg.
+	// Model
+	{URL: "/field/model", Accept: "application/json;version=1"},
+
+	// Device
+	{URL: "/field/device", Accept: "application/json;version=1"},
+
+	// Metrics.  Resolution is optional on plots.  Resolution is fixed for sparks.
+	// Options for the plot parameter:
+	// line [default] = line plot.
+	// spark = spark line
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage", Content: "image/svg+xml"},
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", Content: "image/svg+xml"},
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=five_minutes", Content: "image/svg+xml"},
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", Content: "image/svg+xml"},
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", Content: "image/svg+xml"},
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", Content: "image/svg+xml"},
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", Status: http.StatusBadRequest, Surrogate: "max-age=86400"},
+	{URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&plot=spark", Content: "image/svg+xml"},
+
+	// Latest metrics as SVG map
+	//  These only pass with the map180 data in the DB.
+	// Values for bbox and insetBbox are ChathamIsland LakeTaupo NewZealand NewZealandRegion
+	// RaoulIsland WhiteIsland
+	// or lhe bounding box for the map defining the lower left and upper right longitude
+	// latitude (EPSG:4327) corners e.g., <code>165,-48,179,-34</code>.  Latitude must be in the range -85 to 85.  Maps can be 180 centric and bbox
+	// definitions for longitude can be -180 to 180 or 0 to 360
+	//
+	// {URL: "/field/metric/summary?bbox=WhiteIsland&width=800&typeID=voltage", Content: "image/svg+xml"},
+	// {URL: "/field/metric/summary?bbox=NewZealand&width=800&typeID=voltage", Content: "image/svg+xml"}.
+
+	// All latest metrics as a FieldMetricLatestResult protobuf
+	{URL: "/field/metric/summary", Accept: "application/x-protobuf"},
+
+	// Latest voltage metrics
+	{URL: "/field/metric/summary?typeID=voltage", Accept: "application/x-protobuf"},
+
+	// Thresholds
+	{URL: "/field/metric/threshold", Accept: "application/json;version=1"},
+
+	// Metric types
+	{URL: "/field/type", Accept: "application/json;version=1"},
+
+	// Data latency
+
+	// Delete site - cascades to latency values
+	{URL: "/data/site?siteID=TAUP", Method: "DELETE"},
+
+	// create a site.  Lat lon are indicative only and may not be suitable for
+	// precise data use.
+	{URL: "/data/site?siteID=TAUP&latitude=-38.74270&longitude=176.08100", Method: "PUT"},
+
+	// update the site location
+	{URL: "/data/site?siteID=TAUP&latitude=-38.64270&longitude=176.08100", Method: "PUT"},
+
+	// delete then recreate
+	{URL: "/data/site?siteID=TAUP", Method: "DELETE"},
+	{URL: "/data/site?siteID=TAUP&latitude=-38.74270&longitude=176.08100", Method: "PUT"},
+
+	// Should get a rate limit error for sends in the same minute
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong&time=2015-05-14T21:40:30Z&mean=10000", Method: "PUT"},
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong&time=2015-05-14T21:40:30Z&mean=14100", Status: http.StatusTooManyRequests, Method: "PUT"},
+
+	// Add another site, some latency data, then delete.
+	{URL: "/data/site?siteID=WGTN", Method: "DELETE"},
+	{URL: "/data/site?siteID=WGTN&latitude=-38.74270&longitude=176.08100", Method: "PUT"},
+
+	// min, max, fifty, ninety are optional latency values
+	{URL: "/data/latency?siteID=WGTN&typeID=latency.strong&time=2015-05-14T23:40:30Z&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", Method: "PUT"},
+
+	{URL: "/data/latency?siteID=WGTN&typeID=latency.strong", Method: "DELETE"},
+
+	// Create a threshold for latency.
+	// I assume a single threshold would be for mean, fifty, and ninety?
+	{URL: "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", Method: "DELETE"},
+	{URL: "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", Method: "PUT"},
+
+	// Update a threshold
+	{URL: "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=13000&upper=15000", Method: "PUT"},
+
+	// Delete a threshold then create it again
+	{URL: "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", Method: "DELETE"},
+	{URL: "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", Method: "PUT"},
+
+	// Tags
+
+	{URL: "/tag/FRED", Method: "DELETE"},
+	{URL: "/tag/DAGG", Method: "DELETE"},
+
+	// tag must exist before it can be added to a metric
+	{URL: "/data/latency/tag?siteID=FRED&typeID=latency.strong&tag=TAUP", Status: http.StatusBadRequest, Method: "PUT"},
+
+	{URL: "/tag/FRED", Method: "PUT"},
+	{URL: "/tag/DAGG", Method: "PUT"},
+	{URL: "/tag/TAUP", Method: "PUT"},
+
+	// Create a tag on a latency.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	{URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=FRED", Method: "PUT"},
+	{URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=DAGG", Method: "PUT"},
+	{URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", Method: "PUT"},
+
+	// Latency plots.  Resolution is optional on plots and sparks.
+	// Options for the plot parameter:
+	// line [default] = line plot.
+	// spark = spark line.
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong"},
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute"},
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=five_minutes"},
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour"},
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute"},
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour"},
+	{URL: "/data/latency?siteID=TAUP&typeID=latency.strong&plot=spark"},
+
+	// Tags
+
+	{URL: "/tag/LINZ", Method: "DELETE"},
+
+	// tag must exist before it can be added to a metric
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Status: http.StatusBadRequest, Method: "PUT"},
+
+	{URL: "/tag/LINZ", Method: "PUT"},
+	{URL: "/tag/TAUP", Method: "PUT"},
+
+	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", Method: "PUT"},
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "PUT"},
+
+	// Delete a tag on a metric
+	{URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "DELETE"},
+}
+
+// Test all routes give the expected response.  Also check with
+// cache busters and extra query paramters.
 func TestRoutes(t *testing.T) {
 	setup(t)
 	defer teardown()
 
-	/*
-		Field metrics
-	*/
+	for _, r := range routes {
+		if b, err := r.Do(testServer.URL); err != nil {
+			t.Error(err)
+			t.Error(string(b))
+		}
+	}
 
-	// Creates a device model.  Repeated requests noop.
-	doRequest("PUT", "*/*", "/field/model?modelID=Trimble+NetR9", 200, t)
+	if err := routes.DoCheckQuery(testServer.URL); err != nil {
+		t.Error(err)
+	}
+}
 
-	// Delete a model (then recreate it).  Delete cascades to devices with that model (which cascades to metrics)
-	doRequest("DELETE", "*/*", "/field/model?modelID=Trimble+NetR9", 200, t)
-	doRequest("PUT", "*/*", "/field/model?modelID=Trimble+NetR9", 200, t)
+// Any routes that are not GET should http.StatusUnauthorized without authorisation.
+func TestRoutesNoAuth(t *testing.T) {
+	setup(t)
+	defer teardown()
 
-	// Devices are at a lat long
-	doRequest("PUT", "*/*", "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9&latitude=-38.74270&longitude=176.08100", 200, t)
-	doRequest("DELETE", "*/*", "/field/device?deviceID=gps-taupoairport", 200, t)
-	doRequest("PUT", "*/*", "/field/device?deviceID=gps-taupoairport&modelID=Trimble+NetR9&latitude=-38.74270&longitude=176.08100", 200, t)
+	for _, r := range routes {
+		switch r.Method {
+		case "", "GET":
+		default:
+			r.User = ""
+			r.Password = ""
+			r.Status = http.StatusUnauthorized
 
-	doRequest("DELETE", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
+			if _, err := r.Do(testServer.URL); err != nil {
+				t.Error(err)
+			}
+		}
+	}
+}
 
-	// Load some metrics (every 5 mins)
+/*
+Adds some plot data. Run just this test:
+
+    go test -run TestPlotData
+
+Then visit
+
+http://localhost:8080/field/metric?deviceID=gps-taupoairport&typeID=voltage
+http://localhost:8080/data/latency?siteID=TAUP&typeID=latency.strong
+*/
+func TestPlotData(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{
+		User:     userW,
+		Password: keyW,
+		Method:   "PUT",
+	}
+	var err error
+
+	// Load some field metrics (every 5 mins)
 	now := time.Now().UTC()
 	v := 14000
 	for i := -720; i < 0; i += 5 {
@@ -45,110 +299,14 @@ func TestRoutes(t *testing.T) {
 			}
 		}
 
-		doRequest("PUT", "*/*", fmt.Sprintf("/field/metric?deviceID=gps-taupoairport&typeID=voltage&time=%s&value=%d",
-			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v), 200, t)
+		r.URL = fmt.Sprintf("/field/metric?deviceID=gps-taupoairport&typeID=voltage&time=%s&value=%d",
+			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v)
+
+		if _, err = r.Do(testServer.URL); err != nil {
+			t.Error(err)
+		}
+
 	}
-
-	// Should get a rate limit error for sends in the same minute
-	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=14100", 200, t)
-	doRequest("PUT", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&value=15100", 429, t)
-
-	// Tags
-
-	doRequest("DELETE", "*/*", "/tag/LINZ", 200, t)
-
-	// tag must exist before it can be added to a metric
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 400, t)
-
-	doRequest("PUT", "*/*", "/tag/LINZ", 200, t)
-	doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
-
-	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 200, t)
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
-
-	// Delete a tag on a metric
-	doRequest("DELETE", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
-
-	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
-		t.Error(err)
-	}
-
-	// Thresholds
-
-	// Create a threshold on a metric
-	doRequest("PUT", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=15000", 200, t)
-
-	// Update a threshold on a metric
-	doRequest("PUT", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=13000&upper=15000", 200, t)
-
-	// Delete a threshold on a metric then create it again
-	doRequest("DELETE", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage", 200, t)
-	doRequest("PUT", "*/*", "/field/metric/threshold?deviceID=gps-taupoairport&typeID=voltage&lower=12000&upper=45000", 200, t)
-
-	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
-		t.Error(err)
-	}
-
-	// GET requests
-	// Non specific Accept headers return svg.
-
-	// Model
-	doRequest("GET", "application/json;version=1", "/field/model", 200, t)
-
-	// Device
-	doRequest("GET", "application/json;version=1", "/field/device", 200, t)
-
-	// Metrics.  Resolution is optional on plots.  Resolution is fixed for sparks.
-	// Options for the plot parameter:
-	// line [default] = line plot.
-	// spark = spark line
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage", 200, t)
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=five_minutes", 200, t)
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", 200, t)
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", 200, t)
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", 200, t)
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", 400, t)
-	doRequest("GET", "*/*", "/field/metric?deviceID=gps-taupoairport&typeID=voltage&plot=spark", 200, t)
-
-	// Latest metrics as SVG map
-	//  These only pass with the map180 data in the DB.
-	// Values for bbox and insetBbox are ChathamIsland LakeTaupo NewZealand NewZealandRegion
-	// RaoulIsland WhiteIsland
-	// or lhe bounding box for the map defining the lower left and upper right longitude
-	// latitude (EPSG:4327) corners e.g., <code>165,-48,179,-34</code>.  Latitude must be in the range -85 to 85.  Maps can be 180 centric and bbox
-	// definitions for longitude can be -180 to 180 or 0 to 360
-	//
-	//doRequest("GET", "*/*", "/field/metric/summary?bbox=WhiteIsland&width=800&typeID=voltage", 200, t)
-	//doRequest("GET", "*/*", "/field/metric/summary?bbox=NewZealand&width=800&typeID=voltage", 200, t)
-
-	// All latest metrics as a FieldMetricLatestResult protobuf
-	doRequest("GET", "application/x-protobuf", "/field/metric/summary", 200, t)
-	// Latest voltage metrics
-	doRequest("GET", "application/x-protobuf", "/field/metric/summary?typeID=voltage", 200, t)
-
-	// Thresholds
-	doRequest("GET", "application/json;version=1", "/field/metric/threshold", 200, t)
-
-	// Metric types
-	doRequest("GET", "application/json;version=1", "/field/type", 200, t) // All metrics type
-
-	/*
-		Data Latency
-	*/
-
-	// Delete site - cascades to metrics
-	doRequest("DELETE", "*/*", "/data/site?siteID=TAUP", 200, t)
-
-	// create a site.  Lat lon are indicative only and may not be suitable for
-	// precise data use.
-	doRequest("PUT", "*/*", "/data/site?siteID=TAUP&latitude=-38.74270&longitude=176.08100", 200, t)
-	// update the site location
-	doRequest("PUT", "*/*", "/data/site?siteID=TAUP&latitude=-38.64270&longitude=176.08100", 200, t)
-	// delete then recreate
-	doRequest("DELETE", "*/*", "/data/site?siteID=TAUP", 200, t)
-	doRequest("PUT", "*/*", "/data/site?siteID=TAUP&latitude=-38.74270&longitude=176.08100", 200, t)
 
 	// Load some latency metrics (every 5 mins)
 	now = time.Now().UTC()
@@ -161,117 +319,81 @@ func TestRoutes(t *testing.T) {
 			}
 		}
 
-		doRequest("PUT", "*/*", fmt.Sprintf("/data/latency?siteID=TAUP&typeID=latency.strong&time=%s&mean=%d",
-			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v), 200, t)
+		r.URL = fmt.Sprintf("/data/latency?siteID=TAUP&typeID=latency.strong&time=%s&mean=%d",
+			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v)
+
+		if _, err = r.Do(testServer.URL); err != nil {
+			t.Error(err)
+		}
 	}
-
-	// Should get a rate limit error for sends in the same minute
-	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=10000", 200, t)
-	doRequest("PUT", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&time="+now.Truncate(time.Minute).Format(time.RFC3339)+"&mean=14100", 429, t)
-
-	// Refresh the latency_summary view.  Usually done on timer in server.go
-	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
-		t.Error(err)
-	}
-
-	// Add another site, some latency data, then delete.
-	doRequest("DELETE", "*/*", "/data/site?siteID=WGTN", 200, t)
-	doRequest("PUT", "*/*", "/data/site?siteID=WGTN&latitude=-38.74270&longitude=176.08100", 200, t)
-
-	// min, max, fifty, ninety are optional latency values
-	doRequest("PUT", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong&time="+time.Now().UTC().Format(time.RFC3339)+
-		"&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", 200, t)
-
-	doRequest("DELETE", "*/*", "/data/latency?siteID=WGTN&typeID=latency.strong", 200, t)
-
-	// Create a threshold for latency.
-	// I assume a single threshold would be for mean, fifty, and ninety?
-	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
-	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
-
-	// Update a threshold
-	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=13000&upper=15000", 200, t)
-
-	// Delete a threshold then create it again
-	doRequest("DELETE", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong", 200, t)
-	doRequest("PUT", "*/*", "/data/latency/threshold?siteID=TAUP&typeID=latency.strong&lower=12000&upper=15000", 200, t)
-
-	// Tags
-
-	doRequest("DELETE", "*/*", "/tag/FRED", 200, t)
-	doRequest("DELETE", "*/*", "/tag/DAGG", 200, t)
-
-	// tag must exist before it can be added to a metric
-	doRequest("PUT", "*/*", "/data/latency/tag?siteID=FRED&typeID=latency.strong&tag=TAUP", 400, t)
-
-	doRequest("PUT", "*/*", "/tag/FRED", 200, t)
-	doRequest("PUT", "*/*", "/tag/DAGG", 200, t)
-	doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
-
-	// Create a tag on a latency.  Multiple tags per metric are possible.  Repeat PUT is ok.
-	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=FRED", 200, t)
-	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=DAGG", 200, t)
-	doRequest("PUT", "*/*", "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", 200, t)
-
-	// Latency plots.  Resolution is optional on plots and sparks.
-	// Options for the plot parameter:
-	// line [default] = line plot.
-	// spark = spark line.
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong", 200, t)
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", 200, t)
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=five_minutes", 200, t)
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", 200, t)
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", 200, t)
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=day", 400, t)
-	doRequest("GET", "*/*", "/data/latency?siteID=TAUP&typeID=latency.strong&plot=spark", 200, t)
-
-	// Tags
-
-	doRequest("DELETE", "*/*", "/tag/LINZ", 200, t)
-
-	// tag must exist before it can be added to a metric
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 400, t)
-
-	doRequest("PUT", "*/*", "/tag/LINZ", 200, t)
-	doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
-
-	// Create a tag on a metric type.  Multiple tags per metric are possible.  Repeat PUT is ok.
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", 200, t)
-	doRequest("PUT", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
-
-	// Delete a tag on a metric
-	doRequest("DELETE", "*/*", "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", 200, t)
-
-	//doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
-	//doRequest("DELETE", "*/*", "/tag/TAUP", 200, t)
-	//doRequest("PUT", "*/*", "/tag/TAUP", 200, t)
-
-	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
-		t.Error(err)
-	}
-
-	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
-		t.Error(err)
-	}
-
-	// These tests use the data loaded above.
-	testFieldMetricsSummary(t)
-	testDataLatencySummary(t)
-	testTagAllProto(t)
-	testTagProto(t)
 }
 
-func testTagProto(t *testing.T) {
+// All field metric tags as a protobuf.
+func TestFieldMetricTag(t *testing.T) {
+	setup(t)
+	defer teardown()
 
-	// searches for all metrics with the tag TAUP and returns a protobuf
-	// of summary results.
-	doRequest("GET", "application/x-protobuf", "/tag/TAUP", 200, t)
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/field/metric/tag", Accept: "application/x-protobuf"}
 
 	var b []byte
 	var err error
 
-	if b, err = getBytes("application/x-protobuf", "/tag/TAUP"); err != nil {
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var tr mtrpb.FieldMetricTagResult
+
+	if err = proto.Unmarshal(b, &tr); err != nil {
+		t.Error(err)
+	}
+
+	if tr.Result == nil {
+		t.Error("got nil for /field/metric/tag protobuf")
+	}
+
+	if len(tr.Result) != 1 {
+		t.Errorf("expected 1 tag result got %d", len(tr.Result))
+	}
+
+	if tr.Result[0].Tag != "TAUP" {
+		t.Errorf("expected TAUP as the first tag got %s", tr.Result[0].Tag)
+	}
+
+	if tr.Result[0].DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport as the first deviceID got %s", tr.Result[0].DeviceID)
+	}
+
+	if tr.Result[0].TypeID != "voltage" {
+		t.Errorf("expected voltage as the first typeID got %s", tr.Result[0].TypeID)
+	}
+}
+
+// protobuf of field metrics and latencies for a single tag.
+func TestTag(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	if err := refreshViews(); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/tag/TAUP", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -298,16 +420,22 @@ func testTagProto(t *testing.T) {
 	}
 }
 
-func testTagAllProto(t *testing.T) {
+// all tags as a protobuf
+func TestTagAll(t *testing.T) {
+	setup(t)
+	defer teardown()
 
-	// searches for all tags that have been added to a metric.
-	// returns a protobus of tag strings for use in the type ahead etc.
-	doRequest("GET", "application/x-protobuf", "/tag", 200, t)
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/tag", Accept: "application/x-protobuf"}
 
 	var b []byte
 	var err error
 
-	if b, err = getBytes("application/x-protobuf", "/tag"); err != nil {
+	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -326,14 +454,26 @@ func testTagAllProto(t *testing.T) {
 	}
 }
 
-func testDataLatencySummary(t *testing.T) {
+// protobuf of latency summary info.
+func TestDataLatencySummary(t *testing.T) {
+	setup(t)
+	defer teardown()
 
-	doRequest("GET", "application/x-protobuf", "/data/latency/summary", 200, t)
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
 
-	var err error
+	if err := refreshViews(); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/data/latency/summary", Accept: "application/x-protobuf"}
+
 	var b []byte
+	var err error
 
-	if b, err = getBytes("application/x-protobuf", "/data/latency/summary"); err != nil {
+	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -347,43 +487,43 @@ func testDataLatencySummary(t *testing.T) {
 		t.Error("expected 1 result.")
 	}
 
-	r := f.Result[0]
+	d := f.Result[0]
 
-	if r.SiteID != "TAUP" {
-		t.Errorf("expected TAUP got %s", r.SiteID)
+	if d.SiteID != "TAUP" {
+		t.Errorf("expected TAUP got %s", d.SiteID)
 	}
 
-	if r.TypeID != "latency.strong" {
-		t.Errorf("expected latency.strong got %s", r.TypeID)
+	if d.TypeID != "latency.strong" {
+		t.Errorf("expected latency.strong got %s", d.TypeID)
 	}
 
-	if r.Mean != 10000 {
-		t.Errorf("expected 10000 got %d", r.Mean)
+	if d.Mean != 10000 {
+		t.Errorf("expected 10000 got %d", d.Mean)
 	}
 
-	if r.Fifty != 0 {
-		t.Errorf("expected 0 got %d", r.Fifty)
+	if d.Fifty != 0 {
+		t.Errorf("expected 0 got %d", d.Fifty)
 	}
 
-	if r.Ninety != 0 {
-		t.Errorf("expected 0 got %d", r.Ninety)
+	if d.Ninety != 0 {
+		t.Errorf("expected 0 got %d", d.Ninety)
 	}
 
-	if r.Seconds == 0 {
+	if d.Seconds == 0 {
 		t.Error("unexpected zero seconds")
 	}
 
-	if r.Upper != 15000 {
-		t.Errorf("expected 15000 got %d", r.Upper)
+	if d.Upper != 15000 {
+		t.Errorf("expected 15000 got %d", d.Upper)
 	}
 
-	if r.Lower != 12000 {
-		t.Errorf("expected 12000 got %d", r.Lower)
+	if d.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", d.Lower)
 	}
 
-	doRequest("GET", "application/x-protobuf", "/data/latency/summary?typeID=latency.strong", 200, t)
+	r.URL = "/data/latency/summary?typeID=latency.strong"
 
-	if b, err = getBytes("application/x-protobuf", "/data/latency/summary?typeID=latency.strong"); err != nil {
+	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -398,13 +538,26 @@ func testDataLatencySummary(t *testing.T) {
 	}
 }
 
-func testFieldMetricsSummary(t *testing.T) {
-	doRequest("GET", "application/x-protobuf", "/field/metric/summary", 200, t)
+// protobuf of field metric summary info.
+func TestFieldMetricsSummary(t *testing.T) {
+	setup(t)
+	defer teardown()
 
-	var err error
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	if err := refreshViews(); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/field/metric/summary", Accept: "application/x-protobuf"}
+
 	var b []byte
+	var err error
 
-	if b, err = getBytes("application/x-protobuf", "/field/metric/summary"); err != nil {
+	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -418,40 +571,40 @@ func testFieldMetricsSummary(t *testing.T) {
 		t.Error("expected 1 result.")
 	}
 
-	r := f.Result[0]
+	d := f.Result[0]
 
-	if r.DeviceID != "gps-taupoairport" {
-		t.Errorf("expected gps-taupoairport got %s", r.DeviceID)
+	if d.DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport got %s", d.DeviceID)
 	}
 
-	if r.ModelID != "Trimble NetR9" {
-		t.Errorf("expected Trimble NetR9 got %s", r.ModelID)
+	if d.ModelID != "Trimble NetR9" {
+		t.Errorf("expected Trimble NetR9 got %s", d.ModelID)
 	}
 
-	if r.TypeID != "voltage" {
-		t.Errorf("expected voltage got %s", r.TypeID)
+	if d.TypeID != "voltage" {
+		t.Errorf("expected voltage got %s", d.TypeID)
 	}
 
-	if r.Value != 14100 {
-		t.Errorf("expected 14100 got %d", r.Value)
+	if d.Value != 14100 {
+		t.Errorf("expected 14100 got %d", d.Value)
 	}
 
-	if r.Seconds == 0 {
+	if d.Seconds == 0 {
 		t.Error("unexpected zero seconds")
 	}
 
-	if r.Upper != 45000 {
-		t.Errorf("expected 45000 got %d", r.Upper)
+	if d.Upper != 45000 {
+		t.Errorf("expected 45000 got %d", d.Upper)
 	}
 
-	if r.Lower != 12000 {
-		t.Errorf("expected 12000 got %d", r.Lower)
+	if d.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", d.Lower)
 	}
 
 	// should be no errors and empty result for typeID=conn
-	doRequest("GET", "application/x-protobuf", "/field/metric/summary?typeID=conn", 200, t)
+	r.URL = "/field/metric/summary?typeID=conn"
 
-	if b, err = getBytes("application/x-protobuf", "/field/metric/summary?typeID=conn"); err != nil {
+	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -463,82 +616,5 @@ func testFieldMetricsSummary(t *testing.T) {
 
 	if len(f.Result) != 0 {
 		t.Error("expected 0 results.")
-	}
-}
-
-func getBytes(accept, uri string) (b []byte, err error) {
-	var request *http.Request
-	var response *http.Response
-
-	if request, err = http.NewRequest("GET", testServer.URL+uri, nil); err != nil {
-		return
-	}
-
-	request.Header.Add("Accept", accept)
-
-	if response, err = client.Do(request); err != nil {
-		return
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		err = fmt.Errorf("non 200 response: %d for %s", response.StatusCode, uri)
-	}
-
-	b, err = ioutil.ReadAll(response.Body)
-
-	return
-}
-
-func doRequest(method, accept, uri string, status int, t *testing.T) {
-	var request *http.Request
-	var response *http.Response
-	var err error
-	l := loc()
-
-	if request, err = http.NewRequest(method, testServer.URL+uri, nil); err != nil {
-		t.Fatal(err)
-	}
-
-	request.Header.Add("Accept", accept)
-
-	if method != "GET" {
-		// Check that we have to be authenticated for non GET requests.
-		// Run the all first with out auth
-		var resp *http.Response
-		if resp, err = client.Do(request); err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusUnauthorized {
-			t.Errorf("Wrong response code for %s with no auth should be status.Unauthorized", l)
-		}
-
-		request.SetBasicAuth(userW, keyW)
-	}
-
-	if response, err = client.Do(request); err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-
-	if status != response.StatusCode {
-		t.Errorf("Wrong response code for %s got %d expected %d", l, response.StatusCode, status)
-		by, _ := ioutil.ReadAll(response.Body)
-		t.Log(string(by))
-	}
-
-	if method == "GET" && status == http.StatusOK {
-		switch accept {
-		case "*/*":
-			if response.Header.Get("Content-Type") != "image/svg+xml" {
-				t.Errorf("Wrong Content-Type for %s got %s expected image/svg+xml", l, response.Header.Get("Content-Type"))
-			}
-		default:
-			if response.Header.Get("Content-Type") != accept {
-				t.Errorf("Wrong Content-Type for %s got %s expected %s", l, response.Header.Get("Content-Type"), accept)
-			}
-		}
 	}
 }

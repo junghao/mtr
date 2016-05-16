@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"bytes"
 )
 
 var mux *http.ServeMux
@@ -21,6 +22,7 @@ var keyW = os.Getenv("MTR_KEY")
 
 func init() {
 	mux = http.NewServeMux()
+	mux.HandleFunc("/", weft.MakeHandlerAPI(home))
 	mux.HandleFunc("/tag/", weft.MakeHandlerAPI(tagHandler))
 	mux.HandleFunc("/tag", weft.MakeHandlerAPI(tagsHandler))
 	mux.HandleFunc("/app/metric", weft.MakeHandlerAPI(appMetricHandler))
@@ -82,6 +84,14 @@ func main() {
 
 	log.Println("starting server")
 	log.Fatal(http.ListenAndServe(":8080", inbound(mux)))
+}
+
+func home(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		return res
+	}
+
+	return &weft.NotFound
 }
 
 func inbound(h http.Handler) http.Handler {
