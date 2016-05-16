@@ -253,6 +253,13 @@ func dataLatencyTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 	var f dataLatencyTag
 
 	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return f.all(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
 	case "PUT":
 		return f.save(r, h, b)
 	case "DELETE":

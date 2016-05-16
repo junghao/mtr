@@ -200,6 +200,9 @@ var routes = wt.Requests{
 	{URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=DAGG", Method: "PUT"},
 	{URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", Method: "PUT"},
 
+	// protobuf of all tagged data latencies
+	{URL: "/data/latency/tag", Accept: "application/x-protobuf"},
+
 	// Latency plots.  Resolution is optional on plots and sparks.
 	// Options for the plot parameter:
 	// line [default] = line plot.
@@ -720,5 +723,51 @@ func TestDataSites(t *testing.T) {
 
 	if !found {
 		t.Error("Didn't find site TAUP")
+	}
+}
+
+// All data latency tags as a protobuf.
+func TestDataLatencyTag(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{URL: "/data/latency/tag", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var tr mtrpb.DataLatencyTagResult
+
+	if err = proto.Unmarshal(b, &tr); err != nil {
+		t.Error(err)
+	}
+
+	if tr.Result == nil {
+		t.Error("got nil for /data/latency/tag protobuf")
+	}
+
+	if len(tr.Result) != 3 {
+		t.Errorf("expected 3 tag results got %d", len(tr.Result))
+	}
+
+	if tr.Result[0].Tag != "DAGG" {
+		t.Errorf("expected DAGG as the first tag got %s", tr.Result[0].Tag)
+	}
+
+	if tr.Result[0].SiteID != "TAUP" {
+		t.Errorf("expected TAUP as the first siteID got %s", tr.Result[0].Tag)
+	}
+
+	if tr.Result[0].TypeID != "latency.strong" {
+		t.Errorf("expected latency.stronge as the first typeID got %s", tr.Result[0].TypeID)
 	}
 }
