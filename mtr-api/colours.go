@@ -58,8 +58,15 @@ func svgColour(id string, pk int) string {
 	}
 
 	// pk is typically small.  May need a different way of choosing color later.
-	for pk > 9 {
-		pk = pk - 10
+	for pk > 8 {
+		pk = pk - 9
+	}
+
+	switch {
+	case pk < 0:
+		pk = 0
+	case pk > 8:
+		pk = 0
 	}
 
 	i := strings.LastIndex(id, ".")
