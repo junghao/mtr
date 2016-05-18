@@ -11,12 +11,19 @@
 </div>
 {{if eq .Path "/data"}}
 <div class="row">
-    <div class="col-xs-12 col-md-4">
-        {{template "data_main" .Summary}}
-    </div>
+    {{template "panels" .}}
 </div>
-{{else if eq .Path "/data/plot"}}{{template "data_site_latency" .}}
-{{else if eq .Path "/data/sites"}}{{template "data_sites" .}}
-{{else if eq .Path "/data/metrics"}}{{template "data_metrics" .}}
+{{else if eq .Path "/data/plot"}}
+    {{template "data_plot" .}}
+{{else}}
+<div class="row">
+    {{if .Panels}}
+        {{template "panels" .}}
+    {{else if .SparkGroups}}
+        {{template "spark_rows" .}}
+    {{else}}
+        <div class="col-xs-12 col-md-12 h3">No metrics available.</div>
+    {{end}}
+</div>
 {{end}}
 {{end}}

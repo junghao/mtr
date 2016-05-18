@@ -1,0 +1,158 @@
+{{define "panels"}}
+{{template "page_parm_list" .}}
+{{range .Panels}}
+    {{$statusLink:= .StatusLink}}
+    <div class="col-xs-12 col-md-4">
+        <div class="row">
+            <div class="col-xs-12 col-md-12 h2">
+                {{.Title}}
+            </div>
+        </div>
+        {{with index .Values "sites"}}
+        {{if .ID}}
+        <a href="{{.Link}}">
+            <div class="row mtr-size mtr-callout mtr-sub-title">
+                <div class="col-xs-12 col-md-12">Sites {{.Count}}</div>
+            </div>
+        </a>
+        {{end}}
+        {{end}}
+        {{with index .Values "devices"}}
+        {{if .ID}}
+        <a href="{{.Link}}">
+            <div class="row mtr-size mtr-callout mtr-sub-title">
+                <div class="col-xs-12 col-md-12">Devices {{.Count}}</div>
+            </div>
+        </a>
+        {{end}}
+        {{end}}
+        {{with index .Values "metrics"}}
+        {{if .ID}}
+        <a href="{{.Link}}">
+            <div class="row mtr-size mtr-callout">
+                <div class="col-xs-12 col-md-12">Metrics {{.Count}}</div>
+            </div>
+        </a>
+        {{end}}
+        {{end}}
+        {{with index .Values "good"}}
+        <a href="{{$statusLink}}&status=good">
+            <div class="row mtr-callout mtr-callout-good mtr-size">
+                <div class="col-xs-12 col-md-12">Good {{.Count}}</div>
+            </div>
+        </a>
+        {{end}}
+        {{with index .Values "bad"}}
+        <a href="{{$statusLink}}&status=bad">
+            <div class="row mtr-callout mtr-callout-bad mtr-size">
+                <div class="col-xs-12 col-md-12">Bad {{.Count}}</div>
+            </div>
+        </a>
+        {{end}}
+        {{with index .Values "unknown"}}
+        <a href="{{$statusLink}}&status=unknown">
+            <div class="row mtr-callout mtr-callout-unknown mtr-size">
+                <div class="col-xs-12 col-md-12">Unknown {{.Count}}</div>
+            </div>
+        </a>
+        {{end}}
+        {{with index .Values "late"}}
+        <a href="{{$statusLink}}&status=late">
+            <div class="row mtr-callout mtr-callout-late mtr-size">
+                <div class="col-xs-12 col-md-12">System Error {{.Count}}</div>
+            </div>
+        </a>
+        {{end}}
+    </div>
+    {{end}}
+{{end}}
+
+{{define "spark_rows"}}
+{{$mtrApiUrl:=.MtrApiUrl}}
+{{template "page_parm_list" .}}
+{{range .SparkGroups}}
+{{if .Title}}
+<div class="col-xs-12 col-md-12">
+    <div class="row">
+        <h4>{{.Title}}</h4>
+    </div>
+</div>
+{{end}}
+{{range .Rows}}
+<div class="col-xs-12 col-md-6">
+    <a href="{{.Link}}">
+        <div class="row mtr-callout mtr-callout-{{.Status}}">
+            <div class="col-xs-8 col-md-8">
+                {{.Title}} {{.Status}}
+            </div>
+            <div class="col-xs-4 col-md-4">
+                <img src="{{$mtrApiUrl}}{{.SparkUrl}}&plot=spark&resolution=five_minutes"/>
+            </div>
+        </div>
+    </a>
+</div>
+{{end}}
+{{end}}
+{{end}}
+
+{{define "field_plot"}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <img src="{{.MtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+{{end}}
+
+{{define "data_plot"}}
+<div class="row">
+    <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/></div>
+</div>
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+{{end}}
+
+{{define "page_parm_list"}}
+<div class="col-xs-12 col-md-12">
+    {{if .ModelID}}
+    <div class="row h3">
+        ModelID:{{.ModelID}}
+    </div>
+    {{end}}
+    {{if .TypeID}}
+    <div class="row h3">
+        TypeID:{{.TypeID}}
+    </div>
+    {{end}}
+    {{if .DeviceID}}
+    <div class="row h3">
+        DeviceID:{{.DeviceID}}
+    </div>
+    {{end}}
+    {{if .SiteID}}
+    <div class="row h3">
+        SiteID:{{.SiteID}}
+    </div>
+    {{end}}
+    {{if .Status}}
+    <div class="row h3">
+        Status:{{.Status}}
+    </div>
+    {{end}}
+</div>
+{{end}}

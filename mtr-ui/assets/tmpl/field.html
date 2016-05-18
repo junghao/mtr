@@ -11,22 +11,19 @@
 </div>
 {{if eq .Path "/field"}}
 <div class="row">
-    <div class="col-xs-12 col-md-4">
-        {{template "field_main" .Summary}}
-    </div>
+    {{template "panels" .}}
 </div>
-{{else if eq .Path "/field/metrics"}}{{template "field_metrics" .}}
-{{else if eq .Path "/field/plot"}}{{template "field_device_metric" .}}
-{{else if eq .Path "/field/devices"}}
-{{if .DeviceModels}}
-{{template "field_device_models" .}}
-{{else if .Devices}}
-<div class="row">
-    <div class="col-xs-12 col-md-12 h4">{{.ModelID}} (Total: {{len .Devices}})</div>
-</div>
-{{template "field_devices" .}}
+{{else if eq .Path "/field/plot"}}
+{{template "field_plot" .}}
 {{else}}
-<h3>No metric available.</h3>
-{{end}}
+<div class="row">
+    {{if .Panels}}
+        {{template "panels" .}}
+    {{else if .SparkGroups}}
+        {{template "spark_rows" .}}
+    {{else}}
+        <div class="col-xs-12 col-md-12 h3">No metrics available.</div>
+    {{end}}
+</div>
 {{end}}
 {{end}}

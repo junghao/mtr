@@ -9,97 +9,14 @@ import (
 	"sort"
 )
 
-type fieldPage struct {
-	page
-	Path         string
-	Summary      map[string]int
-	Metrics      []idCount
-	DeviceModels []deviceModel
-	Devices      []device
-	ModelID      string
-	DeviceID     string
-	TypeID       string
-	Status       string
-	Resolution   string
-	MtrApiUrl    string
-}
-
-type deviceModels []deviceModel
-
-func (m deviceModels) Len() int {
-	return len(m)
-}
-
-func (m deviceModels) Less(i, j int) bool {
-	return m[i].ModelID < m[j].ModelID
-}
-
-func (m deviceModels) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-type devices []device
-
-func (m devices) Len() int {
-	return len(m)
-}
-
-func (m devices) Less(i, j int) bool {
-	return m[i].DeviceID < m[j].DeviceID
-}
-
-func (m devices) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-type idCounts []idCount
-
-func (m idCounts) Len() int {
-	return len(m)
-}
-
-func (m idCounts) Less(i, j int) bool {
-	return m[i].ID < m[j].ID
-}
-
-func (m idCounts) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-type deviceModel struct {
-	ModelID     string
-	TypeCount   int
-	DeviceCount int
-	Count       map[string]int
-}
-
-type device struct {
-	DeviceID string
-	ModelID  string
-	typeStatus
-}
-
-type typeStatus struct {
-	TypeID string
-	Status string
-}
-
-type idCount struct {
-	ID          string
-	Description string
-	Count       map[string]int
-}
-
 func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-
 	var err error
 
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
 
-	// We create a page struct with variables to substitute into the loaded template
-	p := fieldPage{}
+	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR"
 
@@ -107,9 +24,12 @@ func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 		return weft.InternalServerError(err)
 	}
 
-	if p.Summary, err = getFieldSummary(); err != nil {
+	var pa panel
+	if pa, err = getFieldSummary(); err != nil {
 		return weft.InternalServerError(err)
 	}
+
+	p.Panels = []panel{pa}
 
 	if err = fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return weft.InternalServerError(err)
@@ -119,31 +39,29 @@ func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 }
 
 func fieldMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-
 	var err error
-
-	if res := weft.CheckQuery(r, []string{}, []string{"status"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"status", "modelID", "typeID", "deviceID"}); !res.Ok {
 		return res
 	}
 
-	// We create a page struct with variables to substitute into the loaded template
-	p := fieldPage{}
+	p := mtrUiPage{}
 	p.Path = r.URL.Path
-	p.Border.Title = "GeoNet MTR"
 	p.MtrApiUrl = mtrApiUrl.String()
-	q := r.URL.Query()
-	p.Status = q.Get("status")
-
+	p.Border.Title = "GeoNet MTR"
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
 	}
 
-	if p.Status != "" {
-		if err = p.getDevicesByStatus(); err != nil {
+	p.pageParam(r.URL.Query())
+
+	// For /field/metrics, we show list when Status or ModelID parameter is specified.
+	// Else we show panel.
+	if p.Status != "" || p.ModelID != "" {
+		if err = p.getDevicesList(); err != nil {
 			return weft.InternalServerError(err)
 		}
 	} else {
-		if err = p.getMetricsSummary(); err != nil {
+		if err = p.getFieldMetricsPanel(); err != nil {
 			return weft.InternalServerError(err)
 		}
 	}
@@ -156,15 +74,13 @@ func fieldMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 }
 
 func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-
 	var err error
 
-	if res := weft.CheckQuery(r, []string{}, []string{"modelID", "typeID", "status"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"status", "modelID", "typeID", "deviceID"}); !res.Ok {
 		return res
 	}
 
-	// We create a page struct with variables to substitute into the loaded template
-	p := fieldPage{}
+	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR"
@@ -173,20 +89,16 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 		return weft.InternalServerError(err)
 	}
 
-	q := r.URL.Query()
-	p.ModelID = q.Get("modelID")
-	p.TypeID = q.Get("typeID")
-	p.Status = q.Get("status")
-	if p.ModelID != "" && p.TypeID != "" {
-		if err = p.getDevicesByModelType(); err != nil {
-			return weft.InternalServerError(err)
-		}
-	} else if p.ModelID != "" && p.Status != "" {
-		if err = p.getDevicesByModelStatus(); err != nil {
+	p.pageParam(r.URL.Query())
+
+	// For /field/devices, we show list when Status or ModelID parameter is specified.
+	// Else we show panel.
+	if p.Status != "" || p.ModelID != "" {
+		if err = p.getDevicesList(); err != nil {
 			return weft.InternalServerError(err)
 		}
 	} else {
-		if err = p.getDevicesSummary(); err != nil {
+		if err = p.getDevicesPanel(); err != nil {
 			return weft.InternalServerError(err)
 		}
 	}
@@ -201,14 +113,12 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
 		return res
 	}
-	p := fieldPage{}
+	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR"
-	q := r.URL.Query()
-	p.DeviceID = q.Get("deviceID")
-	p.TypeID = q.Get("typeID")
-	p.Resolution = q.Get("resolution")
+	p.pageParam(r.URL.Query())
+
 	if p.Resolution == "" {
 		p.Resolution = "minute"
 	}
@@ -220,7 +130,8 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 	return &weft.StatusOK
 }
 
-func getFieldSummary() (m map[string]int, err error) {
+// For home screen panel only
+func getFieldSummary() (p panel, err error) {
 	u := *mtrApiUrl
 	u.Path = "/field/metric/summary"
 
@@ -235,18 +146,24 @@ func getFieldSummary() (m map[string]int, err error) {
 		return
 	}
 
-	m = make(map[string]int)
-	m["metrics"] = len(f.Result)
+	p.Title = "Fields"
+	p.StatusLink = "/field/metrics?"
+	m := make(map[string]idCount, 0)
+
 	devices := make(map[string]bool)
 	for _, r := range f.Result {
 		devices[r.DeviceID] = true
 		incFieldCount(m, r)
 	}
-	m["devices"] = len(devices)
+	// Update header part of panel
+	m["devices"] = idCount{Count: len(devices), ID: "Devices", Link: "/field/devices"}
+	m["metrics"] = idCount{Count: len(f.Result), ID: "Metrics", Link: "/field/metrics"}
+	p.Values = m
 	return
 }
 
-func (p *fieldPage) getMetricsSummary() (err error) {
+// Path: /field/metrics
+func (p *mtrUiPage) getFieldMetricsPanel() (err error) {
 	u := *mtrApiUrl
 	u.Path = "/field/metric/summary"
 
@@ -261,69 +178,32 @@ func (p *fieldPage) getMetricsSummary() (err error) {
 		return
 	}
 
-	p.Metrics = make([]idCount, 0)
-	for _, r := range f.Result {
-		p.Metrics = updateFieldMetric(p.Metrics, r)
-	}
+	p.Panels = make([]panel, 0)
+	p.fieldResult = p.filterFieldResults(f.Result)
 
-	sort.Sort(idCounts(p.Metrics))
-	return
-}
-
-func (p *fieldPage) getDevicesSummary() (err error) {
-	u := *mtrApiUrl
-	u.Path = "/field/metric/summary"
-
-	var b []byte
-	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
-		return
-	}
-
-	var f mtrpb.FieldMetricSummaryResult
-
-	if err = proto.Unmarshal(b, &f); err != nil {
-		return
-	}
-
-	p.DeviceModels = make([]deviceModel, 0)
-	for _, r := range f.Result {
-		p.DeviceModels = updateFieldDevice(p.DeviceModels, r)
-	}
-
-	sort.Sort(deviceModels(p.DeviceModels))
-	return
-}
-
-func (p *fieldPage) getDevicesByModelStatus() (err error) {
-	u := *mtrApiUrl
-	u.Path = "/field/metric/summary"
-
-	var b []byte
-	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
-		return
-	}
-
-	var f mtrpb.FieldMetricSummaryResult
-
-	if err = proto.Unmarshal(b, &f); err != nil {
-		return
-	}
-
-	p.Devices = make([]device, 0)
-	for _, r := range f.Result {
-		if r.ModelID == p.ModelID && fieldStatusString(r) == p.Status {
-			t := device{ModelID: p.ModelID, DeviceID: r.DeviceID}
-			t.TypeID = r.TypeID
-			t.Status = fieldStatusString(r)
-			p.Devices = append(p.Devices, t)
+	for _, r := range p.fieldResult {
+		if p.TypeID != "" {
+			p.updateFieldMetricGroupByModel(r)
+		} else {
+			p.updateFieldMetricGroupByType(r)
 		}
 	}
 
-	sort.Sort(devices(p.Devices))
+	// Update header part of panel
+	for _, r := range p.Panels {
+		l := p.appendPageParam("/field/devices?typeID=" + r.ID)
+		m := idCount{Count: len(r.devices), ID: "Devices", Link: l}
+		r.Values["devices"] = m
+		l = p.appendPageParam("/field/metrics?typeID=" + r.ID)
+		m = idCount{Count: r.Values["total"].Count, ID: "Metrics", Link: l}
+		r.Values["metrics"] = m
+	}
+	sort.Sort(panels(p.Panels))
 	return
 }
 
-func (p *fieldPage) getDevicesByModelType() (err error) {
+// Path: /field/devices
+func (p *mtrUiPage) getDevicesPanel() (err error) {
 	u := *mtrApiUrl
 	u.Path = "/field/metric/summary"
 
@@ -338,21 +218,31 @@ func (p *fieldPage) getDevicesByModelType() (err error) {
 		return
 	}
 
-	p.Devices = make([]device, 0)
-	for _, r := range f.Result {
-		if r.ModelID == p.ModelID && r.TypeID == p.TypeID {
-			t := device{ModelID: p.ModelID, DeviceID: r.DeviceID}
-			t.TypeID = r.TypeID
-			t.Status = fieldStatusString(r)
-			p.Devices = append(p.Devices, t)
-		}
+	p.Panels = make([]panel, 0)
+	p.fieldResult = p.filterFieldResults(f.Result)
+
+	for _, r := range p.fieldResult {
+		p.updateFieldDevice(r)
 	}
 
-	sort.Sort(devices(p.Devices))
+	// Update header part of panel
+	for _, r := range p.Panels {
+		if p.ModelID == "" {
+			l := p.appendPageParam("/field/devices?modelID=" + r.ID)
+			m := idCount{Count: len(r.devices), ID: "Devices", Link: l}
+			r.Values["devices"] = m
+		}
+		if p.TypeID == "" {
+			l := p.appendPageParam("/field/metrics?modelID=" + r.ID)
+			m := idCount{Count: r.Values["total"].Count, ID: "Metrics", Link: l}
+			r.Values["metrics"] = m
+		}
+	}
+	sort.Sort(panels(p.Panels))
 	return
 }
 
-func (p *fieldPage) getDevicesByStatus() (err error) {
+func (p *mtrUiPage) getDevicesList() (err error) {
 	u := *mtrApiUrl
 	u.Path = "/field/metric/summary"
 
@@ -367,55 +257,138 @@ func (p *fieldPage) getDevicesByStatus() (err error) {
 		return
 	}
 
-	p.Devices = make([]device, 0)
-	for _, r := range f.Result {
-		if fieldStatusString(r) == p.Status {
-			t := device{ModelID: r.ModelID, DeviceID: r.DeviceID}
-			t.TypeID = r.TypeID
-			t.Status = fieldStatusString(r)
-			p.Devices = append(p.Devices, t)
+	p.SparkGroups = make([]sparkGroup, 0)
+	p.fieldResult = p.filterFieldResults(f.Result)
+
+	// We don't aggregate if both modelID and typeID are specified.
+	// Default to group by ModelID. (If both TypeID and ModelID are missing.)
+	groupByModel := true
+	aggr := (p.ModelID == "" || p.TypeID == "")
+	if !aggr {
+		if len(p.fieldResult) > 0 {
+			p.SparkGroups = append(p.SparkGroups, sparkGroup{Rows: make([]sparkRow, 0)})
+		}
+	} else {
+		if p.ModelID != "" {
+			groupByModel = false
 		}
 	}
 
-	sort.Sort(devices(p.Devices))
+	for _, r := range p.fieldResult {
+		s := fieldStatusString(r)
+		row := sparkRow{
+			ID:       r.DeviceID + " " + r.TypeID,
+			Title:    r.DeviceID + " " + r.TypeID,
+			Link:     "/field/plot?deviceID=" + r.DeviceID + "&typeID=" + r.TypeID,
+			SparkUrl: "/field/metric?deviceID=" + r.DeviceID + "&typeID=" + r.TypeID,
+			Status:   s,
+		}
+
+		stored := false
+		for i, g := range p.SparkGroups {
+			// If we're not doing aggregation then we always add new row into first group
+			if !aggr || (!groupByModel && g.ID == r.TypeID) || (groupByModel && g.ID == r.ModelID) {
+				g.Rows = append(g.Rows, row)
+				p.SparkGroups[i] = g
+				stored = true
+				break
+			}
+		}
+		if stored {
+			continue
+		}
+		// Cannot find a matching group, create a new group
+		var sg sparkGroup
+		if groupByModel {
+			sg = sparkGroup{ID: r.ModelID, Title: r.ModelID, Rows: []sparkRow{row}}
+		} else {
+			sg = sparkGroup{ID: r.TypeID, Title: r.TypeID, Rows: []sparkRow{row}}
+		}
+		p.SparkGroups = append(p.SparkGroups, sg)
+
+	}
+
+	for i, g := range p.SparkGroups {
+		sort.Sort(sparkRows(g.Rows))
+		p.SparkGroups[i] = g
+	}
+	sort.Sort(sparkGroups(p.SparkGroups))
 	return
+}
+
+func (p mtrUiPage) filterFieldResults(f []*mtrpb.FieldMetricSummary) []*mtrpb.FieldMetricSummary {
+	result := make([]*mtrpb.FieldMetricSummary, 0)
+
+	for _, r := range f {
+		if p.ModelID != "" && p.ModelID != r.ModelID {
+			continue
+		}
+		if p.Status != "" && p.Status != fieldStatusString(r) {
+			continue
+		}
+		if p.TypeID != "" && p.TypeID != r.TypeID {
+			continue
+		}
+		if p.DeviceID != "" && p.DeviceID != r.DeviceID {
+			continue
+		}
+		result = append(result, r)
+	}
+
+	return result
 }
 
 // Increase count if ID exists in slice, append to slice if it's a new ID
-func updateFieldMetric(m []idCount, result *mtrpb.FieldMetricSummary) []idCount {
-	for _, r := range m {
+func (p *mtrUiPage) updateFieldMetricGroupByType(result *mtrpb.FieldMetricSummary) {
+	for i, r := range p.Panels {
 		if r.ID == result.TypeID {
-			incFieldCount(r.Count, result)
-			return m
+			r.devices[result.DeviceID] = true
+			incFieldCount(r.Values, result)
+			p.Panels[i] = r
+			return
 		}
 	}
 
-	c := make(map[string]int)
+	c := make(map[string]idCount)
 	incFieldCount(c, result)
-	return append(m, idCount{ID: result.TypeID, Count: c})
+
+	d := make(map[string]bool)
+	d[result.DeviceID] = true
+
+	l := p.appendPageParam(p.Path + "?typeID=" + result.TypeID)
+	p.Panels = append(p.Panels, panel{ID: result.TypeID, Title: result.TypeID, StatusLink: l, Values: c, devices: d})
 }
 
-// Increase count if ID exists in slice, append to slice if it's a new ID
-func updateFieldDevice(m []deviceModel, result *mtrpb.FieldMetricSummary) []deviceModel {
-	for i, r := range m {
-		if r.ModelID == result.ModelID {
-			r.TypeCount++
-			incFieldCount(r.Count, result)
-			m[i] = r
-			return m
+func (p *mtrUiPage) updateFieldMetricGroupByModel(result *mtrpb.FieldMetricSummary) {
+	for i, r := range p.Panels {
+		if r.ID == result.ModelID {
+			r.devices[result.DeviceID] = true
+			incFieldCount(r.Values, result)
+			p.Panels[i] = r
+			return
 		}
 	}
 
-	c := make(map[string]int)
+	c := make(map[string]idCount)
 	incFieldCount(c, result)
 
-	return append(m, deviceModel{ModelID: result.ModelID, Count: c, TypeCount: 1})
+	d := make(map[string]bool)
+	d[result.DeviceID] = true
+
+	l := p.appendPageParam(p.Path + "?modelID=" + result.ModelID)
+	p.Panels = append(p.Panels, panel{ID: result.ModelID, Title: result.ModelID, StatusLink: l, Values: c, devices: d})
+
 }
 
-func incFieldCount(m map[string]int, r *mtrpb.FieldMetricSummary) {
+func (p *mtrUiPage) updateFieldDevice(result *mtrpb.FieldMetricSummary) {
+	// updateFieldDevice does the same thing as updateFieldMetricGroupByModel
+	p.updateFieldMetricGroupByModel(result)
+}
+
+func incFieldCount(m map[string]idCount, r *mtrpb.FieldMetricSummary) {
 	s := fieldStatusString(r)
-	m[s] = m[s] + 1
-	m["total"] = m["total"] + 1
+	incCount(m, s)
+	incCount(m, "total")
 }
 
 func fieldStatusString(r *mtrpb.FieldMetricSummary) string {

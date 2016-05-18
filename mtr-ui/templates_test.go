@@ -14,7 +14,7 @@ func TestTemplates(t *testing.T) {
 		t.Error(err)
 	}
 
-	var p homepage
+	var p mtrUiPage
 	if err := homepageTemplate.ExecuteTemplate(&b, "border", p); err != nil {
 		t.Error(err)
 	}

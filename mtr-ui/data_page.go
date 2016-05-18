@@ -10,40 +10,7 @@ import (
 	"strings"
 )
 
-type dataPage struct {
-	page
-	Path       string
-	Summary    map[string]int
-	Metrics    []idCount
-	Sites      []site
-	SiteID     string
-	TypeID     string
-	Status     string
-	Resolution string
-	MtrApiUrl  string
-}
-
-type sites []site
-
-func (m sites) Len() int {
-	return len(m)
-}
-
-func (m sites) Less(i, j int) bool {
-	return m[i].SiteID < m[j].SiteID
-}
-
-func (m sites) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-type site struct {
-	SiteID string
-	typeStatus
-}
-
 func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-
 	var err error
 
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
@@ -51,18 +18,21 @@ func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 	}
 
 	// We create a page struct with variables to substitute into the loaded template
-	p := dataPage{}
+	p := mtrUiPage{}
+	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR"
 
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
 	}
 
-	if p.Summary, err = getDataSummary(); err != nil {
+	var pa panel
+	if pa, err = getDataSummary(); err != nil {
 		return weft.InternalServerError(err)
 	}
 
-	p.Path = r.URL.Path
+	p.Panels = []panel{pa}
+
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -71,15 +41,13 @@ func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 }
 
 func dataMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-
 	var err error
 
-	if res := weft.CheckQuery(r, []string{}, []string{"status"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"status", "typeID"}); !res.Ok {
 		return res
 	}
 
-	// We create a page struct with variables to substitute into the loaded template
-	p := dataPage{}
+	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR"
 	p.MtrApiUrl = mtrApiUrl.String()
@@ -87,15 +55,17 @@ func dataMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
 	}
-	q := r.URL.Query()
-	p.Status = q.Get("status")
 
-	if p.Status != "" {
-		if err = p.getSitesByStatus(); err != nil {
+	p.pageParam(r.URL.Query())
+
+	// For /data/metrics, we show list when Status or TypeID parameter is specified.
+	// Else we show panel.
+	if p.Status != "" || p.TypeID != "" {
+		if err = p.getSitesList(); err != nil {
 			return weft.InternalServerError(err)
 		}
 	} else {
-		if err = p.getMetricsSummary(); err != nil {
+		if err = p.getDataMetricsPanel(); err != nil {
 			return weft.InternalServerError(err)
 		}
 	}
@@ -111,12 +81,11 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 
 	var err error
 
-	if res := weft.CheckQuery(r, []string{}, []string{"typeID", "status"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"status", "typeID"}); !res.Ok {
 		return res
 	}
 
-	// We create a page struct with variables to substitute into the loaded template
-	p := dataPage{}
+	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR"
 	p.MtrApiUrl = mtrApiUrl.String()
@@ -125,19 +94,10 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 		return weft.InternalServerError(err)
 	}
 
-	q := r.URL.Query()
-	p.TypeID = q.Get("typeID")
-	p.Status = q.Get("status")
+	p.pageParam(r.URL.Query())
 
-	if p.TypeID != "" && p.Status != "" {
-		if err = p.getSitesByTypeStatus(); err != nil {
-			return weft.InternalServerError(err)
-		}
-
-	} else {
-		if err = p.getSitesSummary(); err != nil {
-			return weft.InternalServerError(err)
-		}
+	if err = p.getSitesList(); err != nil {
+		return weft.InternalServerError(err)
 	}
 
 	if err = dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
@@ -151,14 +111,12 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
 		return res
 	}
-	p := dataPage{}
+	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR"
-	q := r.URL.Query()
-	p.SiteID = q.Get("siteID")
-	p.TypeID = q.Get("typeID")
-	p.Resolution = q.Get("resolution")
+	p.pageParam(r.URL.Query())
+
 	if p.Resolution == "" {
 		p.Resolution = "minute"
 	}
@@ -170,7 +128,7 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	return &weft.StatusOK
 }
 
-func getDataSummary() (m map[string]int, err error) {
+func getDataSummary() (p panel, err error) {
 	u := *mtrApiUrl
 	u.Path = "/data/latency/summary"
 
@@ -185,18 +143,24 @@ func getDataSummary() (m map[string]int, err error) {
 		return
 	}
 
-	m = make(map[string]int, 6)
-	m["metrics"] = len(f.Result)
+	p.Title = "Data"
+	p.StatusLink = "/data/metrics?"
+	m := make(map[string]idCount, 0)
+
 	sites := make(map[string]bool)
 	for _, r := range f.Result {
 		sites[r.SiteID] = true
 		incDataCount(m, r)
 	}
-	m["sites"] = len(sites)
+
+	m["sites"] = idCount{Count: len(sites), ID: "Sites", Link: "/data/sites"}
+	m["metrics"] = idCount{Count: len(f.Result), ID: "Metrics", Link: "/data/metrics"}
+	p.Values = m
+
 	return
 }
 
-func (p *dataPage) getMetricsSummary() (err error) {
+func (p *mtrUiPage) getDataMetricsPanel() (err error) {
 	u := *mtrApiUrl
 	u.Path = "/data/latency/summary"
 
@@ -211,16 +175,26 @@ func (p *dataPage) getMetricsSummary() (err error) {
 		return
 	}
 
-	p.Metrics = make([]idCount, 0)
-	for _, r := range f.Result {
-		p.Metrics = updateDataMetric(p.Metrics, r)
+	p.Panels = make([]panel, 0)
+	p.dataResult = p.filterDataResults(f.Result)
+
+	for _, r := range p.dataResult {
+		p.updateDataMetric(r)
 	}
 
-	sort.Sort(idCounts(p.Metrics))
+	for _, r := range p.Panels {
+		l := p.appendPageParam("/data/sites?typeID=" + r.ID)
+		m := idCount{Count: len(r.devices), ID: "Sites", Link: l}
+		r.Values["sites"] = m
+		l = p.appendPageParam("/data/metrics?typeID=" + r.ID)
+		m = idCount{Count: r.Values["total"].Count, ID: "Metrics", Link: l}
+		r.Values["metrics"] = m
+	}
+	sort.Sort(panels(p.Panels))
 	return
 }
 
-func (p *dataPage) getSitesSummary() (err error) {
+func (p *mtrUiPage) getSitesPanel() (err error) {
 	u := *mtrApiUrl
 	u.Path = "/data/latency/summary"
 
@@ -235,45 +209,25 @@ func (p *dataPage) getSitesSummary() (err error) {
 		return
 	}
 
-	p.Metrics = make([]idCount, 0)
-	for _, r := range f.Result {
-		p.Metrics = updateDataMetric(p.Metrics, r)
+	p.Panels = make([]panel, 0)
+	p.dataResult = p.filterDataResults(f.Result)
+
+	for _, r := range p.dataResult {
+		p.updateDataSite(r)
 	}
 
-	sort.Sort(idCounts(p.Metrics))
-	return
-}
-
-func (p *dataPage) getSitesByTypeStatus() (err error) {
-	u := *mtrApiUrl
-	u.Path = "/data/latency/summary"
-
-	var b []byte
-	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
-		return
-	}
-
-	var f mtrpb.DataLatencySummaryResult
-
-	if err = proto.Unmarshal(b, &f); err != nil {
-		return
-	}
-
-	p.Sites = make([]site, 0)
-	for _, r := range f.Result {
-		if r.TypeID == p.TypeID && dataStatusString(r) == p.Status {
-			s := site{SiteID: r.SiteID}
-			s.TypeID = p.TypeID
-			s.Status = p.Status
-			p.Sites = append(p.Sites, s)
+	for _, r := range p.Panels {
+		if p.TypeID == "" {
+			l := p.appendPageParam("/data/metrics?siteID=" + r.ID)
+			m := idCount{Count: r.Values["total"].Count, ID: "Metrics", Link: l}
+			r.Values["metrics"] = m
 		}
 	}
-
-	sort.Sort(sites(p.Sites))
+	sort.Sort(panels(p.Panels))
 	return
 }
 
-func (p *dataPage) getSitesByStatus() (err error) {
+func (p *mtrUiPage) getSitesList() (err error) {
 	u := *mtrApiUrl
 	u.Path = "/data/latency/summary"
 
@@ -288,38 +242,117 @@ func (p *dataPage) getSitesByStatus() (err error) {
 		return
 	}
 
-	p.Sites = make([]site, 0)
-	for _, r := range f.Result {
-		if dataStatusString(r) == p.Status {
-			s := site{SiteID: r.SiteID}
-			s.TypeID = r.TypeID
-			s.Status = p.Status
-			p.Sites = append(p.Sites, s)
-		}
+	p.SparkGroups = make([]sparkGroup, 0)
+	p.dataResult = p.filterDataResults(f.Result)
+
+	// We don't aggregate if typeID is specified
+	if p.TypeID != "" && len(p.dataResult) > 0 {
+		p.SparkGroups = append(p.SparkGroups, sparkGroup{Rows: make([]sparkRow, 0)})
 	}
 
-	sort.Sort(sites(p.Sites))
+	for _, r := range p.dataResult {
+		s := dataStatusString(r)
+		row := sparkRow{
+			ID:       r.SiteID + " " + r.TypeID,
+			Title:    r.SiteID + " " + removeTypeIDPrefix(r.TypeID),
+			Link:     "/data/plot?siteID=" + r.SiteID + "&typeID=" + r.TypeID,
+			SparkUrl: "/data/latency?siteID=" + r.SiteID + "&typeID=" + r.TypeID,
+			Status:   s,
+		}
+
+		stored := false
+		for i, g := range p.SparkGroups {
+			// If we're not doing aggregation(p.TypeID!="") then we always add new row into first group
+			if p.TypeID != "" || g.ID == r.TypeID {
+				g.Rows = append(g.Rows, row)
+				p.SparkGroups[i] = g
+				stored = true
+				break
+			}
+		}
+		if stored {
+			continue
+		}
+		// Cannot find a matching group, create a new group
+		var sg sparkGroup
+		sg = sparkGroup{ID: r.TypeID, Title: removeTypeIDPrefix(r.TypeID), Rows: []sparkRow{row}}
+		p.SparkGroups = append(p.SparkGroups, sg)
+
+	}
+
+	for i, g := range p.SparkGroups {
+		sort.Sort(sparkRows(g.Rows))
+		p.SparkGroups[i] = g
+	}
+	sort.Sort(sparkGroups(p.SparkGroups))
 	return
+}
+
+func (p mtrUiPage) filterDataResults(f []*mtrpb.DataLatencySummary) []*mtrpb.DataLatencySummary {
+	result := make([]*mtrpb.DataLatencySummary, 0)
+
+	for _, r := range f {
+		if p.Status != "" && p.Status != dataStatusString(r) {
+			continue
+		}
+		if p.TypeID != "" && p.TypeID != r.TypeID {
+			continue
+		}
+		if p.SiteID != "" && p.SiteID != r.SiteID {
+			continue
+		}
+		result = append(result, r)
+	}
+
+	return result
 }
 
 // Increase count if ID exists in slice, append to slice if it's a new ID
-func updateDataMetric(m []idCount, result *mtrpb.DataLatencySummary) []idCount {
-	for _, r := range m {
+func (p *mtrUiPage) updateDataMetric(result *mtrpb.DataLatencySummary) {
+	for i, r := range p.Panels {
 		if r.ID == result.TypeID {
-			incDataCount(r.Count, result)
-			return m
+			r.devices[result.SiteID] = true
+			incDataCount(r.Values, result)
+			p.Panels[i] = r
+			return
 		}
 	}
 
-	c := make(map[string]int)
+	c := make(map[string]idCount)
 	incDataCount(c, result)
-	return append(m, idCount{ID: result.TypeID, Count: c, Description: removeTypeIDPrefix(result.TypeID)})
+
+	d := make(map[string]bool)
+	d[result.SiteID] = true
+
+	l := p.appendPageParam(p.Path + "?typeID=" + result.TypeID)
+	p.Panels = append(p.Panels, panel{ID: result.TypeID, Title: removeTypeIDPrefix(result.TypeID), StatusLink: l, Values: c, devices: d})
 }
 
-func incDataCount(m map[string]int, r *mtrpb.DataLatencySummary) {
+// Increase count if ID exists in slice, append to slice if it's a new ID
+func (p *mtrUiPage) updateDataSite(result *mtrpb.DataLatencySummary) {
+	for i, r := range p.Panels {
+		if r.ID == result.SiteID {
+			r.devices[result.SiteID] = true
+			incDataCount(r.Values, result)
+			p.Panels[i] = r
+			return
+		}
+	}
+
+	c := make(map[string]idCount)
+	incDataCount(c, result)
+
+	d := make(map[string]bool)
+	d[result.SiteID] = true
+
+	l := p.appendPageParam(p.Path + "?siteID=" + result.SiteID)
+	p.Panels = append(p.Panels, panel{ID: result.TypeID, Title: result.SiteID, StatusLink: l, Values: c, devices: d})
+}
+
+func incDataCount(m map[string]idCount, r *mtrpb.DataLatencySummary) {
 	s := dataStatusString(r)
-	m[s] = m[s] + 1
-	m["total"] = m["total"] + 1
+	incCount(m, s)
+	incCount(m, "total")
 }
 
 func dataStatusString(r *mtrpb.DataLatencySummary) string {
