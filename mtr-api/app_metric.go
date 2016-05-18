@@ -1,7 +1,6 @@
 package main
 
 import (
-
 	"bytes"
 	"database/sql"
 	"fmt"
@@ -15,23 +14,6 @@ import (
 	"sync"
 	"time"
 )
-
-var colours = [...]string{
-	"#a6cee3",
-	"#1f78b4",
-	"#b2df8a",
-	"#33a02c",
-	"#fb9a99",
-	"#e31a1c",
-	"#fdbf6f",
-	"#ff7f00",
-	"#cab2d6",
-	"#6a3d9a",
-	"#ffff99",
-	"#b15928",
-}
-
-var numColours = len(colours) - 1
 
 type appMetric struct {
 	applicationID string
@@ -318,12 +300,10 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 
 	var lables ts.Lables
 
-	for i, k := range keys {
-		if i > numColours {
-			i = 0
-		}
-		p.AddSeries(ts.Series{Colour: colours[i], Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: colours[i], Lable: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
+	for _, k := range keys {
+		c := svgColour(sourceIDs[k], k)
+		p.AddSeries(ts.Series{Colour: c, Points: pts[k]})
+		lables = append(lables, ts.Lable{Colour: c, Lable: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
 	}
 
 	p.SetLables(lables)
@@ -491,12 +471,10 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	var lables ts.Lables
 
-	for i, k := range keys {
-		if i > numColours {
-			i = 0
-		}
-		p.AddSeries(ts.Series{Colour: colours[i], Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: colours[i], Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Lable(k.typePK))})
+	for _, k := range keys {
+		c := svgColour(instanceIDs[k.instancePK], k.instancePK)
+		p.AddSeries(ts.Series{Colour: c, Points: pts[k]})
+		lables = append(lables, ts.Lable{Colour: c, Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Lable(k.typePK))})
 	}
 
 	p.SetLables(lables)
@@ -504,7 +482,6 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 	return &weft.StatusOK
 
 }
-
 
 /*
 merge merges the output of cs into the single returned chan and waits for all
