@@ -10,8 +10,6 @@ func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 	var a appMetric
 
 	switch r.Method {
-	case "POST":
-		return a.save(r)
 	case "GET":
 		switch r.Header.Get("Accept") {
 		default:
@@ -21,6 +19,42 @@ func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 		return &weft.MethodNotAllowed
 	}
 }
+
+func applicationMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var a applicationMetric
+
+	switch r.Method {
+	case "PUT":
+		return a.save(r)
+	case "DELETE":
+		return a.delete(r)
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
+
+func applicationCounterHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var a applicationCounter
+
+	switch r.Method {
+	case "PUT":
+		return a.save(r)
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
+
+func applicationTimerHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var a applicationTimer
+
+	switch r.Method {
+	case "PUT":
+		return a.save(r)
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
+
 
 func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldMetric

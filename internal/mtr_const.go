@@ -55,7 +55,7 @@ var idColours = map[int]string{
 	1204: "#e41a1c",
 }
 
-var idLables = map[int]string{
+var idLabels = map[int]string{
 	1:   "Requests",
 	200: "200 OK",
 	400: "400 Bad Request",
@@ -85,8 +85,8 @@ func Colour(id int) string {
 	return "yellow"
 }
 
-func Lable(id int) string {
-	if s, ok := idLables[id]; ok {
+func Label(id int) string {
+	if s, ok := idLabels[id]; ok {
 		return s
 	}
 

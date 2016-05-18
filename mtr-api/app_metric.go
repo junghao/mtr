@@ -3,12 +3,10 @@ package main
 import (
 	"bytes"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"github.com/GeoNet/mtr/internal"
 	"github.com/GeoNet/mtr/ts"
 	"github.com/GeoNet/weft"
-	"io/ioutil"
 	"net/http"
 	"sort"
 	"strconv"
@@ -16,23 +14,6 @@ import (
 	"sync"
 	"time"
 )
-
-var colours = [...]string{
-	"#a6cee3",
-	"#1f78b4",
-	"#b2df8a",
-	"#33a02c",
-	"#fb9a99",
-	"#e31a1c",
-	"#fdbf6f",
-	"#ff7f00",
-	"#cab2d6",
-	"#6a3d9a",
-	"#ffff99",
-	"#b15928",
-}
-
-var numColours = len(colours) - 1
 
 type appMetric struct {
 	applicationID string
@@ -63,15 +44,6 @@ func (a *appMetric) loadPK(r *http.Request) (res *weft.Result) {
 	}
 }
 
-/*
-Handles requests like
-/app/metric?applicationID=mtr-api&group=timers
-/app/metric?applicationID=mtr-api&group=counters
-/app/metric?applicationID=mtr-api&group=memory
-/app/metric?applicationID=mtr-api&group=objects
-/app/metric?applicationID=mtr-api&group=routines
-
-*/
 func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var res *weft.Result
 	if res = weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.Ok {
@@ -236,14 +208,14 @@ func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *weft.Result {
 
 	sort.Ints(keys)
 
-	var lables ts.Lables
+	var labels ts.Labels
 
 	for _, k := range keys {
 		p.AddSeries(ts.Series{Colour: internal.Colour(k), Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: internal.Colour(k), Lable: fmt.Sprintf("%s (n=%d)", internal.Lable(k), total[k])})
+		labels = append(labels, ts.Label{Colour: internal.Colour(k), Label: fmt.Sprintf("%s (n=%d)", internal.Label(k), total[k])})
 	}
 
-	p.SetLables(lables)
+	p.SetLabels(labels)
 
 	return &weft.StatusOK
 
@@ -326,17 +298,15 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 
 	sort.Ints(keys)
 
-	var lables ts.Lables
+	var labels ts.Labels
 
-	for i, k := range keys {
-		if i > numColours {
-			i = 0
-		}
-		p.AddSeries(ts.Series{Colour: colours[i], Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: colours[i], Lable: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
+	for _, k := range keys {
+		c := svgColour(sourceIDs[k], k)
+		p.AddSeries(ts.Series{Colour: c, Points: pts[k]})
+		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
 	}
 
-	p.SetLables(lables)
+	p.SetLabels(labels)
 
 	return &weft.StatusOK
 
@@ -349,7 +319,7 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *weft.Result {
 
 	switch resolution {
 	case "minute":
-		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(avg)
+		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(value)
 		FROM app.metric WHERE
 		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
 		AND time > now() - interval '12 hours'
@@ -357,14 +327,14 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *weft.Result {
 		ORDER BY t ASC`, a.applicationPK)
 	case "five_minutes":
 		rows, err = dbR.Query(`SELECT instancePK, typePK,
-		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, avg(avg)
+		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, avg(value)
 		FROM app.metric WHERE
 		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', typePK, instancePK
 		ORDER BY t ASC`, a.applicationPK)
 	case "hour":
-		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(avg)
+		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(value)
 		FROM app.metric WHERE
 		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
 		AND time > now() - interval '28 days'
@@ -410,14 +380,14 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *weft.Result {
 	}
 	rows.Close()
 
-	var lables ts.Lables
+	var labels ts.Labels
 
 	for k := range pts {
 		p.AddSeries(ts.Series{Colour: internal.Colour(k.typePK), Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: internal.Colour(k.typePK), Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], strings.TrimPrefix(internal.Lable(k.typePK), `Mem `))})
+		labels = append(labels, ts.Label{Colour: internal.Colour(k.typePK), Label: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], strings.TrimPrefix(internal.Label(k.typePK), `Mem `))})
 	}
 
-	p.SetLables(lables)
+	p.SetLabels(labels)
 
 	return &weft.StatusOK
 
@@ -430,7 +400,7 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	switch resolution {
 	case "minute":
-		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(avg)
+		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(value)
 		FROM app.metric WHERE
 		applicationPK = $1 AND typePK = $2
 		AND time > now() - interval '12 hours'
@@ -438,14 +408,14 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 		ORDER BY t ASC`, a.applicationPK, int(typeID))
 	case "five_minutes":
 		rows, err = dbR.Query(`SELECT instancePK, typePK,
-		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, avg(avg)
+		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, avg(value)
 		FROM app.metric WHERE
 		applicationPK = $1 AND typePK = $2
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', typePK, instancePK
 		ORDER BY t ASC`, a.applicationPK, int(typeID))
 	case "hour":
-		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(avg)
+		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(value)
 		FROM app.metric WHERE
 		applicationPK = $1 AND typePK = $2
 		AND time > now() - interval '28 days'
@@ -499,167 +469,18 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	sort.Sort(keys)
 
-	var lables ts.Lables
+	var labels ts.Labels
 
-	for i, k := range keys {
-		if i > numColours {
-			i = 0
-		}
-		p.AddSeries(ts.Series{Colour: colours[i], Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: colours[i], Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Lable(k.typePK))})
+	for _, k := range keys {
+		c := svgColour(instanceIDs[k.instancePK], k.instancePK)
+		p.AddSeries(ts.Series{Colour: c, Points: pts[k]})
+		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Label(k.typePK))})
 	}
 
-	p.SetLables(lables)
+	p.SetLabels(labels)
 
 	return &weft.StatusOK
 
-}
-
-func (a *appMetric) save(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
-	var b []byte
-	var err error
-	var m internal.AppMetrics
-
-	if b, err = ioutil.ReadAll(r.Body); err != nil {
-		return weft.InternalServerError(err)
-	}
-
-	if err = json.Unmarshal(b, &m); err != nil {
-		return weft.InternalServerError(err)
-	}
-
-	// Find  (and possibly create) the applicationPK for the applicationID
-	var applicationPK int
-
-	err = db.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`, m.ApplicationID).Scan(&applicationPK)
-	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		if _, err = db.Exec(`INSERT INTO app.application(applicationID) VALUES($1)`, m.ApplicationID); err != nil {
-			return weft.InternalServerError(err)
-		}
-		if err = db.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`, m.ApplicationID).Scan(&applicationPK); err != nil {
-			return weft.InternalServerError(err)
-		}
-	default:
-		return weft.InternalServerError(err)
-	}
-
-	// Find  (and possibly create) the instancePK for the instanceID
-	var instancePK int
-
-	err = db.QueryRow(`SELECT instancePK FROM app.instance WHERE instanceID = $1`, m.InstanceID).Scan(&instancePK)
-	switch err {
-	case nil:
-	case sql.ErrNoRows:
-		if _, err = db.Exec(`INSERT INTO app.instance(instanceID) VALUES($1)`, m.InstanceID); err != nil {
-			return weft.InternalServerError(err)
-		}
-		if err = db.QueryRow(`SELECT instancePK FROM app.instance WHERE instanceID = $1`, m.InstanceID).Scan(&instancePK); err != nil {
-			return weft.InternalServerError(err)
-		}
-	default:
-		return weft.InternalServerError(err)
-	}
-
-	// Run the inserts in parallel
-	m1 := insertAppMetrics(applicationPK, instancePK, m.Metrics)
-	m2 := insertAppCounters(applicationPK, m.Counters)
-	m3 := insertAppTimers(applicationPK, m.Timers)
-
-	var resFinal = &weft.StatusOK
-
-	for res := range merge(m1, m2, m3) {
-		if !res.Ok {
-			resFinal = res
-		}
-	}
-
-	return resFinal
-}
-
-func insertAppMetrics(applicationPK, instancePK int, metrics []internal.Metric) <-chan *weft.Result {
-	out := make(chan *weft.Result)
-	go func() {
-		defer close(out)
-		var err error
-
-		for _, v := range metrics {
-			if _, err = db.Exec(`INSERT INTO app.metric (applicationPK, instancePK, typePK, time, avg, n) VALUES($1,$2,$3,$4,$5,$6)`,
-				applicationPK, instancePK, v.MetricID, v.Time, v.Value, 1); err != nil {
-				out <- weft.InternalServerError(err)
-				return
-			}
-		}
-
-		out <- &weft.StatusOK
-		return
-	}()
-	return out
-}
-
-func insertAppCounters(applicationPK int, counters []internal.Counter) <-chan *weft.Result {
-	out := make(chan *weft.Result)
-	go func() {
-		defer close(out)
-		var err error
-
-		for _, v := range counters {
-			if _, err = db.Exec(`INSERT INTO app.counter(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
-				applicationPK, v.CounterID, v.Time, v.Count); err != nil {
-				out <- weft.InternalServerError(err)
-				return
-			}
-		}
-
-		out <- &weft.StatusOK
-		return
-	}()
-	return out
-}
-
-func insertAppTimers(applicationPK int, timers []internal.Timer) <-chan *weft.Result {
-	out := make(chan *weft.Result)
-	go func() {
-		defer close(out)
-		var err error
-
-		for _, v := range timers {
-			// Find  (and possibly create) the sourcePK for the sourceID
-			var sourcePK int
-
-			err = db.QueryRow(`SELECT sourcePK FROM app.source WHERE sourceID = $1`, v.TimerID).Scan(&sourcePK)
-
-			switch err {
-			case nil:
-			case sql.ErrNoRows:
-				if _, err = db.Exec(`INSERT INTO app.source(sourceID) VALUES($1)`, v.TimerID); err != nil {
-					// TODO ignoring error due to race on insert between calls to this func.  Use a transaction here?
-				}
-				if err = db.QueryRow(`SELECT sourcePK FROM app.source WHERE sourceID = $1`, v.TimerID).Scan(&sourcePK); err != nil {
-					out <- weft.InternalServerError(err)
-					return
-				}
-			default:
-				out <- weft.InternalServerError(err)
-				return
-			}
-
-			if _, err = db.Exec(`INSERT INTO app.timer(applicationPK, sourcePK, time, average, count, fifty, ninety) VALUES($1,$2,$3,$4,$5,$6,$7)`,
-				applicationPK, sourcePK, v.Time, v.Average, v.Count, v.Fifty, v.Ninety); err != nil {
-				out <- weft.InternalServerError(err)
-				return
-			}
-		}
-
-		out <- &weft.StatusOK
-		return
-	}()
-	return out
 }
 
 /*

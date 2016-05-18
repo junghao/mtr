@@ -26,8 +26,8 @@ CREATE TABLE app.type (
 );
 
 CREATE TABLE app.counter (
-	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
-	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES app.type(typePK) ON DELETE CASCADE NOT NULL,
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	count INTEGER NOT NULL,
 	PRIMARY KEY(applicationPK, typePK, time)
@@ -37,8 +37,8 @@ CREATE INDEX on app.counter (applicationPK);
 CREATE INDEX on app.counter (time);
 
 CREATE TABLE app.timer (
-	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
-	sourcePK INTEGER REFERENCES app.source(sourcePK) NOT NULL,
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) ON DELETE CASCADE NOT NULL,
+	sourcePK INTEGER REFERENCES app.source(sourcePK) ON DELETE CASCADE NOT NULL,
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	average INTEGER NOT NULL,
 	count INTEGER NOT NULL,
@@ -52,12 +52,11 @@ CREATE INDEX on app.timer (sourcePK);
 CREATE INDEX on app.timer (time);
 
 CREATE TABLE app.metric (
-	applicationPK SMALLINT REFERENCES app.application(applicationPK) NOT NULL,
-	instancePK SMALLINT REFERENCES app.instance(instancePK) NOT NULL,
-	typePK SMALLINT REFERENCES app.type(typePK) NOT NULL, 
+	applicationPK SMALLINT REFERENCES app.application(applicationPK) ON DELETE CASCADE NOT NULL,
+	instancePK SMALLINT REFERENCES app.instance(instancePK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES app.type(typePK) ON DELETE CASCADE NOT NULL,
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
-	avg BIGINT NOT NULL,
-	n INTEGER NOT NULL,
+	value BIGINT NOT NULL,
 	PRIMARY KEY(applicationPK, instancePK, typePK, time)
 );
 

@@ -28,6 +28,34 @@ func init() {
 
 // routes test the API.
 var routes = wt.Requests{
+
+	// application metrics
+
+	// delete all metrics for an application
+	{URL: "/application/metric?applicationID=test-app", Method: "DELETE"},
+
+	// add a metric value
+	{URL: "/application/metric?applicationID=test-app&instanceID=test-instance&typeID=1000&value=10000&time=2015-05-14T21:40:30Z", Method: "PUT"},
+
+	// add a counter value
+	{URL: "/application/counter?applicationID=test-app&typeID=200&count=10&time=2015-05-14T21:40:30Z", Method: "PUT"},
+
+	// Another counter value at the same time increments the count.
+	{URL: "/application/counter?applicationID=test-app&typeID=200&count=10&time=2015-05-14T21:40:30Z", Method: "PUT"},
+
+	// Add a timer value.  TODO - repeat at the same time errors.
+	{URL: "/application/timer?applicationID=test-app&sourceID=func-name&count=10&average=12&fifty=13&ninety=14&time=2015-05-14T21:40:30Z", Method: "PUT"},
+	{URL: "/application/timer?applicationID=test-app&sourceID=func-name&count=10&average=12&fifty=13&ninety=14&time=2015-05-14T21:40:30Z", Method: "PUT", Status: 500},
+
+	// SVG plots
+	{URL: "/app/metric?applicationID=test-app&group=timers"},
+	{URL: "/app/metric?applicationID=test-app&group=counters"},
+	{URL: "/app/metric?applicationID=test-app&group=memory"},
+	{URL: "/app/metric?applicationID=test-app&group=objects"},
+	{URL: "/app/metric?applicationID=test-app&group=routines"},
+
+	// field metrics
+
 	// Creates a device model.  Repeated requests noop.
 	{URL: "/field/model?modelID=Trimble+NetR9", Method: "PUT"},
 

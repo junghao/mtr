@@ -109,8 +109,8 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 {{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}})
 </text>
 {{end}}
-{{if .Lables}}
-<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Lables}}<tspan fill="{{.Colour}}">{{.Lable}}</tspan> {{end}}</text>
+{{if .Labels}}
+<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Labels}}<tspan fill="{{.Colour}}">{{.Label}}</tspan> {{end}}</text>
 {{end}}
 </g>
 
@@ -149,8 +149,8 @@ const plotAppMetricsTemplate = `<?xml version="1.0"?>
 <text x="780" y="0" text-anchor="end" dominant-baseline="hanging" fill="darkslategray">
 {{ printf "%.1f" .Latest.Value}} {{.Unit}} ({{date .Latest.DateTime}})
 </text>{{end}}
-{{if .Lables}}
-<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Lables}}<tspan fill="{{.Colour}}" dy="10px" x="780">{{.Lable}}</tspan>{{end}}</text>
+{{if .Labels}}
+<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Labels}}<tspan fill="{{.Colour}}" dy="10px" x="780">{{.Label}}</tspan>{{end}}</text>
 {{end}}
 </g>
 

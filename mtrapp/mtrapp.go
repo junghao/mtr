@@ -14,23 +14,30 @@ import (
 	"github.com/GeoNet/mtr/internal"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
+const timeout = 3 * time.Minute
+
 var (
-	appName    string
-	instanceID string
-	once       sync.Once
+	appName           string
+	instanceID        string
+	server, user, key string
+	client            = &http.Client{}
 )
 
 func init() {
 	appName = os.Getenv("MTR_APPLICATIONID")
 	instanceID = os.Getenv("MTR_INSTANCEID")
+	server = os.Getenv("MTR_SERVER")
+	user = os.Getenv("MTR_USER")
+	key = os.Getenv("MTR_KEY")
 
 	if appName == "" {
 		s := os.Args[0]
@@ -46,89 +53,67 @@ func init() {
 	}
 
 	switch "" {
-	case os.Getenv("MTR_SERVER"), os.Getenv("MTR_USER"), os.Getenv("MTR_KEY"):
+	case server, user, key:
 		log.Println("no mtr credentials, metrics will be dropped.")
 	default:
-		send = make(chan internal.AppMetrics, 30)
-	}
+		go func() {
+			var mem runtime.MemStats
 
-	go sendMetrics(send)
+			ticker := time.NewTicker(time.Minute).C
 
-	go func() {
-		var mem runtime.MemStats
+			var last = time.Now().UTC()
+			var now time.Time
 
-		ticker := time.NewTicker(time.Minute).C
-
-		var last = time.Now().UTC()
-		var now time.Time
-
-		for {
-			select {
-			case m := <-timers:
-				count[m.id]++
-				sum[m.id] += m.taken
-				taken[m.id] = append(taken[m.id], m.taken)
-			case <-ticker:
-				now = time.Now().UTC()
-
-				runtime.ReadMemStats(&mem)
-
-				m := internal.AppMetrics{
-					ApplicationID: appName,
-					InstanceID:    instanceID,
-					Metrics: []internal.Metric{
-						{MetricID: internal.MemSys, Time: now, Value: int64(mem.Sys)},
-						{MetricID: internal.MemHeapAlloc, Time: now, Value: int64(mem.HeapAlloc)},
-						{MetricID: internal.MemHeapSys, Time: now, Value: int64(mem.HeapSys)},
-						{MetricID: internal.MemHeapObjects, Time: now, Value: int64(mem.HeapObjects)},
-						{MetricID: internal.Routines, Time: now, Value: int64(runtime.NumGoroutine())},
-					},
-				}
-
-				// assume that retrieving values from the counters is fast
-				// enough that we don't need a time for each one.
-				for i := range counters {
-					currVal[i] = counters[i].value()
-				}
-
-				for i := range counters {
-					if v := currVal[i] - lastVal[i]; v > 0 {
-						m.Counters = append(m.Counters, internal.Counter{
-							CounterID: counters[i].id,
-							Time:      last,
-							Count:     int32(v),
-						})
-					}
-				}
-
-				for i := range counters {
-					lastVal[i] = currVal[i]
-				}
-
-				for k, v := range count {
-					m.Timers = append(m.Timers, internal.Timer{
-						TimerID: k,
-						Time:    last,
-						Count:   int32(v),
-						Average: int32(sum[k] / v),
-						Fifty:   int32(percentile(0.5, taken[k])),
-						Ninety:  int32(percentile(0.9, taken[k])),
-					})
-
-					delete(taken, k)
-					delete(sum, k)
-					delete(count, k)
-				}
-
-				last = now
-
+			for {
 				select {
-				case send <- m:
-				default:
+				case m := <-timers:
+					count[m.id]++
+					sum[m.id] += m.taken
+					taken[m.id] = append(taken[m.id], m.taken)
+				case <-ticker:
+					now = time.Now().UTC()
+
+					runtime.ReadMemStats(&mem)
+
+					go sendMetric(internal.MemSys, now, int64(mem.Sys))
+					go sendMetric(internal.MemHeapAlloc, now, int64(mem.HeapAlloc))
+					go sendMetric(internal.MemHeapSys, now, int64(mem.HeapSys))
+					go sendMetric(internal.MemHeapObjects, now, int64(mem.HeapObjects))
+					go sendMetric(internal.Routines, now, int64(runtime.NumGoroutine()))
+
+					// assume that retrieving values from the counters is fast
+					// enough that we don't need a time for each one.
+					for i := range counters {
+						currVal[i] = counters[i].value()
+					}
+
+					for i := range counters {
+						if v := currVal[i] - lastVal[i]; v > 0 {
+							go sendCount(counters[i].id, last, int(v))
+						}
+					}
+
+					for i := range counters {
+						lastVal[i] = currVal[i]
+					}
+
+					for k, v := range count {
+						a := sum[k] / v
+						f := percentile(0.5, taken[k])
+						n := percentile(0.9, taken[k])
+
+						go sendTimer(k, last, v, a, f, n)
+
+						delete(taken, k)
+						delete(sum, k)
+						delete(count, k)
+					}
+
+					last = now
 				}
 			}
-		}
-	}()
+		}()
+	}
 }
 
 // calculates the kth percentile of v
@@ -152,4 +137,116 @@ func percentile(k float64, v []int) (value int) {
 	}
 
 	return
+}
+
+func sendMetric(typeID internal.ID, t time.Time, value int64) {
+	var req *http.Request
+	var res *http.Response
+	var err error
+
+	if req, err = http.NewRequest("PUT", server+"/application/metric", nil); err != nil {
+		// TODO log error ?
+		return
+	}
+
+	req.SetBasicAuth(user, key)
+
+	q := req.URL.Query()
+	q.Add("applicationID", appName)
+	q.Add("instanceID", instanceID)
+	q.Add("typeID", strconv.Itoa(int(typeID)))
+	q.Add("time", t.Format(time.RFC3339))
+	q.Add("value", strconv.FormatInt(value, 10))
+	req.URL.RawQuery = q.Encode()
+
+	deadline := time.Now().Add(timeout)
+
+	for tries := 0; time.Now().Before(deadline); tries++ {
+		if res, err = client.Do(req); err == nil {
+			if res != nil && res.StatusCode != 200 {
+				log.Printf("Non 200 code from metrics: %d", res.StatusCode)
+			}
+			break
+		}
+		log.Printf("server not responding (%s); backing off and retrying...", err)
+		time.Sleep(time.Second << uint(tries))
+	}
+	if res != nil {
+		res.Body.Close()
+	}
+}
+
+func sendCount(typeID internal.ID, t time.Time, count int) {
+	var req *http.Request
+	var res *http.Response
+	var err error
+
+	if req, err = http.NewRequest("PUT", server+"/application/counter", nil); err != nil {
+		// TODO log error ?
+		return
+	}
+
+	req.SetBasicAuth(user, key)
+
+	q := req.URL.Query()
+	q.Add("applicationID", appName)
+	q.Add("typeID", strconv.Itoa(int(typeID)))
+	q.Add("time", t.Format(time.RFC3339))
+	q.Add("count", strconv.Itoa(count))
+	req.URL.RawQuery = q.Encode()
+
+	deadline := time.Now().Add(timeout)
+
+	for tries := 0; time.Now().Before(deadline); tries++ {
+		if res, err = client.Do(req); err == nil {
+			if res != nil && res.StatusCode != 200 {
+				log.Printf("Non 200 code from metrics: %d", res.StatusCode)
+			}
+			break
+		}
+		log.Printf("server not responding (%s); backing off and retrying...", err)
+		time.Sleep(time.Second << uint(tries))
+	}
+	if res != nil {
+		res.Body.Close()
+	}
+}
+
+func sendTimer(sourceID string, t time.Time, count, average, fifty, ninety int) {
+	var req *http.Request
+	var res *http.Response
+	var err error
+
+	if req, err = http.NewRequest("PUT", server+"/application/timer", nil); err != nil {
+		// TODO log error ?
+		return
+	}
+
+	req.SetBasicAuth(user, key)
+
+	q := req.URL.Query()
+	q.Add("applicationID", appName)
+	q.Add("sourceID", sourceID)
+	q.Add("time", t.Format(time.RFC3339))
+	q.Add("count", strconv.Itoa(count))
+	q.Add("average", strconv.Itoa(average))
+	q.Add("fifty", strconv.Itoa(fifty))
+	q.Add("ninety", strconv.Itoa(ninety))
+	req.URL.RawQuery = q.Encode()
+
+	deadline := time.Now().Add(timeout)
+
+	for tries := 0; time.Now().Before(deadline); tries++ {
+		if res, err = client.Do(req); err == nil {
+			if res != nil && res.StatusCode != 200 {
+				log.Printf("Non 200 code from metrics: %d", res.StatusCode)
+			}
+			break
+		}
+		log.Printf("server not responding (%s); backing off and retrying...", err)
+		time.Sleep(time.Second << uint(tries))
+	}
+	if res != nil {
+		res.Body.Close()
+	}
 }
