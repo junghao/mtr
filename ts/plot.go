@@ -39,7 +39,7 @@ type plt struct {
 	width, height                 int // the graph height, smaller than the image height
 	dx, dy                        float64
 	xShift                        int
-	Lables                        []Lable
+	Labels                        []Label
 	ShowLatest                    bool
 }
 
@@ -86,16 +86,17 @@ type Series struct {
 	Colour string
 }
 
-type Lable struct {
-	Lable  string
+type Label struct {
+	Label  string
 	Colour string
 }
 
-type Lables []Lable
+type Labels []Label
 
-func (l Lables) Len() int           { return len(l) }
-func (l Lables) Less(i, j int) bool { return l[i].Lable < l[j].Lable }
-func (l Lables) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
+func (l Labels) Len() int           { return len(l) }
+func (l Labels) Less(i, j int) bool { return l[i].Label < l[j].Label
+}
+func (l Labels) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
 type data struct {
 	Series Series
@@ -158,9 +159,9 @@ func (p *Plot) SetLatest(pt Point, colour string) {
 	p.plt.LatestColour = colour
 }
 
-func (p *Plot) SetLables(l Lables) {
+func (p *Plot) SetLabels(l Labels) {
 	sort.Sort(l)
-	p.plt.Lables = l
+	p.plt.Labels = l
 }
 
 func (p *Plot) scaleData() {

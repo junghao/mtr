@@ -208,14 +208,14 @@ func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *weft.Result {
 
 	sort.Ints(keys)
 
-	var lables ts.Lables
+	var labels ts.Labels
 
 	for _, k := range keys {
 		p.AddSeries(ts.Series{Colour: internal.Colour(k), Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: internal.Colour(k), Lable: fmt.Sprintf("%s (n=%d)", internal.Lable(k), total[k])})
+		labels = append(labels, ts.Label{Colour: internal.Colour(k), Label: fmt.Sprintf("%s (n=%d)", internal.Label(k), total[k])})
 	}
 
-	p.SetLables(lables)
+	p.SetLabels(labels)
 
 	return &weft.StatusOK
 
@@ -298,15 +298,15 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 
 	sort.Ints(keys)
 
-	var lables ts.Lables
+	var labels ts.Labels
 
 	for _, k := range keys {
 		c := svgColour(sourceIDs[k], k)
 		p.AddSeries(ts.Series{Colour: c, Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: c, Lable: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
+		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
 	}
 
-	p.SetLables(lables)
+	p.SetLabels(labels)
 
 	return &weft.StatusOK
 
@@ -380,14 +380,14 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *weft.Result {
 	}
 	rows.Close()
 
-	var lables ts.Lables
+	var labels ts.Labels
 
 	for k := range pts {
 		p.AddSeries(ts.Series{Colour: internal.Colour(k.typePK), Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: internal.Colour(k.typePK), Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], strings.TrimPrefix(internal.Lable(k.typePK), `Mem `))})
+		labels = append(labels, ts.Label{Colour: internal.Colour(k.typePK), Label: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], strings.TrimPrefix(internal.Label(k.typePK), `Mem `))})
 	}
 
-	p.SetLables(lables)
+	p.SetLabels(labels)
 
 	return &weft.StatusOK
 
@@ -469,15 +469,15 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	sort.Sort(keys)
 
-	var lables ts.Lables
+	var labels ts.Labels
 
 	for _, k := range keys {
 		c := svgColour(instanceIDs[k.instancePK], k.instancePK)
 		p.AddSeries(ts.Series{Colour: c, Points: pts[k]})
-		lables = append(lables, ts.Lable{Colour: c, Lable: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Lable(k.typePK))})
+		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Label(k.typePK))})
 	}
 
-	p.SetLables(lables)
+	p.SetLabels(labels)
 
 	return &weft.StatusOK
 

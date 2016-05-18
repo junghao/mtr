@@ -5,8 +5,6 @@ import (
 	"text/template"
 )
 
-// Use human time to lable latest values
-
 type SVGSpark struct {
 	template      *template.Template // the name for the template must be "plot"
 	width, height int                // for the data on the plot, not the overall size.
