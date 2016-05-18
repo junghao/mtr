@@ -32,7 +32,7 @@ func homepageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 		return weft.InternalServerError(err)
 	}
 
-	p.Panels = []panel{fieldPanel, dataPanel}
+	p.Panels = []panel{dataPanel, fieldPanel}
 	if err = homepageTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return weft.InternalServerError(err)
 	}
