@@ -3,36 +3,31 @@ package main
 import (
 	"database/sql"
 	"github.com/GeoNet/map180"
+	"github.com/GeoNet/mtr/mtrapp"
 	"github.com/GeoNet/weft"
 	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
 	"time"
+	"bytes"
 )
 
 var mux *http.ServeMux
 var db *sql.DB
 var dbR *sql.DB // Database connection with read only credentials
-var userW, keyW string
-var userR, keyR string
 var wm *map180.Map180
-
-var eol = []byte("\n")
+var userW = os.Getenv("MTR_USER")
+var keyW = os.Getenv("MTR_KEY")
 
 func init() {
-	userW = os.Getenv("MTR_USER")
-	keyW = os.Getenv("MTR_KEY")
-	userR = os.Getenv("MTR_USER_R")
-	keyR = os.Getenv("MTR_KEY_R")
-
 	mux = http.NewServeMux()
+	mux.HandleFunc("/", weft.MakeHandlerAPI(home))
 	mux.HandleFunc("/tag/", weft.MakeHandlerAPI(tagHandler))
 	mux.HandleFunc("/tag", weft.MakeHandlerAPI(tagsHandler))
 	mux.HandleFunc("/app/metric", weft.MakeHandlerAPI(appMetricHandler))
 	mux.HandleFunc("/field/model", weft.MakeHandlerAPI(fieldModelHandler))
 	mux.HandleFunc("/field/device", weft.MakeHandlerAPI(fieldDeviceHandler))
-	//mux.HandleFunc("/field/tag", weft.MakeHandlerAPI(fieldTagHandler))
 	mux.HandleFunc("/field/type", weft.MakeHandlerAPI(fieldTypeHandler))
 	mux.HandleFunc("/field/metric", weft.MakeHandlerAPI(fieldMetricHandler))
 	mux.HandleFunc("/field/metric/summary", weft.MakeHandlerAPI(fieldMetricLatestHandler))
@@ -56,8 +51,8 @@ func main() {
 	}
 	defer db.Close()
 
-	db.SetMaxIdleConns(50)
-	db.SetMaxOpenConns(50)
+	db.SetMaxIdleConns(100)
+	db.SetMaxOpenConns(100)
 
 	if err = db.Ping(); err != nil {
 		log.Println("ERROR: problem pinging DB - is it up and contactable? 500s will be served")
@@ -85,10 +80,39 @@ func main() {
 	}
 
 	go deleteMetrics()
-	go refreshViews()
+	go refreshViewsTimed()
 
 	log.Println("starting server")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8080", inbound(mux)))
+}
+
+func home(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		return res
+	}
+
+	return &weft.NotFound
+}
+
+func inbound(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "PUT", "DELETE", "POST":
+			if user, password, ok := r.BasicAuth(); ok && userW == user && keyW == password {
+				h.ServeHTTP(w, r)
+			} else {
+				http.Error(w, "Access denied", http.StatusUnauthorized)
+				mtrapp.StatusUnauthorized.Inc()
+				return
+			}
+		case "GET":
+			h.ServeHTTP(w, r)
+		default:
+			weft.Write(w, r, &weft.MethodNotAllowed)
+			weft.MethodNotAllowed.Count()
+			return
+		}
+	})
 }
 
 /*
@@ -132,19 +156,26 @@ func deleteMetrics() {
 	}
 }
 
-func refreshViews() {
+func refreshViewsTimed() {
 	ticker := time.NewTicker(time.Second * 20).C
-	var err error
 	for {
 		select {
 		case <-ticker:
-			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
-				log.Println(err)
-			}
-
-			if _, err = db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
+			if err := refreshViews(); err != nil {
 				log.Println(err)
 			}
 		}
 	}
+}
+
+func refreshViews() error {
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY data.latency_summary`); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY field.metric_summary`); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
+	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/weft"
+	"github.com/golang/protobuf/proto"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -97,6 +100,45 @@ func (f *fieldThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer)
 	b.WriteString(s)
 
 	h.Set("Content-Type", "application/json;version=1")
+
+	return &weft.StatusOK
+}
+
+func (f *fieldThreshold) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		return res
+	}
+
+	var err error
+	var rows *sql.Rows
+
+	if rows, err = dbR.Query(`SELECT deviceID, typeID, lower, upper
+		FROM
+		field.threshold JOIN field.device USING (devicepk)
+		JOIN field.type USING (typepk)`); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	var ts mtrpb.FieldMetricThresholdResult
+
+	for rows.Next() {
+		var t mtrpb.FieldMetricThreshold
+
+		if err = rows.Scan(&t.DeviceID, &t.TypeID, &t.Lower, &t.Upper); err != nil {
+			return weft.InternalServerError(err)
+		}
+
+		ts.Result = append(ts.Result, &t)
+	}
+
+	var by []byte
+	if by, err = proto.Marshal(&ts); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	b.Write(by)
+
+	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

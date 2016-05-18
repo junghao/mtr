@@ -7,7 +7,6 @@ import (
 	"github.com/GeoNet/mtr/ts"
 	"github.com/GeoNet/weft"
 	"github.com/lib/pq"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -266,7 +265,6 @@ func (d *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		if err = rows.Scan(&t, &avg); err != nil {
 			return weft.InternalServerError(err)
 		}
-		log.Print(t, avg)
 		pts = append(pts, ts.Point{DateTime: t, Value: avg * d.dataType.Scale})
 	}
 	rows.Close()

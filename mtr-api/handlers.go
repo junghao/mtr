@@ -48,6 +48,13 @@ func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 		return f.save(r, h, b)
 	case "DELETE":
 		return f.delete(r, h, b)
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return f.all(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
 	default:
 		return &weft.MethodNotAllowed
 	}
@@ -158,6 +165,8 @@ func fieldThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 		switch r.Header.Get("Accept") {
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
+		case "application/x-protobuf":
+			return f.proto(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}
@@ -186,6 +195,13 @@ func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 	var d dataSite
 
 	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return d.proto(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
 	case "PUT":
 		return d.save(r)
 	case "DELETE":
@@ -217,17 +233,18 @@ func dataLatencyThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer
 	var d dataLatencyThreshold
 
 	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return d.proto(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
+
 	case "PUT":
 		return d.save(r)
 	case "DELETE":
 		return d.delete(r)
-	//case "GET":
-	//	switch r.Header.Get("Accept") {
-	//	case "application/json;version=1":
-	//		return f.jsonV1(r, h, b)
-	//	default:
-	//		return &weft.NotAcceptable
-	//	}
 	default:
 		return &weft.MethodNotAllowed
 	}
@@ -237,6 +254,13 @@ func dataLatencyTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 	var f dataLatencyTag
 
 	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return f.all(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
 	case "PUT":
 		return f.save(r, h, b)
 	case "DELETE":

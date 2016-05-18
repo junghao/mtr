@@ -87,8 +87,8 @@ func getAllTagIDs(urlString string) (tagIDs []string, err error) {
 		return nil, err
 	}
 
-	if tr.Used != nil {
-		for _, value := range tr.Used {
+	if tr.Result != nil {
+		for _, value := range tr.Result {
 			tagIDs = append(tagIDs, value.Tag)
 		}
 	}

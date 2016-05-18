@@ -11,7 +11,7 @@ message Tag {
 }
 
 message TagResult {
-    repeated Tag used = 1;
+    repeated Tag result = 1;
 }
 
 message TagSearchResult {

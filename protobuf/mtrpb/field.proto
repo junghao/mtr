@@ -26,4 +26,31 @@ message FieldMetricSummaryResult {
     repeated FieldMetricSummary result = 1;
 }
 
+message FieldMetricTag {
+    // The deviceID for the metric e.g., idu-birchfarm
+    string device_iD = 1;
+    // The typeID for the metric e.g., conn
+    string type_iD  = 2;
+    // The tag for the metric e.g., TAUP
+    string tag = 3;
+}
 
+message FieldMetricTagResult {
+    repeated FieldMetricTag result = 1;
+}
+
+message FieldMetricThreshold {
+    // The deviceID for the metric e.g., idu-birchfarm
+    string device_iD = 1;
+    // The typeID for the metric e.g., conn
+    string type_iD  = 2;
+    // The lower threshold for the metric to be good.
+    int32 lower = 3;
+    // The upper threshold for the metric to be good.
+    int32 upper = 4;
+
+}
+
+message FieldMetricThresholdResult {
+    repeated FieldMetricThreshold result = 1;
+}

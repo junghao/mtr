@@ -29,5 +29,45 @@ message DataLatencySummaryResult {
     repeated DataLatencySummary result = 1;
 }
 
+message DataSite {
+    // The siteID for the metric e.g., TAUP
+    string site_iD = 1;
+    // The site latitude - not usually accurate enough for meta data
+    double latitude = 2;
+    // The site longitude - not usually accurate enough for meta data
+    double longitude = 3;
+}
 
+message DataSiteResult {
+    repeated DataSite result = 1;
+}
+
+message DataLatencyTag {
+    // The siteID for the latency e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the latency e.g., latency.gnss.1hz
+    string type_iD  = 2;
+    // The tag for the latency e.g., TAUP
+    string tag = 3;
+}
+
+message DataLatencyTagResult {
+    repeated DataLatencyTag result = 1;
+}
+
+message DataLatencyThreshold {
+    // The siteID for the latency e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the latency e.g., latency.gnss.1hz
+    string type_iD  = 2;
+    // The lower threshold for the latency to be good.
+    int32 lower = 3;
+    // The upper threshold for the latency to be good.
+    int32 upper = 4;
+
+}
+
+message DataLatencyThresholdResult {
+    repeated DataLatencyThreshold result = 1;
+}
 
