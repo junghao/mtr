@@ -25,10 +25,10 @@
 			"revisionTime": "2016-05-02T16:28:30+12:00"
 		},
 		{
-			"checksumSHA1": "FG6nWdvivGAfBWUeGxlNyi8V3Bg=",
+			"checksumSHA1": "qxcW1hstrjlHw/t4qGzigqDudcc=",
 			"path": "github.com/GeoNet/weft/wefttest",
-			"revision": "a1a6dd577997b3a3e12f66071c58d067434148e6",
-			"revisionTime": "2016-05-16T16:29:08Z"
+			"revision": "4e807a25f66684ed7040d4c0c2a1d645c46bac39",
+			"revisionTime": "2016-05-19T16:28:33Z"
 		},
 		{
 			"path": "github.com/golang/groupcache",

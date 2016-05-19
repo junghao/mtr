@@ -5,9 +5,9 @@ A minimal test for a web application would look like:
 
 	// routes will be tested with defaults; method GET expecting http.StatusOK.
 	var routes = Requests{
-		{URL: "/path/to/test/one"},
-		{URL: "/path/to/test/two"},
-		{URL: "/path/to/test/three"},
+		{ID: L(), URL: "/path/to/test/one"},
+		{ID: L(), URL: "/path/to/test/two"},
+		{ID: L(), URL: "/path/to/test/three"},
 	}
 
 	// Test all routes give the expected response.  Also check with
