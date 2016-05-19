@@ -9,6 +9,7 @@ type mtrUiPage struct {
 	page
 	Panels      []panel
 	SparkGroups []sparkGroup
+	GroupRows	[]idCount
 	Path        string
 	ModelID     string
 	SiteID      string

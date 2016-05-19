@@ -22,6 +22,8 @@
         {{template "panels" .}}
     {{else if .SparkGroups}}
         {{template "spark_rows" .}}
+    {{else if .GroupRows}}
+        {{template "group_count_rows" .}}
     {{else}}
         <div class="col-xs-12 col-md-12 h3">No metrics available.</div>
     {{end}}
