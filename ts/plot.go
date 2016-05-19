@@ -4,9 +4,9 @@ Package ts can be used to draw time series plots.
 package ts
 
 import (
+
 	"fmt"
 	"math"
-	"sort"
 	"time"
 )
 
@@ -160,7 +160,7 @@ func (p *Plot) SetLatest(pt Point, colour string) {
 }
 
 func (p *Plot) SetLabels(l Labels) {
-	sort.Sort(l)
+	//sort.Sort(l)
 	p.plt.Labels = l
 }
 

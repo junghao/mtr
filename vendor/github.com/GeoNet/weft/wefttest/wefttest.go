@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"runtime"
+	"strconv"
 )
 
 // Client is used to make requests to the test server.
@@ -13,6 +15,8 @@ var Client = &http.Client{}
 // Request is for making requests to the server being tested.
 // It describes the Request parameters and elements of the expected response.
 type Request struct {
+	// An identifier for the request.  Used in error messages.
+	ID string
 	// Method for the request e.g., "PUT".  Defaults to "GET".
 	Method         string
 	// Accept header for the request.  Defaults to */*
@@ -30,6 +34,13 @@ type Request struct {
 }
 
 type Requests []Request
+
+// L returns the line of code it was called from.
+func L() (loc string) {
+	_, _, l, _ := runtime.Caller(1)
+	return "L" + strconv.Itoa(l)
+}
+
 
 // DoAllStatusOK runs all Requests in r that should return http.StatusOK (200).
 // Returns for the first non nil error.
@@ -63,7 +74,7 @@ func (r Requests) DoCheckQuery(server string) error {
 			}
 
 			if _, err := v.Do(server); err != nil {
-				return fmt.Errorf("Busted fail: %s", err.Error())
+				return fmt.Errorf("%s busted fail: %s", v.ID, err.Error())
 			}
 		}
 	}
@@ -75,7 +86,7 @@ func (r Requests) DoCheckQuery(server string) error {
 			if !strings.Contains(v.URL, "?") {
 				v.URL = v.URL + ";cache=busta"
 				if _, err := v.Do(server); err != nil {
-					return fmt.Errorf("Busted fail: %s", err.Error())
+					return fmt.Errorf("%s busted fail: %s", v.ID, err.Error())
 				}
 			}
 		}
@@ -121,12 +132,12 @@ func (r Request) Do(server string) ([]byte, error) {
 	}
 
 	if res, err = Client.Do(req); err != nil {
-		return nil, fmt.Errorf("%s %s error: %s", r.URL, r.Method, err.Error())
+		return nil, fmt.Errorf("%s %s %s error: %s", r.ID, r.URL, r.Method, err.Error())
 	}
 	defer res.Body.Close()
 
 	if r.Status != res.StatusCode {
-		return nil, fmt.Errorf("%s %s got status %d expected %d", r.URL, r.Method, res.StatusCode, r.Status)
+		return nil, fmt.Errorf("%s %s %s got status %d expected %d", r.ID, r.URL, r.Method, res.StatusCode, r.Status)
 	}
 
 	switch res.StatusCode {
@@ -139,28 +150,28 @@ func (r Request) Do(server string) ([]byte, error) {
 		switch res.Header.Get("Content-Type") {
 		case "text/html; charset=utf-8", "text/plain; charset=utf-8":
 		default:
-			return nil, fmt.Errorf("%s %s got Content-Type %s expected text/html; charset=utf-8 or text/html; charset=utf-8",
-				r.URL, r.Method, res.Header.Get("Content-Type"))
+			return nil, fmt.Errorf("%s %s %s got Content-Type %s expected text/html; charset=utf-8 or text/html; charset=utf-8",
+				r.ID, r.URL, r.Method, res.Header.Get("Content-Type"))
 		}
 	default:
 		// Content-Type should not be empty
 		if res.Header.Get("Content-Type") == "" {
-			return nil, fmt.Errorf("%s %s got empty Content-Type.", r.URL, r.Method)
+			return nil, fmt.Errorf("%s %s %s got empty Content-Type.",r.ID, r.URL, r.Method)
 		}
 
 		// Surrogate-Control for intermediate caches.
 		if r.Surrogate != "" {
 			if res.Header.Get("Surrogate-Control") != r.Surrogate {
-				return nil, fmt.Errorf("%s %s got Surrogate-Control %s expected %s",
-					r.URL, r.Method, res.Header.Get("Surrogate-Control"), r.Surrogate)
+				return nil, fmt.Errorf("%s %s %s got Surrogate-Control %s expected %s",
+					r.ID, r.URL, r.Method, res.Header.Get("Surrogate-Control"), r.Surrogate)
 			}
 		}
 
 		// If the request expected a Content-Type it should match the response.
 		if r.Content != "" {
 			if res.Header.Get("Content-Type") != r.Content {
-				return nil, fmt.Errorf("%s %s got Content-Type %s expected %s",
-					r.URL, r.Method, res.Header.Get("Content-Type"), r.Content)
+				return nil, fmt.Errorf("%s %s %s got Content-Type %s expected %s",
+					r.ID, r.URL, r.Method, res.Header.Get("Content-Type"), r.Content)
 			}
 		}
 	}

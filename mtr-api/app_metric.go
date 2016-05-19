@@ -264,6 +264,7 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 	var sourceID string
 	pts := make(map[int][]ts.Point)
 	total := make(map[int]int)
+	rank := make(map[int]int) // track the slowest source value for sorting by colour.
 
 	for rows.Next() {
 		if err = rows.Scan(&sourcePK, &t, &avg, &n); err != nil {
@@ -271,14 +272,11 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 		}
 		pts[sourcePK] = append(pts[sourcePK], ts.Point{DateTime: t, Value: float64(avg)})
 		total[sourcePK] += n
+		if rank[sourcePK] < avg {
+			rank[sourcePK] = avg
+		}
 	}
 	rows.Close()
-
-	var keys []int
-	for k := range pts {
-		keys = append(keys, k)
-
-	}
 
 	sourceIDs := make(map[int]string)
 
@@ -296,14 +294,55 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 	}
 	rows.Close()
 
-	sort.Ints(keys)
+	// sort the sourcePKs slowest to fastest based on their slowest times.
+	keys := rankSlowest(rank)
+
+	// add the time series to the plot. Break the colours up based on source
+	// name suffix - GET, PUT, DELETE or other and colour them slowest to fastest.
+	// 4 different colours for each group.
 
 	var labels ts.Labels
+	var get, put, delete, other int
 
 	for _, k := range keys {
-		c := svgColour(sourceIDs[k], k)
-		p.AddSeries(ts.Series{Colour: c, Points: pts[k]})
-		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k], `main.`), total[k])})
+		id := strings.TrimPrefix(sourceIDs[k.Key], `main.`)
+
+		idx := strings.LastIndex(id, ".")
+		if idx > -1 && idx+1 < len(id) {
+			id = id[idx+1:]
+		}
+
+		var c string
+
+		switch id {
+		case "GET":
+			c = gets[3]
+			if get < 3 {
+				c = gets[get]
+			}
+			get++
+		case "PUT":
+			c = puts[3]
+			if put < 3 {
+				c = puts[put]
+			}
+			put++
+		case "DELETE":
+			c = deletes[3]
+			if delete < 3 {
+				c = deletes[delete]
+			}
+			delete++
+		default:
+			c = colours[3]
+			if other < 3 {
+				c = colours[other]
+			}
+			other++
+		}
+
+		p.AddSeries(ts.Series{Colour: c, Points: pts[k.Key]})
+		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k.Key], `main.`), total[k.Key])})
 	}
 
 	p.SetLabels(labels)
@@ -471,8 +510,13 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 
 	var labels ts.Labels
 
-	for _, k := range keys {
-		c := svgColour(instanceIDs[k.instancePK], k.instancePK)
+	for i, k := range keys {
+		if i > len(colours) {
+			i = 0
+		}
+
+		c := colours[i]
+
 		p.AddSeries(ts.Series{Colour: c, Points: pts[k]})
 		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s.%s", instanceIDs[k.instancePK], internal.Label(k.typePK))})
 	}
@@ -514,3 +558,25 @@ func merge(cs ...<-chan *weft.Result) <-chan *weft.Result {
 	}()
 	return out
 }
+
+func rankSlowest(r map[int]int) SourceList {
+	pl := make(SourceList, len(r))
+	i := 0
+	for k, v := range r {
+		pl[i] = Pair{k, v}
+		i++
+	}
+	sort.Sort(sort.Reverse(pl))
+	return pl
+}
+
+type Pair struct {
+	Key   int
+	Value int
+}
+
+type SourceList []Pair
+
+func (p SourceList) Len() int           { return len(p) }
+func (p SourceList) Less(i, j int) bool { return p[i].Value < p[j].Value }
+func (p SourceList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
