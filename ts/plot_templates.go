@@ -71,12 +71,6 @@ func (s *SVGPlot) Draw(p Plot, b *bytes.Buffer) error {
 	return s.template.ExecuteTemplate(b, "plot", p.plt)
 }
 
-//var Scatter = SVGPlot{
-//	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotScatterTemplate)),
-//	width:    780,
-//	height:   210,
-//}
-
 var Line = SVGPlot{
 	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + plotLineTemplate)),
 	width:    780,
@@ -174,15 +168,6 @@ const plotAppMetricsTemplate = `<?xml version="1.0"?>
 
 </svg>
 `
-
-//const plotScatterTemplate = `
-//{{define "data"}}
-//{{range .Data}}
-//<g style="stroke: {{.Series.Colour}}; fill: none">
-//{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" />{{end}}
-//</g>
-//{{end}}
-//{{end}}`
 
 const plotLineTemplate = `
 {{define "data"}}
