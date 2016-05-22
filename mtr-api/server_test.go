@@ -46,7 +46,36 @@ func setup(t *testing.T) {
 	if !testing.Verbose() {
 		log.SetOutput(ioutil.Discard)
 	}
+
+	a := application{id: "test-app"}
+	if r:= a.del();!r.Ok {
+		t.Error(r.Msg)
+	}
+
 }
+
+func setupBench(t *testing.B) {
+	var err error
+	if db, err = sql.Open("postgres",
+		os.ExpandEnv("host=${DB_HOST} connect_timeout=30 user=${DB_USER} password=${DB_PASSWORD} dbname=mtr sslmode=disable")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = db.Ping(); err != nil {
+		t.Fatal(err)
+	}
+
+	dbR, err = sql.Open("postgres",
+		os.ExpandEnv("host=${DB_HOST} connect_timeout=30 user=${DB_USER_R} password=${DB_PASSWORD_R} dbname=mtr sslmode=disable"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = dbR.Ping(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 
 func teardown() {
 	testServer.Close()

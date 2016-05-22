@@ -2,124 +2,235 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/GeoNet/weft"
-	"net/http"
 	"strconv"
+	"sync"
 )
 
+// cachePK is for caching primary keys that do not change very often
+// and so are very read heavy from the db.  Using this makes this
+// app unsuitable for horizontal scaling with http.DELETE methods.
+// Other approaches would be to use groupcache or a read only DB instance.
+type cachePK struct {
+	sync.RWMutex
+	m map[string]int
+}
+
+func newCachePK() cachePK {
+	return cachePK{m: make(map[string]int)}
+}
+
+var applicationCache = newCachePK()
+var applicationInstanceCache = newCachePK()
+var applicationSourceCache = newCachePK()
+
 type application struct {
-	applicationPK int
-	applicationID string
+	pk int
+	id string
 }
 
 type applicationInstance struct {
-	instancePK int
-	instanceID string
+	pk int
+	id string
 }
 
 type applicationSource struct {
-	sourcePK int
-	sourceID string
+	pk int
+	id string
 }
 
 type applicationType struct {
-	typePK int
+	pk int
+	id string
 }
 
-// Find  (and possibly create) the applicationPK for the applicationID
-func (a *application) loadPK(r *http.Request) *weft.Result {
-	a.applicationID = r.URL.Query().Get("applicationID")
+// create sets pk to the db primary key for id,
+// creating it in the db if needed.
+func (a *application) create() *weft.Result {
+	if a.id == "" {
+		return weft.InternalServerError(fmt.Errorf("empty application.id"))
+	}
 
-	err := db.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`,
-		a.applicationID).Scan(&a.applicationPK)
+	var ok bool
+
+	applicationCache.RLock()
+	a.pk, ok = applicationCache.m[a.id]
+	applicationCache.RUnlock()
+
+	if ok {
+		return &weft.StatusOK
+	}
+
+	applicationCache.Lock()
+	defer applicationCache.Unlock()
+
+	err := dbR.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`,
+		a.id).Scan(&a.pk)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
-		if _, err = db.Exec(`INSERT INTO app.application(applicationID) VALUES($1)`, a.applicationID); err != nil {
-			// TODO ignoring error due to race on insert between calls to this func.  Use a transaction here?
-			//return weft.InternalServerError(err)
+		if _, err = db.Exec(`INSERT INTO app.application(applicationID) VALUES($1)`, a.id); err != nil {
+			return weft.InternalServerError(err)
 		}
-		if err = db.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`, a.applicationID).Scan(&a.applicationPK); err != nil {
+		if err = db.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`,
+			a.id).Scan(&a.pk); err != nil {
 			return weft.InternalServerError(err)
 		}
 	default:
 		return weft.InternalServerError(err)
 	}
 
+	applicationCache.m[a.id] = a.pk
+
 	return &weft.StatusOK
 }
 
-func (a *application) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID"}, []string{}); !res.Ok {
-		return res
+// read sets pk to the database primary key.
+func (a *application) read() *weft.Result {
+	if a.id == "" {
+		return weft.InternalServerError(fmt.Errorf("empty application.id"))
 	}
 
-	if res := a.loadPK(r); !res.Ok {
-		return res
+	var ok bool
+
+	applicationCache.RLock()
+	a.pk, ok = applicationCache.m[a.id]
+	applicationCache.RUnlock()
+
+	if ok {
+		return &weft.StatusOK
 	}
+
+	err := dbR.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`,
+		a.id).Scan(&a.pk)
+	switch err {
+	case nil:
+		applicationCache.Lock()
+		applicationCache.m[a.id] = a.pk
+		applicationCache.Unlock()
+
+		return &weft.StatusOK
+	case sql.ErrNoRows:
+		return &weft.NotFound
+	default:
+		return weft.InternalServerError(err)
+	}
+}
+
+// del deletes all metrics from for the application from the db.
+func (a *application) del() *weft.Result {
+	if a.id == "" {
+		return weft.InternalServerError(fmt.Errorf("empty application.id"))
+	}
+
+	applicationCache.Lock()
+	defer applicationCache.Unlock()
 
 	if _, err := db.Exec(`DELETE FROM app.application WHERE applicationID = $1`,
-		a.applicationID); err != nil {
+		a.id); err != nil {
 		return weft.InternalServerError(err)
 	}
 
+	delete(applicationCache.m, a.id)
+
 	return &weft.StatusOK
 }
 
-// Find  (and possibly create) the instancePK for the instanceID
-func (i *applicationInstance) loadPK(r *http.Request) *weft.Result {
-	i.instanceID = r.URL.Query().Get("instanceID")
+// create sets pk to the db primary key for id,
+// creating it in the db if needed.
+func (a *applicationInstance) create() *weft.Result {
+	if a.id == "" {
+		return weft.InternalServerError(fmt.Errorf("empty applicationInstance.id"))
+	}
 
-	err := db.QueryRow(`SELECT instancePK FROM app.instance WHERE instanceID = $1`,
-		i.instanceID).Scan(&i.instancePK)
+	var ok bool
+
+	applicationInstanceCache.RLock()
+	a.pk, ok = applicationInstanceCache.m[a.id]
+	applicationInstanceCache.RUnlock()
+
+	if ok {
+		return &weft.StatusOK
+	}
+
+	applicationInstanceCache.Lock()
+	defer applicationInstanceCache.Unlock()
+
+	err := dbR.QueryRow(`SELECT instancePK FROM app.instance WHERE instanceID = $1`,
+		a.id).Scan(&a.pk)
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
 		if _, err = db.Exec(`INSERT INTO app.instance(instanceID) VALUES($1)`,
-			i.instanceID); err != nil {
-			// TODO ignoring error due to race on insert between calls to this func.  Use a transaction here?
-			//return weft.InternalServerError(err)
+			a.id); err != nil {
+			return weft.InternalServerError(err)
 		}
 		if err = db.QueryRow(`SELECT instancePK FROM app.instance WHERE instanceID = $1`,
-			i.instanceID).Scan(&i.instancePK); err != nil {
+			a.id).Scan(&a.pk); err != nil {
 			return weft.InternalServerError(err)
 		}
 	default:
 		return weft.InternalServerError(err)
 	}
 
+	applicationInstanceCache.m[a.id] = a.pk
+
 	return &weft.StatusOK
 }
 
-// Find  (and possibly create) the sourcePK for the sourceID
-func (s *applicationSource) loadPK(r *http.Request) *weft.Result {
-	s.sourceID = r.URL.Query().Get("sourceID")
+// create sets pk to the db primary key for id,
+// creating it in the db if needed.
+func (a *applicationSource) create() *weft.Result {
+	if a.id == "" {
+		return weft.InternalServerError(fmt.Errorf("empty applicationSource.id"))
+	}
 
-	err := db.QueryRow(`SELECT sourcePK FROM app.source WHERE sourceID = $1`,
-		s.sourceID).Scan(&s.sourcePK)
+	var ok bool
+
+	applicationSourceCache.RLock()
+	a.pk, ok = applicationSourceCache.m[a.id]
+	applicationSourceCache.RUnlock()
+
+	if ok {
+		return &weft.StatusOK
+	}
+
+	applicationSourceCache.Lock()
+	defer applicationSourceCache.Unlock()
+
+	err := dbR.QueryRow(`SELECT sourcePK FROM app.source WHERE sourceID = $1`,
+		a.id).Scan(&a.pk)
 
 	switch err {
 	case nil:
 	case sql.ErrNoRows:
 		if _, err = db.Exec(`INSERT INTO app.source(sourceID) VALUES($1)`,
-			s.sourceID); err != nil {
-			// TODO ignoring error due to race on insert between calls to this func.  Use a transaction here?
+			a.id); err != nil {
+			return weft.InternalServerError(err)
 		}
 		if err = db.QueryRow(`SELECT sourcePK FROM app.source WHERE sourceID = $1`,
-			s.sourceID).Scan(&s.sourcePK); err != nil {
+			a.id).Scan(&a.pk); err != nil {
 			return weft.InternalServerError(err)
 		}
 	default:
 		return weft.InternalServerError(err)
 	}
 
+	applicationSourceCache.m[a.id] = a.pk
+
 	return &weft.StatusOK
 }
 
-func (a *applicationType) loadPK(r *http.Request) *weft.Result {
+// read sets pk to the database primary key.
+func (a *applicationType) read() *weft.Result {
+	if a.id == "" {
+		return weft.InternalServerError(fmt.Errorf("empty applicationType.id"))
+	}
+
 	// TODO could validate this without hitting the DB
 	var err error
-	if a.typePK, err = strconv.Atoi(r.URL.Query().Get("typeID")); err != nil {
+	if a.pk, err = strconv.Atoi(a.id); err != nil {
 		return weft.BadRequest("invalid typeID")
 	}
 

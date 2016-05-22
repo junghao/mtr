@@ -30,8 +30,7 @@ func init() {
 var routes = wt.Requests{
 	// application metrics
 
-	// delete all metrics for an application
-	{ID: wt.L(), URL: "/application/metric?applicationID=test-app", Method: "DELETE"},
+	// all metrics for test-app are deleted in setup()
 
 	// add a metric value
 	{ID: wt.L(), URL: "/application/metric?applicationID=test-app&instanceID=test-instance&typeID=1000&value=10000&time=2015-05-14T21:40:30Z", Method: "PUT"},

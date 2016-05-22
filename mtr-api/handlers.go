@@ -25,9 +25,7 @@ func applicationMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *
 
 	switch r.Method {
 	case "PUT":
-		return a.save(r)
-	case "DELETE":
-		return a.delete(r)
+		return a.put(r)
 	default:
 		return &weft.MethodNotAllowed
 	}
@@ -38,7 +36,7 @@ func applicationCounterHandler(r *http.Request, h http.Header, b *bytes.Buffer) 
 
 	switch r.Method {
 	case "PUT":
-		return a.save(r)
+		return a.put(r)
 	default:
 		return &weft.MethodNotAllowed
 	}
@@ -49,7 +47,7 @@ func applicationTimerHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 
 	switch r.Method {
 	case "PUT":
-		return a.save(r)
+		return a.put(r)
 	default:
 		return &weft.MethodNotAllowed
 	}
