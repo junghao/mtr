@@ -356,7 +356,7 @@ func (p *mtrUiPage) getFieldCountList() (err error) {
 	p.GroupRows = make([]idCount, 0)
 	for _, r := range p.Panels {
 		// Note: getCountList only count for same Status
-		c := idCount{ID: r.ID, Link: r.StatusLink, Count: r.Values[p.Status].Count}
+		c := idCount{ID: r.ID, Description: r.ID, Link: r.StatusLink, Count: r.Values[p.Status].Count}
 		p.GroupRows = append(p.GroupRows, c)
 	}
 	sort.Sort(idCounts(p.GroupRows))
