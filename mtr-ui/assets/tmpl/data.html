@@ -6,6 +6,7 @@
             <li role="presentation" class="active"><a href="/data">Data</a></li>
             <li role="presentation"><a href="/field">Field</a></li>
             <li role="presentation"><a href="/map">Map</a></li>
+            <li role="presentation"><a href="/tag">Tag</a></li>
         </ul>
     </div>
 </div>
@@ -21,6 +22,8 @@
         {{template "panels" .}}
     {{else if .SparkGroups}}
         {{template "spark_rows" .}}
+    {{else if .GroupRows}}
+        {{template "group_count_rows" .}}
     {{else}}
         <div class="col-xs-12 col-md-12 h3">No metrics available.</div>
     {{end}}

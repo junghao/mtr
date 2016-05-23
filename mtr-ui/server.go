@@ -46,6 +46,8 @@ func init() {
 	mux.HandleFunc("/map/", weft.MakeHandlerPage(mapPageHandler))
 	mux.HandleFunc("/field/metric", weft.MakeHandlerPage(metricDetailHandler))
 	mux.HandleFunc("/search", weft.MakeHandlerPage(searchHandler))
+	mux.HandleFunc("/tag", weft.MakeHandlerPage(tagPageHandler))
+	mux.HandleFunc("/tag/", weft.MakeHandlerPage(tagPageHandler))
 }
 
 func main() {

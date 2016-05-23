@@ -52,11 +52,17 @@ func fieldMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 		return weft.InternalServerError(err)
 	}
 
-	p.pageParam(r.URL.Query())
+	n := p.pageParam(r.URL.Query())
 
-	// For /field/metrics, we show list when Status or ModelID parameter is specified.
+	// For /field/metrics, we :
+	// 1. Show grouped list if only Status parameter is specified,
+	// 2. Show list when Status or ModelID parameter is specified,
 	// Else we show panel.
-	if p.Status != "" || p.ModelID != "" {
+	if n == 1 && p.Status != "" {
+		if err = p.getFieldCountList(); err != nil {
+			return weft.InternalServerError(err)
+		}
+	} else if p.Status != "" || p.ModelID != "" {
 		if err = p.getDevicesList(); err != nil {
 			return weft.InternalServerError(err)
 		}
@@ -313,6 +319,48 @@ func (p *mtrUiPage) getDevicesList() (err error) {
 		p.SparkGroups[i] = g
 	}
 	sort.Sort(sparkGroups(p.SparkGroups))
+	return
+}
+
+// getFieldCountList returns []idCount for each typeID
+func (p *mtrUiPage) getFieldCountList() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/field/metric/summary"
+
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var f mtrpb.FieldMetricSummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
+	// The trick here is to create panels first -
+	//   then use aggregate functions for panels,
+	//   then transfer from panels to idCounts
+	p.Panels = make([]panel, 0)
+	p.fieldResult = p.filterFieldResults(f.Result)
+
+	for _, r := range p.fieldResult {
+		if p.TypeID != "" {
+			p.updateFieldMetricGroupByModel(r)
+		} else {
+			p.updateFieldMetricGroupByType(r)
+		}
+	}
+
+	// Now copy counts from panels to GroupRows
+	p.GroupRows = make([]idCount, 0)
+	for _, r := range p.Panels {
+		// Note: getCountList only count for same Status
+		c := idCount{ID: r.ID, Description: r.ID, Link: r.StatusLink, Count: r.Values[p.Status].Count}
+		p.GroupRows = append(p.GroupRows, c)
+	}
+	sort.Sort(idCounts(p.GroupRows))
+	p.Panels = nil
 	return
 }
 
