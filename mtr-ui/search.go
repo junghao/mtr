@@ -85,6 +85,9 @@ func searchHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result
 	var err error
 	var p *searchPage
 
+	if res := weft.CheckQuery(r, []string{"tagQuery"}, []string{"page"}); !res.Ok {
+		return res
+	}
 	r.ParseForm()
 	tagQuery := r.FormValue("tagQuery")
 
