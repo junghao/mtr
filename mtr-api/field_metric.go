@@ -15,53 +15,29 @@ import (
 
 var statusTooManyRequests = weft.Result{Ok: false, Code: http.StatusTooManyRequests, Msg: "Already data for the minute"}
 
-// TODO this should contain a device and type
-type fieldMetric struct {
-	deviceID  string
-	devicePK  int
-	fieldType fieldType
-}
-
-func (f *fieldMetric) loadPK(r *http.Request) (res *weft.Result) {
-	f.deviceID = r.URL.Query().Get("deviceID")
-
-	if f.devicePK, res = fieldDevicePK(f.deviceID); !res.Ok {
-		return
-	}
-
-	if f.fieldType, res = loadFieldType(r.URL.Query().Get("typeID")); !res.Ok {
-		return
-	}
-
-	res = &weft.StatusOK
-
-	return
-}
-
 func (f *fieldMetric) save(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "time", "value"}, []string{}); !res.Ok {
 		return res
 	}
 
+	v := r.URL.Query()
+
 	var err error
 
-	var t time.Time
-	var v int
-
-	if v, err = strconv.Atoi(r.URL.Query().Get("value")); err != nil {
+	if f.val, err = strconv.Atoi(v.Get("value")); err != nil {
 		return weft.BadRequest("invalid value")
 	}
 
-	if t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
+	if f.t, err = time.Parse(time.RFC3339, v.Get("time")); err != nil {
 		return weft.BadRequest("invalid time")
 	}
 
-	if res := f.loadPK(r); !res.Ok {
+	if res := f.read(v.Get("deviceID"), v.Get("typeID")); !res.Ok {
 		return res
 	}
 
 	if _, err = db.Exec(`INSERT INTO field.metric(devicePK, typePK, rate_limit, time, value) VALUES($1, $2, $3, $4, $5)`,
-		f.devicePK, f.fieldType.typePK, t.Truncate(time.Minute).Unix(), t, int32(v)); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk, f.t.Truncate(time.Minute).Unix(), f.t, int32(f.val)); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			return &statusTooManyRequests
 		} else {
@@ -77,7 +53,9 @@ func (f *fieldMetric) delete(r *http.Request) *weft.Result {
 		return res
 	}
 
-	if res := f.loadPK(r); !res.Ok {
+	v := r.URL.Query()
+
+	if res := f.read(v.Get("deviceID"), v.Get("typeID")); !res.Ok {
 		return res
 	}
 
@@ -89,19 +67,19 @@ func (f *fieldMetric) delete(r *http.Request) *weft.Result {
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.metric WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.fieldType.typePK); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk); err != nil {
 		txn.Rollback()
 		return weft.InternalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.metric_tag WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.fieldType.typePK); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk); err != nil {
 		txn.Rollback()
 		return weft.InternalServerError(err)
 	}
 
 	if _, err = txn.Exec(`DELETE FROM field.threshold WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.fieldType.typePK); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk); err != nil {
 		txn.Rollback()
 		return weft.InternalServerError(err)
 	}
@@ -118,7 +96,9 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 		return res
 	}
 
-	if res := f.loadPK(r); !res.Ok {
+	v := r.URL.Query()
+
+	if res := f.read(v.Get("deviceID"), v.Get("typeID")); !res.Ok {
 		return res
 	}
 
@@ -143,61 +123,6 @@ func (f *fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 }
 
 /*
-loadThreshold loads thresholds for the metric.  Assumes f.load has been called first.
-*/
-func (f *fieldMetric) threshold() (lower, upper int, res *weft.Result) {
-	res = &weft.StatusOK
-
-	if err := dbR.QueryRow(`SELECT lower,upper FROM field.threshold
-		WHERE devicePK = $1 AND typePK = $2`,
-		f.devicePK, f.fieldType.typePK).Scan(&lower, &upper); err != nil && err != sql.ErrNoRows {
-		res = weft.InternalServerError(err)
-	}
-
-	return
-}
-
-func (f *fieldMetric) tags() (t []string, res *weft.Result) {
-	var rows *sql.Rows
-	var err error
-
-	if rows, err = dbR.Query(`SELECT tag FROM field.metric_tag JOIN mtr.tag USING (tagpk) WHERE
-		devicePK = $1 AND typePK = $2
-		ORDER BY tag asc`,
-		f.devicePK, f.fieldType.typePK); err != nil {
-		res = weft.InternalServerError(err)
-		return
-	}
-
-	defer rows.Close()
-
-	var s string
-
-	for rows.Next() {
-		if err = rows.Scan(&s); err != nil {
-			res = weft.InternalServerError(err)
-			return
-		}
-		t = append(t, s)
-	}
-
-	res = &weft.StatusOK
-	return
-}
-
-func (f *fieldMetric) model() (s string, res *weft.Result) {
-	res = &weft.StatusOK
-
-	if err := dbR.QueryRow(`SELECT modelid FROM field.device JOIN field.model using (modelpk)
-		WHERE devicePK = $1`,
-		f.devicePK).Scan(&s); err != nil && err != sql.ErrNoRows {
-		res = weft.InternalServerError(err)
-	}
-
-	return
-}
-
-/*
 plot draws an svg plot to b.  Assumes f.load has been called first.
 Valid values for resolution are 'minute', 'five_minutes', 'hour'.
 */
@@ -206,11 +131,14 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 
 	p.SetUnit(f.fieldType.Unit)
 
+	var rows *sql.Rows
+	var err error
 	var lower, upper int
-	var res *weft.Result
 
-	if lower, upper, res = f.threshold(); !res.Ok {
-		return res
+	if err := dbR.QueryRow(`SELECT lower,upper FROM field.threshold
+		WHERE devicePK = $1 AND typePK = $2`,
+		f.fieldDevice.pk, f.fieldType.pk).Scan(&lower, &upper); err != nil && err != sql.ErrNoRows {
+		return weft.InternalServerError(err)
 	}
 
 	if !(lower == 0 && upper == 0) {
@@ -219,22 +147,39 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 
 	var tags []string
 
-	if tags, res = f.tags(); !res.Ok {
-		return res
+	if rows, err = dbR.Query(`SELECT tag FROM field.metric_tag JOIN mtr.tag USING (tagpk) WHERE
+		devicePK = $1 AND typePK = $2
+		ORDER BY tag asc`,
+		f.fieldDevice.pk, f.fieldType.pk); err != nil {
+		return weft.InternalServerError(err)
 	}
+
+	defer rows.Close()
+
+	var s string
+
+	for rows.Next() {
+		if err = rows.Scan(&s); err != nil {
+			return weft.InternalServerError(err)
+		}
+		tags = append(tags, s)
+	}
+
+	rows.Close()
 
 	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
 
 	var mod string
 
-	if mod, res = f.model(); !res.Ok {
-		return res
+	if err = dbR.QueryRow(`SELECT modelid FROM field.device JOIN field.model using (modelpk)
+		WHERE devicePK = $1`,
+		f.fieldDevice.pk).Scan(&s); err != nil && err != sql.ErrNoRows {
+		return weft.InternalServerError(err)
 	}
 
-	p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.deviceID, mod, strings.Title(f.fieldType.Name)))
+	p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.fieldDevice.id, mod, strings.Title(f.fieldType.Name)))
 
-	var rows *sql.Rows
-	var err error
+
 
 	switch resolution {
 	case "minute":
@@ -246,7 +191,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
-			f.devicePK, f.fieldType.typePK)
+			f.fieldDevice.pk, f.fieldType.pk)
 	case "five_minutes":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*2), time.Now().UTC())
 		p.SetXLabel("48 hours")
@@ -257,7 +202,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
 		ORDER BY t ASC`,
-			f.devicePK, f.fieldType.typePK)
+			f.fieldDevice.pk, f.fieldType.pk)
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
@@ -267,7 +212,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
-			f.devicePK, f.fieldType.typePK)
+			f.fieldDevice.pk, f.fieldType.pk)
 	default:
 		return weft.BadRequest("invalid resolution")
 	}
@@ -296,7 +241,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 			devicePK = $1 AND typePK = $2
 			ORDER BY time DESC
 			LIMIT 1`,
-		f.devicePK, f.fieldType.typePK).Scan(&t, &value); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk).Scan(&t, &value); err != nil {
 		return weft.InternalServerError(err)
 	}
 
@@ -327,7 +272,7 @@ func (f *fieldMetric) spark(b *bytes.Buffer) *weft.Result {
 		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
 		ORDER BY t ASC`,
-		f.devicePK, f.fieldType.typePK); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk); err != nil {
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()

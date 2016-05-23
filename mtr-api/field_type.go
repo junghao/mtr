@@ -3,92 +3,86 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/GeoNet/weft"
 	"net/http"
 )
 
-type fieldType struct {
-	typePK int
-	Scale  float64 // used to scale the stored metric for display
-	Name   string
-	Unit   string // display unit after the metric has been multiplied by scale.
-}
-
 var fieldTypes = map[string]fieldType{
 	"voltage": {
-		typePK: 1,
-		Scale:  0.001,
-		Name:   "Voltage",
-		Unit:   "V",
+		pk:    1,
+		Scale: 0.001,
+		Name:  "Voltage",
+		Unit:  "V",
 	},
 	"clock": {
-		typePK: 2,
-		Scale:  1.0,
-		Name:   "Clock Quality",
-		Unit:   "%",
+		pk:    2,
+		Scale: 1.0,
+		Name:  "Clock Quality",
+		Unit:  "%",
 	},
 	"satellites": {
-		typePK: 3,
-		Scale:  1.0,
-		Name:   "Satellites Tracked",
-		Unit:   "n",
+		pk:    3,
+		Scale: 1.0,
+		Name:  "Satellites Tracked",
+		Unit:  "n",
 	},
 	"conn": {
-		typePK: 4,
-		Scale:  0.001,
-		Name:   "Connectivity",
-		Unit:   "ms",
+		pk:    4,
+		Scale: 0.001,
+		Name:  "Connectivity",
+		Unit:  "ms",
 	},
 	"ping": {
-		typePK: 5,
-		Scale:  0.001,
-		Name:   "ping",
-		Unit:   "ms",
+		pk:    5,
+		Scale: 0.001,
+		Name:  "ping",
+		Unit:  "ms",
 	},
 
 	"disk.hd1": {
-		typePK: 6,
-		Scale:  1.0,
-		Name:   "disk hd1",
-		Unit:   "%",
+		pk:    6,
+		Scale: 1.0,
+		Name:  "disk hd1",
+		Unit:  "%",
 	},
 	"disk.hd2": {
-		typePK: 7,
-		Scale:  1.0,
-		Name:   "disk hd2",
-		Unit:   "%",
+		pk:    7,
+		Scale: 1.0,
+		Name:  "disk hd2",
+		Unit:  "%",
 	},
 	"disk.hd3": {
-		typePK: 8,
-		Scale:  1.0,
-		Name:   "disk hd3",
-		Unit:   "%",
+		pk:    8,
+		Scale: 1.0,
+		Name:  "disk hd3",
+		Unit:  "%",
 	},
 	"disk.hd4": {
-		typePK: 9,
-		Scale:  1.0,
-		Name:   "disk hd4",
-		Unit:   "%",
+		pk:    9,
+		Scale: 1.0,
+		Name:  "disk hd4",
+		Unit:  "%",
 	},
 
 	"centre": {
-		typePK: 10,
-		Scale:  1.0,
-		Name:   "centre",
-		Unit:   "mV",
+		pk:    10,
+		Scale: 1.0,
+		Name:  "centre",
+		Unit:  "mV",
 	},
 
 	"rf.signal": {
-		typePK: 11,
-		Scale:  1.0,
-		Name:   "rf signal",
-		Unit:   "dB",
+		pk:    11,
+		Scale: 1.0,
+		Name:  "rf signal",
+		Unit:  "dB",
 	},
 	"rf.noise": {
-		typePK: 12,
-		Scale:  1.0,
-		Name:   "rf noise",
-		Unit:   "dB",
+		pk:    12,
+		Scale: 1.0,
+		Name:  "rf noise",
+		Unit:  "dB",
 	},
 }
 
@@ -101,15 +95,24 @@ func loadFieldType(typeID string) (fieldType, *weft.Result) {
 	return fieldType{}, weft.BadRequest("invalid type " + typeID)
 }
 
-func (f *fieldType) loadPK(r *http.Request) *weft.Result {
+func (a *fieldType) read(typeID string) *weft.Result {
+	if typeID == "" {
+		return weft.InternalServerError(fmt.Errorf("empty typeID"))
+	}
+
+	a.id = typeID
+
 	var t fieldType
 	var res *weft.Result
 
-	if t, res = loadFieldType(r.URL.Query().Get("typeID")); !res.Ok {
+	if t, res = loadFieldType(a.id); !res.Ok {
 		return res
 	}
 
-	f.typePK = t.typePK
+	a.pk = t.pk
+	a.Scale = t.Scale
+	a.Name = t.Name
+	a.Unit = t.Unit
 
 	return &weft.StatusOK
 }

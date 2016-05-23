@@ -47,8 +47,9 @@ func setup(t *testing.T) {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	a := application{id: "test-app"}
-	if r:= a.del();!r.Ok {
+	var a application
+
+	if r:= a.del("test-app");!r.Ok {
 		t.Error(r.Msg)
 	}
 

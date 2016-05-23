@@ -11,34 +11,29 @@ import (
 	"strconv"
 )
 
-type fieldThreshold struct {
-	lower, upper int
-}
-
 func (f *fieldThreshold) save(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "lower", "upper"}, []string{}); !res.Ok {
 		return res
 	}
 
+	v := r.URL.Query()
 	var err error
 
-	if f.lower, err = strconv.Atoi(r.URL.Query().Get("lower")); err != nil {
+	if f.lower, err = strconv.Atoi(v.Get("lower")); err != nil {
 		return weft.BadRequest("invalid lower")
 	}
 
-	if f.upper, err = strconv.Atoi(r.URL.Query().Get("upper")); err != nil {
+	if f.upper, err = strconv.Atoi(v.Get("upper")); err != nil {
 		return weft.BadRequest("invalid upper")
 	}
 
-	var fm fieldMetric
-
-	if res := fm.loadPK(r); !res.Ok {
+	if res := f.fieldDeviceType.read(v.Get("deviceID"), v.Get("typeID")); !res.Ok {
 		return res
 	}
 
 	if _, err = db.Exec(`INSERT INTO field.threshold(devicePK, typePK, lower, upper) 
 		VALUES ($1,$2,$3,$4)`,
-		fm.devicePK, fm.fieldType.typePK, f.lower, f.upper); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk, f.lower, f.upper); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
@@ -51,7 +46,7 @@ func (f *fieldThreshold) save(r *http.Request) *weft.Result {
 		devicePK = $1 
 		AND
 		typePK = $2`,
-		fm.devicePK, fm.fieldType.typePK, f.lower, f.upper); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk, f.lower, f.upper); err != nil {
 		return weft.InternalServerError(err)
 	}
 
@@ -65,16 +60,16 @@ func (f *fieldThreshold) delete(r *http.Request) *weft.Result {
 
 	var err error
 
-	var fm fieldMetric
+	v := r.URL.Query()
 
-	if res := fm.loadPK(r); !res.Ok {
+	if res := f.fieldDeviceType.read(v.Get("deviceID"), v.Get("typeID")); !res.Ok {
 		return res
 	}
 
 	if _, err = db.Exec(`DELETE FROM field.threshold 
 		WHERE devicePK = $1
 		AND typePK = $2 `,
-		fm.devicePK, fm.fieldType.typePK); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk); err != nil {
 		return weft.InternalServerError(err)
 	}
 

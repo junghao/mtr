@@ -10,40 +10,20 @@ import (
 	"net/http"
 )
 
-type fieldMetricTag struct {
-	tag
-	fieldDevice
-	fieldType
-}
-
-func (f *fieldMetricTag) loadPK(r *http.Request) *weft.Result {
-	if res := f.tag.loadPK(r); !res.Ok {
-		return res
-	}
-
-	if res := f.fieldDevice.loadPK(r); !res.Ok {
-		return res
-	}
-
-	if res := f.fieldType.loadPK(r); !res.Ok {
-		return res
-	}
-
-	return &weft.StatusOK
-}
-
-func (f *fieldMetricTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f *fieldMetricTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
 
-	if res := f.loadPK(r); !res.Ok {
+	v := r.URL.Query()
+
+	if res := f.read(v.Get("deviceID"), v.Get("typeID"), v.Get("tag")); !res.Ok {
 		return res
 	}
 
 	if _, err := db.Exec(`INSERT INTO field.metric_tag(devicePK, typePK, tagPK)
 			VALUES($1, $2, $3)`,
-		f.devicePK, f.typePK, f.tagPK); err != nil {
+		f.fieldDevice.pk, f.fieldType.pk, f.tag.pk); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
@@ -59,14 +39,16 @@ func (f *fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer)
 		return res
 	}
 
-	if res := f.loadPK(r); !res.Ok {
+	v := r.URL.Query()
+
+	if res := f.read(v.Get("deviceID"), v.Get("typeID"), v.Get("tag")); !res.Ok {
 		return res
 	}
 
 	if _, err := db.Exec(`DELETE FROM field.metric_tag
 			WHERE devicePK = $1
 			AND typePK = $2
-			AND tagPK = $3`, f.devicePK, f.typePK, f.tagPK); err != nil {
+			AND tagPK = $3`, f.fieldDevice.pk, f.fieldType.pk, f.tag.pk); err != nil {
 		return weft.InternalServerError(err)
 	}
 

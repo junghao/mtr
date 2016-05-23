@@ -15,20 +15,6 @@ import (
 	"time"
 )
 
-type appMetric struct {
-	application
-}
-
-type InstanceMetric struct {
-	instancePK, typePK int
-}
-
-type InstanceMetrics []InstanceMetric
-
-func (l InstanceMetrics) Len() int           { return len(l) }
-func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].instancePK }
-func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
-
 func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.Ok {
 		return res
@@ -36,9 +22,7 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 
 	v := r.URL.Query()
 
-	a.application.id = v.Get("applicationID")
-
-	if res := a.application.read(); !res.Ok {
+	if res := a.application.readCreate(v.Get("applicationID")); !res.Ok {
 		return res
 	}
 

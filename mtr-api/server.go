@@ -97,6 +97,7 @@ func home(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	return &weft.NotFound
 }
 
+// inbound wraps the mux and adds basic auth.
 func inbound(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -128,7 +129,7 @@ func health(w http.ResponseWriter, r *http.Request) {
 // TODO delete app instance and time source that have no metrics?
 
 /*
-deleteMetics deletes old metrics.
+deleteMetrics deletes old metrics.
 */
 func deleteMetrics() {
 	ticker := time.NewTicker(time.Minute).C

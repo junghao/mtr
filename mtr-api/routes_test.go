@@ -41,7 +41,7 @@ var routes = wt.Requests{
 	// Another counter value at the same time increments the count.
 	{ID: wt.L(), URL: "/application/counter?applicationID=test-app&typeID=200&count=10&time=2015-05-14T21:40:30Z", Method: "PUT"},
 
-	// Add a timer value.  TODO - repeat at the same time errors.
+	// Add a timer value.
 	{ID: wt.L(), URL: "/application/timer?applicationID=test-app&sourceID=func-name&count=10&average=12&fifty=13&ninety=14&time=2015-05-14T21:40:30Z", Method: "PUT"},
 	{ID: wt.L(), URL: "/application/timer?applicationID=test-app&sourceID=func-name&count=10&average=12&fifty=13&ninety=14&time=2015-05-14T21:40:30Z", Method: "PUT", Status: 500},
 

@@ -1,37 +1,11 @@
 package main
 
 import (
-
 	"github.com/GeoNet/weft"
 	"net/http"
 	"strconv"
 	"time"
 )
-
-type applicationTimer struct {
-	application
-	applicationSource
-	t                             time.Time
-	average, count, fifty, ninety int
-}
-
-// create saves the application metric to the db.
-func (a *applicationTimer) create() *weft.Result {
-	if res := a.applicationSource.create(); !res.Ok {
-		return res
-	}
-
-	if res := a.application.create(); !res.Ok {
-		return res
-	}
-	// TODO - what to do when sending from multiple instances and primary key violations?
-	if _, err := db.Exec(`INSERT INTO app.timer(applicationPK, sourcePK, time, average, count, fifty, ninety) VALUES($1,$2,$3,$4,$5,$6,$7)`,
-		a.application.pk, a.applicationSource.pk, a.t, a.average, a.count, a.fifty, a.ninety); err != nil {
-		return weft.InternalServerError(err)
-	}
-
-	return &weft.StatusOK
-}
 
 // put handles http.PUT methods, parsing the request and saving to the db.
 func (a *applicationTimer) put(r *http.Request) *weft.Result {
@@ -64,8 +38,19 @@ func (a *applicationTimer) put(r *http.Request) *weft.Result {
 		return weft.BadRequest("invalid time")
 	}
 
-	a.applicationSource.id = v.Get("sourceID")
-	a.application.id = v.Get("applicationID")
+	if res := a.application.readCreate(v.Get("applicationID")); !res.Ok {
+		return res
+	}
 
-	return a.create()
+	if res := a.applicationSource.readCreate(v.Get("sourceID")); !res.Ok {
+		return res
+	}
+
+	// TODO - what to do when sending from multiple instances and primary key violations?
+	if _, err := db.Exec(`INSERT INTO app.timer(applicationPK, sourcePK, time, average, count, fifty, ninety) VALUES($1,$2,$3,$4,$5,$6,$7)`,
+		a.application.pk, a.applicationSource.pk, a.t, a.average, a.count, a.fifty, a.ninety); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	return &weft.StatusOK
 }

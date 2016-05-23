@@ -14,14 +14,6 @@ import (
 	"time"
 )
 
-type fieldLatest struct {
-	typeID string
-}
-
-type point struct {
-	latitude, longitude float64
-	x, y                float64
-}
 
 func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
