@@ -136,7 +136,7 @@
 
             <div class="collapse navbar-collapse" id="navbar-collapse-1">
                 <!--autocompelte=off-->
-                <form class="navbar-form navbar-right" role="search" method="POST" action="/search" autocomplete="off" onsubmit="return document.getElementById('search_query').value!='';">
+                <form class="navbar-form navbar-right" role="search" method="GET" action="/search" autocomplete="off" onsubmit="return document.getElementById('search_query').value!='';">
                     <div class="form-group">
                         <!--using list=<...> as an html5 typeahead-->
                         <input type="text" class="form-control" placeholder="Search Tag ID" id="search_query" name="tagQuery" list="tagIDs">
