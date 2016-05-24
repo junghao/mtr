@@ -51,7 +51,9 @@ func tagPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 
 	if currTab == -1 && ph != "" {
 		return weft.BadRequest("Invalid tag index.")
-	} else {
+	}
+
+	if ph == "" {
 		currTab = 0
 	}
 

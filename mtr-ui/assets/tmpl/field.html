@@ -11,13 +11,10 @@
     </div>
 </div>
 {{if eq .Path "/field"}}
-<div class="row">
     {{template "panels" .}}
-</div>
 {{else if eq .Path "/field/plot"}}
-{{template "field_plot" .}}
+    {{template "field_plot" .}}
 {{else}}
-<div class="row">
     {{if .Panels}}
         {{template "panels" .}}
     {{else if .SparkGroups}}
@@ -25,8 +22,9 @@
     {{else if .GroupRows}}
         {{template "group_count_rows" .}}
     {{else}}
+    <div class="row">
         <div class="col-xs-12 col-md-12 h3">No metrics available.</div>
+    </div>
     {{end}}
-</div>
 {{end}}
 {{end}}
