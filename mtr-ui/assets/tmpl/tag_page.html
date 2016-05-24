@@ -10,22 +10,21 @@
         </ul>
     </div>
 </div>
-
-<div class="row">
+<div class="row" style="margin-top:20px;">
     <div class="col-xs-6 col-md-12">
-        <ul class="nav nav-pills" style="margin-top:20px;">
+        <ul class="nav nav-pills">
             {{$p:=.Path}}
             {{range .TagTabs}}
             <li role="presentation" {{if eq . $p}} class="active"{{end}}><a href="/tag/{{.}}">{{.}}</a></li>
             {{end}}
         </ul>
-        <div class="row" style="margin-top:20px;">
-        {{range .Tags}}
-        <div class="col-xs-3 col-md-2">
-            <a href="/search?tagQuery={{.}}">{{.}}</a>
-        </div>
-        {{end}}
-        </div>
     </div>
+</div>
+<div class="row" style="margin-top:20px;">
+    {{range .Tags}}
+    <div class="col-xs-2 col-md-2">
+        <a href="/search?tagQuery={{.}}">{{.}}</a>
+    </div>
+    {{end}}
 </div>
 {{end}}

@@ -1,5 +1,6 @@
 {{define "panels"}}
 {{template "page_parm_list" .}}
+<div class="row">
 {{range .Panels}}
     {{$statusLink:= .StatusLink}}
     <div class="col-xs-12 col-md-4">
@@ -64,49 +65,52 @@
         </a>
         {{end}}
     </div>
-    {{end}}
+{{end}}
+</div>
 {{end}}
 
 {{define "spark_rows"}}
 {{$mtrApiUrl:=.MtrApiUrl}}
 {{template "page_parm_list" .}}
+<div class="row">
 {{range .SparkGroups}}
-{{if .Title}}
-<div class="col-xs-12 col-md-12">
-    <div class="row">
+    {{if .Title}}
+    <div class="col-xs-12 col-md-12">
         <h4>{{.Title}}</h4>
     </div>
-</div>
-{{end}}
-{{range .Rows}}
-<div class="col-xs-12 col-md-6">
-    <a href="{{.Link}}">
-        <div class="row mtr-callout mtr-callout-{{.Status}}">
-            <div class="col-xs-8 col-md-8">
-                {{.Title}} {{.Status}}
+    {{end}}
+    {{range .Rows}}
+    <div class="col-xs-12 col-md-6">
+        <a href="{{.Link}}">
+            <div class="row mtr-callout mtr-callout-{{.Status}}">
+                <div class="col-xs-8 col-md-8">
+                    {{.Title}} {{.Status}}
+                </div>
+                <div class="col-xs-4 col-md-4">
+                    <img src="{{$mtrApiUrl}}{{.SparkUrl}}&plot=spark&resolution=five_minutes"/>
+                </div>
             </div>
-            <div class="col-xs-4 col-md-4">
-                <img src="{{$mtrApiUrl}}{{.SparkUrl}}&plot=spark&resolution=five_minutes"/>
-            </div>
-        </div>
-    </a>
+        </a>
+    </div>
+    {{end}}
+{{end}}
 </div>
-{{end}}
-{{end}}
 {{end}}
 
 {{define "group_count_rows"}}
 {{$mtrApiUrl:=.MtrApiUrl}}
 {{template "page_parm_list" .}}
+<div class="row">
 {{range .GroupRows}}
-<div class="col-xs-12 col-sm-6 col-md-4">
-    <a href="{{.Link}}">
-        <div class="row mtr-callout mtr-size">
-            {{.Description}} ({{.Count}})
-        </div>
-    </a>
-</div>
+    <div class="col-xs-12 col-sm-6 col-md-4">
+        <a href="{{.Link}}">
+            <div class="col-xs-12 col-md-12 mtr-callout mtr-size">
+                {{.Description}} ({{.Count}})
+            </div>
+        </a>
+    </div>
 {{end}}
+</div>
 {{end}}
 
 
@@ -143,31 +147,35 @@
 {{end}}
 
 {{define "page_parm_list"}}
-<div class="col-xs-12 col-md-12">
-    {{if .ModelID}}
-    <div class="row h3">
-        ModelID:{{.ModelID}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul>
+        {{if .ModelID}}
+        <li class="h3">
+            ModelID:{{.ModelID}}
+        </li>
+        {{end}}
+        {{if .TypeID}}
+        <li class="h3">
+            TypeID:{{.TypeID}}
+        </li>
+        {{end}}
+        {{if .DeviceID}}
+        <li class="h3">
+            DeviceID:{{.DeviceID}}
+        </li>
+        {{end}}
+        {{if .SiteID}}
+        <li class="h3">
+            SiteID:{{.SiteID}}
+        </li>
+        {{end}}
+        {{if .Status}}
+        <li class="h3">
+            Status:{{.Status}}
+        </li>
+        {{end}}
+        </ul>
     </div>
-    {{end}}
-    {{if .TypeID}}
-    <div class="row h3">
-        TypeID:{{.TypeID}}
-    </div>
-    {{end}}
-    {{if .DeviceID}}
-    <div class="row h3">
-        DeviceID:{{.DeviceID}}
-    </div>
-    {{end}}
-    {{if .SiteID}}
-    <div class="row h3">
-        SiteID:{{.SiteID}}
-    </div>
-    {{end}}
-    {{if .Status}}
-    <div class="row h3">
-        Status:{{.Status}}
-    </div>
-    {{end}}
 </div>
 {{end}}
