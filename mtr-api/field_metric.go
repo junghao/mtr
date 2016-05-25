@@ -15,7 +15,7 @@ import (
 
 var statusTooManyRequests = weft.Result{Ok: false, Code: http.StatusTooManyRequests, Msg: "Already data for the minute"}
 
-func (f *fieldMetric) save(r *http.Request) *weft.Result {
+func (f *fieldMetric) put(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "time", "value"}, []string{}); !res.Ok {
 		return res
 	}

@@ -59,7 +59,7 @@ func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 
 	switch r.Method {
 	case "PUT":
-		return f.save(r)
+		return f.put(r)
 	case "DELETE":
 		return f.delete(r)
 	case "GET":
