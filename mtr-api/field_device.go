@@ -51,9 +51,14 @@ func (a *fieldDevice) delete(r *http.Request) *weft.Result {
 
 	a.id = r.URL.Query().Get("deviceID")
 
+	fieldDeviceCache.Lock()
+	defer fieldDeviceCache.Unlock()
+
 	if _, err := db.Exec(`DELETE FROM field.device where deviceID = $1`, a.id); err != nil {
 		return weft.InternalServerError(err)
 	}
+
+	delete(fieldDeviceCache.m, a.id)
 
 	return &weft.StatusOK
 }

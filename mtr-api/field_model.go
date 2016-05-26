@@ -32,6 +32,12 @@ func (a *fieldModel) delete(r *http.Request) *weft.Result {
 
 	a.id = r.URL.Query().Get("modelID")
 
+	// Deleting a model can remove all the devices for that model so reset the field device cache.
+	fieldDeviceCache.Lock()
+	defer fieldDeviceCache.Unlock()
+
+	fieldDeviceCache.m = make(map[string]int)
+
 	if _, err := db.Exec(`DELETE FROM field.model where modelID = $1`, a.id); err != nil {
 		return weft.InternalServerError(err)
 	}

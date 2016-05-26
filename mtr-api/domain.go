@@ -25,6 +25,7 @@ func newCachePK() cachePK {
 var applicationCache = newCachePK()
 var applicationInstanceCache = newCachePK()
 var applicationSourceCache = newCachePK()
+var fieldDeviceCache = newCachePK()
 
 // Domain types - these reflect database tables.
 // The tables have a primary key xxxPK (pk) and an identifier xxxID (id).
@@ -320,6 +321,19 @@ func (a *fieldDevice) read(deviceID string) *weft.Result {
 
 	a.id = deviceID
 
+	var ok bool
+
+	fieldDeviceCache.RLock()
+	a.pk, ok = fieldDeviceCache.m[a.id]
+	fieldDeviceCache.RUnlock()
+
+	if ok {
+		return &weft.StatusOK
+	}
+
+	fieldDeviceCache.Lock()
+	defer fieldDeviceCache.Unlock()
+
 	if err := dbR.QueryRow(`SELECT devicePK FROM field.device where deviceID = $1`,
 		a.id).Scan(&a.pk); err != nil {
 		if err == sql.ErrNoRows {
@@ -327,6 +341,8 @@ func (a *fieldDevice) read(deviceID string) *weft.Result {
 		}
 		return weft.InternalServerError(err)
 	}
+
+	fieldDeviceCache.m[a.id] = a.pk
 
 	return &weft.StatusOK
 }
