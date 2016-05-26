@@ -53,9 +53,14 @@ func (a *dataSite) delete(r *http.Request) *weft.Result {
 
 	a.id = r.URL.Query().Get("siteID")
 
+	dataSiteCache.Lock()
+	defer dataSiteCache.Unlock()
+
 	if _, err := db.Exec(`DELETE FROM data.site where siteID = $1`, a.id); err != nil {
 		return weft.InternalServerError(err)
 	}
+
+	delete(dataSiteCache.m, a.id)
 
 	return &weft.StatusOK
 }
