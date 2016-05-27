@@ -151,7 +151,7 @@ plot draws an svg plot to b.  Assumes f.loadPK has been called first.
 func (a *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 	var p ts.Plot
 
-	p.SetUnit(a.dataType.Unit)
+	p.SetUnit(a.dataType.display)
 
 	var lower, upper int
 	var res *weft.Result
@@ -163,7 +163,7 @@ func (a *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 	}
 
 	if !(lower == 0 && upper == 0) {
-		p.SetThreshold(float64(lower)*a.dataType.Scale, float64(upper)*a.dataType.Scale)
+		p.SetThreshold(float64(lower)*a.dataType.scale, float64(upper)*a.dataType.scale)
 	}
 
 	var tags []string
@@ -174,7 +174,7 @@ func (a *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 
 	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
 
-	p.SetTitle(fmt.Sprintf("Site: %s - %s", a.dataSite.id, strings.Title(a.dataType.Name)))
+	p.SetTitle(fmt.Sprintf("Site: %s - %s", a.dataSite.id, strings.Title(a.dataType.id)))
 
 	var err error
 	var rows *sql.Rows
@@ -230,7 +230,7 @@ func (a *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		if err = rows.Scan(&t, &avg); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pts = append(pts, ts.Point{DateTime: t, Value: avg * a.dataType.Scale})
+		pts = append(pts, ts.Point{DateTime: t, Value: avg * a.dataType.scale})
 	}
 	rows.Close()
 
@@ -245,8 +245,8 @@ func (a *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		return weft.InternalServerError(err)
 	}
 
-	pts = append(pts, ts.Point{DateTime: t, Value: float64(value) * a.dataType.Scale})
-	p.SetLatest(ts.Point{DateTime: t, Value: float64(value) * a.dataType.Scale}, "deepskyblue")
+	pts = append(pts, ts.Point{DateTime: t, Value: float64(value) * a.dataType.scale})
+	p.SetLatest(ts.Point{DateTime: t, Value: float64(value) * a.dataType.scale}, "deepskyblue")
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
@@ -288,7 +288,7 @@ func (a *dataLatency) spark(b *bytes.Buffer) *weft.Result {
 		if err = rows.Scan(&t, &avg); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pts = append(pts, ts.Point{DateTime: t, Value: avg * a.dataType.Scale})
+		pts = append(pts, ts.Point{DateTime: t, Value: avg * a.dataType.scale})
 	}
 	rows.Close()
 

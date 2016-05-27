@@ -38,7 +38,7 @@ CREATE TABLE field.type (
 	display TEXT NOT NULL
 );
 
--- If metrics are added the application server will need restarting.
+-- If types are added the application server will need restarting.
 INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(1, 'voltage', 'voltage', 'mV', 0.001, 'V');
 INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(2, 'clock', 'clock quality', '%', 1.0, '%');
 INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(3, 'satellites', 'number of satellites tracked', 'n', 1.0, 'n');

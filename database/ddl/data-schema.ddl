@@ -20,18 +20,23 @@ LANGUAGE plpgsql;
 CREATE TRIGGER site_geom_trigger BEFORE INSERT OR UPDATE ON data.site
 FOR EACH ROW EXECUTE PROCEDURE data.site_geom();
 
+-- metrics are sent as ints in measurement 'unit'.
+-- they are scaled for display with 'scale'.
+-- 'display' is the unit to display after scaling.
 CREATE TABLE data.type (
   typePK SMALLINT PRIMARY KEY,
   typeID TEXT NOT NULL UNIQUE,
   description TEXT NOT NULL,
-  unit TEXT NOT NULL
+  unit TEXT NOT NULL,
+  scale NUMERIC NOT NULL,
+  display TEXT NOT NULL
 );
 
---  These must also be added to mtr-api/data_type.go
-INSERT INTO data.type(typePK, typeID, description, unit) VALUES(1, 'latency.strong', 'latency strong motion data', 'ms');
-INSERT INTO data.type(typePK, typeID, description, unit) VALUES(2, 'latency.weak', 'latency weak motion data', 'ms');
-INSERT INTO data.type(typePK, typeID, description, unit) VALUES(3, 'latency.gnss.1hz', 'latency GNSS 1Hz data', 'ms');
-INSERT INTO data.type(typePK, typeID, description, unit) VALUES(4, 'latency.tsunami', 'latency tsunami data', 'ms');
+-- If types are added the application server will need restarting.
+INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(1, 'latency.strong', 'latency strong motion data', 'ms', 1.0, 'ms');
+INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(2, 'latency.weak', 'latency weak motion data', 'ms', 1.0, 'ms');
+INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(3, 'latency.gnss.1hz', 'latency GNSS 1Hz data', 'ms', 1.0, 'ms');
+INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(4, 'latency.tsunami', 'latency tsunami data', 'ms', 1.0, 'ms');
 
 CREATE TABLE data.latency (
   sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,

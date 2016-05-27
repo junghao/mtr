@@ -37,6 +37,11 @@ sync.RWMutex
 	m map[string]fieldType
 }{m: make(map[string]fieldType)}
 
+var dataTypeCache = struct{
+	sync.RWMutex
+	m map[string]dataType
+}{m: make(map[string]dataType)}
+
 // Domain types - these reflect database tables.
 // The tables have a primary key xxxPK (pk) and an identifier xxxID (id).
 // There are read methods to load the primary keys based on the id.
@@ -130,15 +135,11 @@ type dataSite struct {
 }
 
 // dataType - table data.type
-// see also data_type.go
-// TODO add the extra columns to the DB and read and cache instead of
-// using data_type.go
 type dataType struct {
 	id    string
 	pk    int
-	Scale float64 // used to scale the stored metric for display
-	Name  string
-	Unit  string // display unit after the metric has been multiplied by scale.
+	scale float64 // used to scale the stored metric for display
+	display  string // display unit after the metric has been multiplied by scale.
 }
 
 // dataSiteType data metrics are a type from a site.
@@ -285,6 +286,43 @@ func (a *tag) read(tag string) *weft.Result {
 		}
 		return weft.InternalServerError(err)
 	}
+
+	return &weft.StatusOK
+}
+
+func (a *dataType) read(typeID string) *weft.Result {
+	if typeID == "" {
+		return weft.BadRequest("empty typeID")
+	}
+
+	a.id = typeID
+
+	var ok bool
+	var b dataType
+
+	dataTypeCache.RLock()
+	b, ok = dataTypeCache.m[a.id]
+	dataTypeCache.RUnlock()
+
+	if ok {
+		a.pk = b.pk
+		a.display = b.display
+		a.scale = b.scale
+		return &weft.StatusOK
+	}
+
+	dataTypeCache.Lock()
+	defer dataTypeCache.Unlock()
+
+	if err := dbR.QueryRow(`SELECT typePK, scale, display FROM data.type where typeID = $1`,
+		a.id).Scan(&a.pk, &a.scale, &a.display); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		return weft.InternalServerError(err)
+	}
+
+	dataTypeCache.m[a.id] = *a
 
 	return &weft.StatusOK
 }
