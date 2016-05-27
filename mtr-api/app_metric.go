@@ -83,7 +83,7 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Timers - 90th Percentile (ms) - Max per %s",
 			a.application.id, resTitle))
-		err = ts.MixedAppMetrics.Draw(p, b)
+		err = ts.ScatterAppTimers.Draw(p, b)
 	case "memory":
 		if res := a.loadMemory(resolution, &p); !res.Ok {
 			return res
@@ -231,21 +231,17 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 	defer rows.Close()
 
 	var t time.Time
-	var sourcePK, avg, n int
+	var sourcePK, max, n int
 	var sourceID string
 	pts := make(map[int][]ts.Point)
-	total := make(map[int]int)
-	rank := make(map[int]int) // track the slowest source value for sorting by colour.
+	total := make(map[int]int) // track the total counts (call) for each timer.
 
 	for rows.Next() {
-		if err = rows.Scan(&sourcePK, &t, &avg, &n); err != nil {
+		if err = rows.Scan(&sourcePK, &t, &max, &n); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pts[sourcePK] = append(pts[sourcePK], ts.Point{DateTime: t, Value: float64(avg)})
+		pts[sourcePK] = append(pts[sourcePK], ts.Point{DateTime: t, Value: float64(max)})
 		total[sourcePK] += n
-		if rank[sourcePK] < avg {
-			rank[sourcePK] = avg
-		}
 	}
 	rows.Close()
 
@@ -265,55 +261,14 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 	}
 	rows.Close()
 
-	// sort the sourcePKs slowest to fastest based on their slowest times.
-	keys := rankSlowest(rank)
-
-	// add the time series to the plot. Break the colours up based on source
-	// name suffix - GET, PUT, DELETE or other and colour them slowest to fastest.
-	// 4 different colours for each group.
+	// sort the sourcePKs based on number of calls.
+	keys := rank(total)
 
 	var labels ts.Labels
-	var get, put, delete, other int
 
 	for _, k := range keys {
-		id := strings.TrimPrefix(sourceIDs[k.Key], `main.`)
-
-		idx := strings.LastIndex(id, ".")
-		if idx > -1 && idx+1 < len(id) {
-			id = id[idx+1:]
-		}
-
-		var c string
-
-		switch id {
-		case "GET":
-			c = gets[3]
-			if get < 3 {
-				c = gets[get]
-			}
-			get++
-		case "PUT":
-			c = puts[3]
-			if put < 3 {
-				c = puts[put]
-			}
-			put++
-		case "DELETE":
-			c = deletes[3]
-			if delete < 3 {
-				c = deletes[delete]
-			}
-			delete++
-		default:
-			c = colours[3]
-			if other < 3 {
-				c = colours[other]
-			}
-			other++
-		}
-
-		p.AddSeries(ts.Series{Colour: c, Points: pts[k.Key]})
-		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k.Key], `main.`), total[k.Key])})
+		p.AddSeries(ts.Series{Points: pts[k.Key]})
+		labels = append(labels, ts.Label{Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k.Key], `main.`), total[k.Key])})
 	}
 
 	p.SetLabels(labels)
@@ -530,7 +485,7 @@ func merge(cs ...<-chan *weft.Result) <-chan *weft.Result {
 	return out
 }
 
-func rankSlowest(r map[int]int) SourceList {
+func rank(r map[int]int) SourceList {
 	pl := make(SourceList, len(r))
 	i := 0
 	for k, v := range r {

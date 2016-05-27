@@ -83,6 +83,12 @@ var MixedAppMetrics = SVGPlot{
 	height:   210,
 }
 
+var ScatterAppTimers = SVGPlot{
+	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotAppTimersTemplate)),
+	width:    640,
+	height:   210,
+}
+
 var LineAppMetrics = SVGPlot{
 	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotAppMetricsTemplate + plotLineTemplate)),
 	width:    640,
@@ -186,3 +192,39 @@ const plotAppMixedTemplate = `
 {{else}}
 <polyline style="stroke: {{.Series.Colour}}; fill: none; stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />
 {{end}}{{end}}{{end}}`
+
+const plotAppTimersTemplate = `<?xml version="1.0"?>
+<svg viewBox="0,0,800,300" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="12px" fill="lightgray">
+<g transform="translate(10,10)">
+<text x="0" y="0" text-anchor="start" dominant-baseline="hanging" font-size="14px" fill="darkslategray">{{.Axes.Title}}</text>
+<text x="0" y="18" text-anchor="start" dominant-baseline="hanging" font-size="12px" fill="darkslategray">{{.Axes.SubTitle}}</text>
+{{if .Labels}}
+<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Labels}}<tspan fill="lightgrey" dy="10px" x="780">{{.Label}}</tspan>{{end}}</text>
+{{end}}
+</g>
+
+<g transform="translate(10,60)">
+
+{{if .Threshold.Show}}
+<rect x="0" y="{{.Threshold.Y}}" width="780" height="{{.Threshold.H}}" fill="lightgrey" fill-opacity="0.3"/>
+{{end}}
+
+<text x="{{400}}" y="220" text-anchor="middle" dominant-baseline="hanging">{{.Axes.Xlabel}}</text>
+
+{{range .Axes.Y}}
+{{if .L}}
+<polyline fill="none" stroke="lightgray" stroke-width="1" points="0,{{.Y}} 640,{{.Y}}"/>
+<text x="0" y="{{.Y}}" text-anchor="start" font-size="10px" dominant-baseline="ideographic">{{.L}}</text>
+{{end}}
+{{end}}
+
+{{range .Data}}
+<g style="stroke: #e34a33; fill: #e34a33; opacity: 0.3">
+{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" />{{end}}
+</g>
+{{end}}
+
+</g>
+
+</svg>
+`
