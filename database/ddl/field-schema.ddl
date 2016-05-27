@@ -26,29 +26,34 @@ LANGUAGE plpgsql;
 CREATE TRIGGER device_geom_trigger BEFORE INSERT OR UPDATE ON field.device
 FOR EACH ROW EXECUTE PROCEDURE field.device_geom();
 
+-- metrics are sent as ints in measurement 'unit'.
+-- they are scaled for display with 'scale'.
+-- 'display' is the unit to display after scaling.
 CREATE TABLE field.type (
 	typePK SMALLINT PRIMARY KEY,
 	typeID TEXT NOT NULL UNIQUE,
 	description TEXT NOT NULL,
-	unit TEXT NOT NULL
+	unit TEXT NOT NULL,
+	scale NUMERIC NOT NULL,
+	display TEXT NOT NULL
 );
 
---  These must also be added to mtr-api/field_type.go
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(1, 'voltage', 'voltage', 'mV'); 
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(2, 'clock', 'clock quality', '%');
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(3, 'satellites', 'number of satellites tracked', 'n');
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(4, 'conn', 'end to end connectivity', 'us'); 
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(5, 'ping', 'ping', 'us');
+-- If metrics are added the application server will need restarting.
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(1, 'voltage', 'voltage', 'mV', 0.001, 'V');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(2, 'clock', 'clock quality', '%', 1.0, '%');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(3, 'satellites', 'number of satellites tracked', 'n', 1.0, 'n');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(4, 'conn', 'end to end connectivity', 'us', 0.001, 'ms');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(5, 'ping', 'ping', 'us', 0.001, 'ms');
 
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(6, 'disk.hd1', 'disk hd1', '%');
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(7, 'disk.hd2', 'disk hd1', '%');
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(8, 'disk.hd3', 'disk hd1', '%');
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(9, 'disk.hd4', 'disk hd1', '%');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(6, 'disk.hd1', 'disk hd1', '%', 1.0, '%');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(7, 'disk.hd2', 'disk hd1', '%', 1.0, '%');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(8, 'disk.hd3', 'disk hd1', '%', 1.0, '%');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(9, 'disk.hd4', 'disk hd1', '%', 1.0, '%');
 
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(10, 'centre', 'centre', 'mV');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(10, 'centre', 'centre', 'mV', 1.0, 'mV');
 
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(11, 'rf.signal', 'rf signal', 'dB');
-INSERT INTO field.type(typePK, typeID, description, unit) VALUES(12, 'rf.noise', 'rf signal', 'dB');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(11, 'rf.signal', 'rf signal', 'dB', 1.0, 'db');
+INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(12, 'rf.noise', 'rf signal', 'dB', 1.0, 'db');
 
 CREATE TABLE field.metric (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,

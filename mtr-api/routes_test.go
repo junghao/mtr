@@ -164,7 +164,8 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/field/metric/threshold", Accept: "application/x-protobuf"},
 
 	// Metric types
-	{ID: wt.L(), URL: "/field/type", Accept: "application/json;version=1"},
+	// TODO add protobuf
+	//{ID: wt.L(), URL: "/field/type", Accept: "application/json;version=1"},
 
 	// Data latency
 

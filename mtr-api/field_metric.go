@@ -129,7 +129,7 @@ Valid values for resolution are 'minute', 'five_minutes', 'hour'.
 func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 	var p ts.Plot
 
-	p.SetUnit(f.fieldType.Unit)
+	p.SetUnit(f.fieldType.display)
 
 	var rows *sql.Rows
 	var err error
@@ -142,7 +142,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 	}
 
 	if !(lower == 0 && upper == 0) {
-		p.SetThreshold(float64(lower)*f.fieldType.Scale, float64(upper)*f.fieldType.Scale)
+		p.SetThreshold(float64(lower)*f.fieldType.scale, float64(upper)*f.fieldType.scale)
 	}
 
 	var tags []string
@@ -177,7 +177,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		return weft.InternalServerError(err)
 	}
 
-	p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.fieldDevice.id, mod, strings.Title(f.fieldType.Name)))
+	p.SetTitle(fmt.Sprintf("Device: %s, Model: %s, Metric: %s", f.fieldDevice.id, mod, strings.Title(f.fieldType.id)))
 
 
 
@@ -230,7 +230,7 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		if err = rows.Scan(&t, &avg); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pts = append(pts, ts.Point{DateTime: t, Value: avg * f.fieldType.Scale})
+		pts = append(pts, ts.Point{DateTime: t, Value: avg * f.fieldType.scale})
 	}
 	rows.Close()
 
@@ -245,8 +245,8 @@ func (f *fieldMetric) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		return weft.InternalServerError(err)
 	}
 
-	pts = append(pts, ts.Point{DateTime: t, Value: float64(value) * f.fieldType.Scale})
-	p.SetLatest(ts.Point{DateTime: t, Value: float64(value) * f.fieldType.Scale}, "deepskyblue")
+	pts = append(pts, ts.Point{DateTime: t, Value: float64(value) * f.fieldType.scale})
+	p.SetLatest(ts.Point{DateTime: t, Value: float64(value) * f.fieldType.scale}, "deepskyblue")
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
@@ -285,7 +285,7 @@ func (f *fieldMetric) spark(b *bytes.Buffer) *weft.Result {
 		if err = rows.Scan(&t, &avg); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pts = append(pts, ts.Point{DateTime: t, Value: avg * f.fieldType.Scale})
+		pts = append(pts, ts.Point{DateTime: t, Value: avg * f.fieldType.scale})
 	}
 	rows.Close()
 

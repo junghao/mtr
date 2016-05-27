@@ -28,6 +28,15 @@ var applicationSourceCache = newCachePK()
 var fieldDeviceCache = newCachePK()
 var dataSiteCache = newCachePK()
 
+
+// cache look up types.  These change very rarely.  Additions to the DB
+// mean the app server should be restarted.
+
+var fieldTypeCache = struct{
+sync.RWMutex
+	m map[string]fieldType
+}{m: make(map[string]fieldType)}
+
 // Domain types - these reflect database tables.
 // The tables have a primary key xxxPK (pk) and an identifier xxxID (id).
 // There are read methods to load the primary keys based on the id.
@@ -71,16 +80,11 @@ type fieldDevice struct {
 }
 
 // fieldType - table field.type
-// field metrics have a type e.g., voltage.
-// the table is replicated in field_type.go
-// TODO add the extra columns to the DB and read and cache instead of
-// using field_type.go
 type fieldType struct {
 	id    string
 	pk    int
-	Scale float64 // used to scale the stored metric for display
-	Name  string
-	Unit  string // display unit after the metric has been multiplied by scale.
+	scale float64 // used to scale the stored metric for display
+	display  string // display unit after the metric has been multiplied by scale.
 }
 
 // fieldDeviceType field metrics are for a type from a device.
@@ -330,6 +334,44 @@ func (a *dataSite) read(siteID string) *weft.Result {
 
 	return &weft.StatusOK
 }
+
+func (a *fieldType) read(typeID string) *weft.Result {
+	if typeID == "" {
+		return weft.BadRequest("empty typeID")
+	}
+
+	a.id = typeID
+
+	var ok bool
+	var b fieldType
+
+	fieldTypeCache.RLock()
+	b, ok = fieldTypeCache.m[a.id]
+	fieldTypeCache.RUnlock()
+
+	if ok {
+		a.pk = b.pk
+		a.display = b.display
+		a.scale = b.scale
+		return &weft.StatusOK
+	}
+
+	fieldTypeCache.Lock()
+	defer fieldTypeCache.Unlock()
+
+	if err := dbR.QueryRow(`SELECT typePK, scale, display FROM field.type where typeID = $1`,
+		a.id).Scan(&a.pk, &a.scale, &a.display); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		return weft.InternalServerError(err)
+	}
+
+	fieldTypeCache.m[a.id] = *a
+
+	return &weft.StatusOK
+}
+
 
 func (a *fieldDevice) read(deviceID string) *weft.Result {
 	if deviceID == "" {
