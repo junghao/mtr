@@ -33,9 +33,6 @@ CREATE TABLE app.counter (
 	PRIMARY KEY(applicationPK, typePK, time)
 );
 
-CREATE INDEX on app.counter (applicationPK);
-CREATE INDEX on app.counter (time);
-
 CREATE TABLE app.timer (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) ON DELETE CASCADE NOT NULL,
 	sourcePK INTEGER REFERENCES app.source(sourcePK) ON DELETE CASCADE NOT NULL,
@@ -47,10 +44,6 @@ CREATE TABLE app.timer (
 	PRIMARY KEY(applicationPK, sourcePK, time)
 );
 
-CREATE INDEX on app.timer (applicationPK);
-CREATE INDEX on app.timer (sourcePK);
-CREATE INDEX on app.timer (time);
-
 CREATE TABLE app.metric (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) ON DELETE CASCADE NOT NULL,
 	instancePK SMALLINT REFERENCES app.instance(instancePK) ON DELETE CASCADE NOT NULL,
@@ -59,10 +52,6 @@ CREATE TABLE app.metric (
 	value BIGINT NOT NULL,
 	PRIMARY KEY(applicationPK, instancePK, typePK, time)
 );
-
-CREATE INDEX on app.metric (applicationPK);
-CREATE INDEX on app.metric (instancePK);
-CREATE INDEX on app.metric (time);
 
 --- HTTP Requests
 INSERT INTO app.type(typePK, typeID, description, unit) VALUES(1, 'Requests', 'Requests', 'n'); 

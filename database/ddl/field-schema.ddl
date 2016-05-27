@@ -64,9 +64,6 @@ CREATE TABLE field.metric (
 	PRIMARY KEY(devicePK, typePK, rate_limit)
 );
 
-CREATE INDEX on field.metric (devicePK);
-CREATE INDEX on field.metric (typePK);
-
 CREATE TABLE field.threshold (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
@@ -75,9 +72,6 @@ CREATE TABLE field.threshold (
 	PRIMARY KEY(devicePK, typePK)
 );
 
-CREATE INDEX on field.threshold (devicePK);
-CREATE INDEX on field.threshold (typePK);
-
 CREATE TABLE field.metric_tag(
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 
@@ -85,6 +79,3 @@ CREATE TABLE field.metric_tag(
 	PRIMARY KEY(devicePK, typePK, tagPK)
 );
 
-CREATE INDEX on field.metric_tag (devicePK);
-CREATE INDEX on field.metric_tag (typePK);
-CREATE INDEX on field.metric_tag (tagPK);

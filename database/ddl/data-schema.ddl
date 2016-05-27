@@ -51,10 +51,6 @@ CREATE TABLE data.latency (
   PRIMARY KEY(sitePK, typePK, rate_limit)
 );
 
-CREATE INDEX on data.latency (sitePK);
-CREATE INDEX on data.latency (typePK);
-CREATE INDEX on data.latency (time);
-
 CREATE TABLE data.latency_threshold (
   sitePK SMALLINT REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
   typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
@@ -63,9 +59,6 @@ CREATE TABLE data.latency_threshold (
   PRIMARY KEY(sitePK, typePK)
 );
 
-CREATE INDEX on data.latency_threshold (sitePK);
-CREATE INDEX on data.latency_threshold (typePK);
-
 CREATE TABLE data.latency_tag(
   sitePK SMALLINT REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
   typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
@@ -73,6 +66,3 @@ CREATE TABLE data.latency_tag(
   PRIMARY KEY(sitePK, typePK, tagPK)
 );
 
-CREATE INDEX on data.latency_tag (sitePK);
-CREATE INDEX on data.latency_tag (typePK);
-CREATE INDEX on data.latency_tag (tagPK);
