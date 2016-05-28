@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"github.com/GeoNet/weft"
+	"github.com/lib/pq"
 	"net/http"
 	"strconv"
-	"fmt"
-	"github.com/lib/pq"
 )
 
 // fieldDevice table field.device

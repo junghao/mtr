@@ -1,16 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/GeoNet/weft"
 	"net/http"
 	"strconv"
 	"time"
-	"database/sql"
 )
 
 // applicationCounter - table app.counter
 // things like HTTP requests, messages sent etc.
-type applicationCounter struct {}
+type applicationCounter struct{}
 
 // put inserts counters.  application and instance are added
 // to the DB on the fly if required e.g., the first time an

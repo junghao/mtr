@@ -16,7 +16,7 @@ import (
 )
 
 //appMetric for get requests.
-type appMetric struct {}
+type appMetric struct{}
 
 // InstanceMetric for sorting instances for SVG plots.
 // public for use with sort.
@@ -29,7 +29,6 @@ type InstanceMetrics []InstanceMetric
 func (l InstanceMetrics) Len() int           { return len(l) }
 func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].instancePK }
 func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
-
 
 func (a appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.Ok {

@@ -9,7 +9,7 @@ import (
 
 // tag - table mtr.tag
 // tags can be applied metrics, latencies etc.
-type tag struct {}
+type tag struct{}
 
 func (a tag) put(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {

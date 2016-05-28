@@ -2,13 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"github.com/GeoNet/weft"
 	_ "github.com/lib/pq"
 	"io/ioutil"
 	"log"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"github.com/GeoNet/weft"
 )
 
 var testServer *httptest.Server
@@ -65,7 +65,6 @@ func delApplication(applicationID string) *weft.Result {
 
 	return &weft.StatusOK
 }
-
 
 func setupBench(t *testing.B) {
 	var err error

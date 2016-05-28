@@ -3,13 +3,13 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
-	"fmt"
 )
 
 // dataSite - table data.site

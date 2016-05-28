@@ -14,7 +14,7 @@ import (
 // tagSearch for tag search results.
 // needed for use with singleProto and fan out.
 type tagSearch struct {
-	tag string
+	tag       string
 	tagResult mtrpb.TagSearchResult
 }
 

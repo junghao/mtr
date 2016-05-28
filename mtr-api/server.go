@@ -79,7 +79,7 @@ func main() {
 	// For map zoom regions other than NZ will need to read some config from somewhere.
 	wm, err = map180.Init(dbR, map180.Region(`newzealand`), 256000000)
 	if err != nil {
-		log.Println("ERROR: problem with map180 config: %s", err)
+		log.Printf("ERROR: problem with map180 config: %s", err.Error())
 	}
 
 	go deleteMetrics()

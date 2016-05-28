@@ -9,8 +9,7 @@ import (
 
 // appMetric - table app.metric
 // things like memory, routines, object count.
-type applicationMetric struct {}
-
+type applicationMetric struct{}
 
 // put inserts metrics.  application and instance are added
 // to the DB on the fly if required e.g., the first time an
@@ -23,7 +22,7 @@ func (a applicationMetric) put(r *http.Request) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
-	var t     time.Time
+	var t time.Time
 	var value int64
 	var typePK int
 
@@ -42,7 +41,6 @@ func (a applicationMetric) put(r *http.Request) *weft.Result {
 
 	applicationID := v.Get("applicationID")
 	instanceID := v.Get("instanceID")
-
 
 	// If we insert one row then return.
 	// This will be the most common outcome.
