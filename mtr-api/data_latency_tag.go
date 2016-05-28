@@ -10,6 +10,10 @@ import (
 	"net/http"
 )
 
+// dataLatencyTag - table data.latency_tag
+type dataLatencyTag struct {
+}
+
 func (a *dataLatencyTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
@@ -17,18 +21,30 @@ func (a *dataLatencyTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *w
 
 	v := r.URL.Query()
 
-	if res := a.read(v.Get("siteID"), v.Get("typeID"), v.Get("tag")); !res.Ok {
-		return res
-	}
+	var err error
+	var result sql.Result
 
-	if _, err := db.Exec(`INSERT INTO data.latency_tag(sitePK, typePK, tagPK)
-			VALUES($1, $2, $3)`,
-		a.dataSite.pk, a.dataType.pk, a.tag.pk); err != nil {
+	if result, err = db.Exec(`INSERT INTO data.latency_tag(sitePK, typePK, tagPK)
+				SELECT sitePK, typePK, tagPK
+				FROM data.site, data.type, mtr.tag
+				WHERE siteID = $1
+				AND typeID = $2
+				AND tag = $3`,
+		v.Get("siteID"), v.Get("typeID"), v.Get("tag")); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
+			return &weft.StatusOK
 		} else {
 			return weft.InternalServerError(err)
 		}
+	}
+
+	var i int64
+	if i, err = result.RowsAffected(); err != nil {
+		return weft.InternalServerError(err)
+	}
+	if i != 1 {
+		return weft.BadRequest("Didn't create row, check your query parameters exist")
 	}
 
 	return &weft.StatusOK
@@ -41,14 +57,11 @@ func (a *dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer)
 
 	v := r.URL.Query()
 
-	if res := a.read(v.Get("siteID"), v.Get("typeID"), v.Get("tag")); !res.Ok {
-		return res
-	}
-
 	if _, err := db.Exec(`DELETE FROM data.latency_tag
-			WHERE sitePK = $1
-			AND typePK = $2
-			AND tagPK = $3`, a.dataSite.pk, a.dataType.pk, a.tag.pk); err != nil {
+			WHERE sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
+			AND typePK = (SELECT typePK FROM data.type WHERE typeID = $2)
+			AND tagPK = (SELECT tagPK FROM mtr.tag where tag = $3)`,
+		v.Get("siteID"), v.Get("typeID"), v.Get("tag")); err != nil {
 		return weft.InternalServerError(err)
 	}
 

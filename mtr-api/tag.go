@@ -7,18 +7,22 @@ import (
 	"strings"
 )
 
-func (a *tag) put(r *http.Request) *weft.Result {
+// tag - table mtr.tag
+// tags can be applied metrics, latencies etc.
+type tag struct {}
+
+func (a tag) put(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
 
-	a.id = strings.TrimPrefix(r.URL.Path, "/tag/")
+	tag := strings.TrimPrefix(r.URL.Path, "/tag/")
 
-	if a.id == "" {
+	if tag == "" {
 		return weft.BadRequest("empty tag")
 	}
 
-	if _, err := db.Exec(`INSERT INTO mtr.tag(tag) VALUES($1)`, a.id); err != nil {
+	if _, err := db.Exec(`INSERT INTO mtr.tag(tag) VALUES($1)`, tag); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			//	no-op.  Nothing to update.
 		} else {
@@ -29,18 +33,18 @@ func (a *tag) put(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a *tag) delete(r *http.Request) *weft.Result {
+func (a tag) delete(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
 
-	a.id = strings.TrimPrefix(r.URL.Path, "/tag/")
+	tag := strings.TrimPrefix(r.URL.Path, "/tag/")
 
-	if a.id == "" {
+	if tag == "" {
 		return weft.BadRequest("empty tag")
 	}
 
-	if _, err := db.Exec(`DELETE FROM mtr.tag WHERE tag=$1`, a.id); err != nil {
+	if _, err := db.Exec(`DELETE FROM mtr.tag WHERE tag=$1`, tag); err != nil {
 		return weft.InternalServerError(err)
 	}
 

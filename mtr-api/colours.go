@@ -11,4 +11,3 @@ var colours = [9]string{
 	"#ff7f00",
 	"#cab2d6",
 }
-

@@ -27,21 +27,23 @@ CREATE TABLE app.type (
 
 CREATE TABLE app.counter (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) ON DELETE CASCADE NOT NULL,
+	instancePK SMALLINT REFERENCES app.instance(instancePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES app.type(typePK) ON DELETE CASCADE NOT NULL,
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	count INTEGER NOT NULL,
-	PRIMARY KEY(applicationPK, typePK, time)
+	PRIMARY KEY(applicationPK, instancePK, typePK, time)
 );
 
 CREATE TABLE app.timer (
 	applicationPK SMALLINT REFERENCES app.application(applicationPK) ON DELETE CASCADE NOT NULL,
+	instancePK SMALLINT REFERENCES app.instance(instancePK) ON DELETE CASCADE NOT NULL,
 	sourcePK INTEGER REFERENCES app.source(sourcePK) ON DELETE CASCADE NOT NULL,
 	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
 	average INTEGER NOT NULL,
 	count INTEGER NOT NULL,
 	fifty INTEGER NOT NULL,
 	ninety INTEGER NOT NULL,
-	PRIMARY KEY(applicationPK, sourcePK, time)
+	PRIMARY KEY(applicationPK, instancePK, sourcePK, time)
 );
 
 CREATE TABLE app.metric (

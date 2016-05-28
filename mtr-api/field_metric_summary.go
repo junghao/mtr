@@ -14,8 +14,16 @@ import (
 	"time"
 )
 
+// fieldLatest - for get queries.
+type fieldLatest struct{}
 
-func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+// for SVG maps.
+type point struct {
+	latitude, longitude float64
+	x, y                float64
+}
+
+func (f fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
 		return res
 	}
@@ -44,7 +52,6 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	var fmlr mtrpb.FieldMetricSummaryResult
 
 	for rows.Next() {
-
 		var fmr mtrpb.FieldMetricSummary
 
 		if err = rows.Scan(&fmr.DeviceID, &fmr.ModelID, &fmr.TypeID, &t, &fmr.Value,
@@ -71,7 +78,7 @@ func (f *fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	return &weft.StatusOK
 }
 
-func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"bbox", "width", "typeID"}, []string{}); !res.Ok {
 		return res
 	}
@@ -80,7 +87,7 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 	var width int
 	var err error
 
-	f.typeID = r.URL.Query().Get("typeID")
+	typeID := r.URL.Query().Get("typeID")
 	bbox := r.URL.Query().Get("bbox")
 
 	if err = map180.ValidBbox(bbox); err != nil {
@@ -101,7 +108,7 @@ func (f *fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 			FROM field.metric_summary
 			where typeID = $1)
 			select ST_X(pt), ST_Y(pt)*-1, ST_X(geom::geometry),ST_Y(geom::geometry), time,
-			value, lower,upper from p`, f.typeID); err != nil {
+			value, lower,upper from p`, typeID); err != nil {
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()

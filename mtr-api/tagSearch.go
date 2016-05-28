@@ -1,7 +1,6 @@
 package main
 
 import (
-
 	"bytes"
 	"database/sql"
 	"github.com/GeoNet/mtr/mtrpb"
@@ -12,7 +11,12 @@ import (
 	"time"
 )
 
-
+// tagSearch for tag search results.
+// needed for use with singleProto and fan out.
+type tagSearch struct {
+	tag string
+	tagResult mtrpb.TagSearchResult
+}
 
 func (a *tagSearch) allProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
@@ -56,8 +60,10 @@ func (a *tagSearch) singleProto(r *http.Request, h http.Header, b *bytes.Buffer)
 		return res
 	}
 
-	if res := a.read(strings.TrimPrefix(r.URL.Path, "/tag/")); !res.Ok {
-		return res
+	a.tag = strings.TrimPrefix(r.URL.Path, "/tag/")
+
+	if a.tag == "" {
+		return weft.BadRequest("empty tag")
 	}
 
 	// Load tagged metrics, latency etc in parallel.
@@ -89,7 +95,6 @@ func (a *tagSearch) singleProto(r *http.Request, h http.Header, b *bytes.Buffer)
 	return &weft.StatusOK
 }
 
-// call read first
 func (a *tagSearch) fieldMetric() <-chan *weft.Result {
 	out := make(chan *weft.Result)
 	go func() {
@@ -99,8 +104,7 @@ func (a *tagSearch) fieldMetric() <-chan *weft.Result {
 
 		if rows, err = dbR.Query(`SELECT deviceID, modelID, typeid, time, value, lower, upper
 	 			  FROM field.metric_tag JOIN field.metric_summary USING (devicepk, typepk)
-			          WHERE tagPK = $1
-				`, a.pk); err != nil {
+			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
 			out <- weft.InternalServerError(err)
 			return
 		}
@@ -128,7 +132,6 @@ func (a *tagSearch) fieldMetric() <-chan *weft.Result {
 	return out
 }
 
-// call read first
 func (a *tagSearch) dataLatency() <-chan *weft.Result {
 	out := make(chan *weft.Result)
 	go func() {
@@ -138,8 +141,7 @@ func (a *tagSearch) dataLatency() <-chan *weft.Result {
 
 		if rows, err = dbR.Query(`SELECT siteID, typeID, time, mean, fifty, ninety, lower, upper
 	 			  FROM data.latency_tag JOIN data.latency_summary USING (sitePK, typePK)
-			          WHERE tagPK = $1
-				`, a.pk); err != nil {
+			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
 			out <- weft.InternalServerError(err)
 			return
 		}

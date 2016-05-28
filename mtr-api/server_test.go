@@ -3,11 +3,12 @@ package main
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"io/ioutil"
+	"log"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"log"
-	"io/ioutil"
+	"github.com/GeoNet/weft"
 )
 
 var testServer *httptest.Server
@@ -47,13 +48,24 @@ func setup(t *testing.T) {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	var a application
-
-	if r:= a.del("test-app");!r.Ok {
+	if r := delApplication("test-app"); !r.Ok {
 		t.Error(r.Msg)
 	}
 
 }
+
+func delApplication(applicationID string) *weft.Result {
+	if applicationID == "" {
+		return weft.BadRequest("empty applicationID")
+	}
+
+	if _, err := db.Exec(`DELETE FROM app.application WHERE applicationID = $1`, applicationID); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	return &weft.StatusOK
+}
+
 
 func setupBench(t *testing.B) {
 	var err error
@@ -77,10 +89,8 @@ func setupBench(t *testing.B) {
 	}
 }
 
-
 func teardown() {
 	testServer.Close()
 	db.Close()
 	defer dbR.Close()
 }
-

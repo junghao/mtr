@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"github.com/GeoNet/map180"
 	"github.com/GeoNet/mtr/mtrapp"
@@ -10,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"bytes"
 )
 
 var mux *http.ServeMux

@@ -53,7 +53,6 @@ func applicationTimerHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 	}
 }
 
-
 func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldMetric
 

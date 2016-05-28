@@ -2,7 +2,6 @@ package main
 
 //import "fmt"
 
-
 // TODO should be protobuf of the whole table field.type
 //func (f *fieldType) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 //	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {

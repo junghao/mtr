@@ -7,14 +7,17 @@ import (
 	"net/http"
 )
 
-func (a *fieldModel) put(r *http.Request) *weft.Result {
+// fieldModel - table field.model
+// field devices have a model.
+type fieldModel struct {
+}
+
+func (a fieldModel) put(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"modelID"}, []string{}); !res.Ok {
 		return res
 	}
 
-	a.id = r.URL.Query().Get("modelID")
-
-	if _, err := db.Exec(`INSERT INTO field.model(modelID) VALUES($1)`, a.id); err != nil {
+	if _, err := db.Exec(`INSERT INTO field.model(modelID) VALUES($1)`, r.URL.Query().Get("modelID")); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
 		} else {
@@ -25,27 +28,19 @@ func (a *fieldModel) put(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a *fieldModel) delete(r *http.Request) *weft.Result {
+func (a fieldModel) delete(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"modelID"}, []string{}); !res.Ok {
 		return res
 	}
 
-	a.id = r.URL.Query().Get("modelID")
-
-	// Deleting a model can remove all the devices for that model so reset the field device cache.
-	fieldDeviceCache.Lock()
-	defer fieldDeviceCache.Unlock()
-
-	fieldDeviceCache.m = make(map[string]int)
-
-	if _, err := db.Exec(`DELETE FROM field.model where modelID = $1`, a.id); err != nil {
+	if _, err := db.Exec(`DELETE FROM field.model where modelID = $1`, r.URL.Query().Get("modelID")); err != nil {
 		return weft.InternalServerError(err)
 	}
 
 	return &weft.StatusOK
 }
 
-func (a *fieldModel) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (a fieldModel) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}

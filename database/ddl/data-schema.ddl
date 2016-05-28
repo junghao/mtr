@@ -32,7 +32,6 @@ CREATE TABLE data.type (
   display TEXT NOT NULL
 );
 
--- If types are added the application server will need restarting.
 INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(1, 'latency.strong', 'latency strong motion data', 'ms', 1.0, 'ms');
 INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(2, 'latency.weak', 'latency weak motion data', 'ms', 1.0, 'ms');
 INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(3, 'latency.gnss.1hz', 'latency GNSS 1Hz data', 'ms', 1.0, 'ms');
