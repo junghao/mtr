@@ -54,8 +54,8 @@ func main() {
 	}
 	defer db.Close()
 
-	db.SetMaxIdleConns(100)
-	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(30)
+	db.SetMaxOpenConns(30)
 
 	if err = db.Ping(); err != nil {
 		log.Println("ERROR: problem pinging DB - is it up and contactable? 500s will be served")
@@ -69,8 +69,8 @@ func main() {
 	}
 	defer dbR.Close()
 
-	dbR.SetMaxIdleConns(50)
-	dbR.SetMaxOpenConns(50)
+	dbR.SetMaxIdleConns(30)
+	dbR.SetMaxOpenConns(30)
 
 	if err = dbR.Ping(); err != nil {
 		log.Println("ERROR: problem pinging DB - is it up and contactable? 500s will be served")
