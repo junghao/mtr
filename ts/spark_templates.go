@@ -28,7 +28,7 @@ var SparkLine = SVGSpark{
 const sparkBaseTemplate = `<?xml version="1.0"?>
 <svg viewBox="0,0,155,28" class="svg" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="14px" fill="darkslategrey">
 <g transform="translate(3,4)"> 
-{{if .Threshold.Show}}
+{{if .Threshold.ShowRect}}
 <rect x="0" y="{{.Threshold.Y}}" width="100" height="{{.Threshold.H}}" fill="lightgrey" fill-opacity="0.3"/>
 {{end}}
 {{template "data" .}}

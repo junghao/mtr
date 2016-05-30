@@ -4,7 +4,6 @@ Package ts can be used to draw time series plots.
 package ts
 
 import (
-
 	"fmt"
 	"math"
 	"time"
@@ -73,10 +72,14 @@ type line struct {
 }
 
 type threshold struct {
-	Min, Max float64
-	H        int // height in px for the threshold rect
-	Y        int // Y on plot for the threshold rect.
-	Show     bool
+	Min, Max       float64
+	H              int // height in px for the threshold rect
+	Y              int // Y on plot for the threshold rect.
+	UpperLimitPx   int // height in px for the threshold upper limit
+	LowerLimitPx   int // height in px for the threshold lower limit
+	ShowRect       bool
+	ShowLowerLimit bool
+	ShowUpperLimit bool
 }
 
 type pts []pt
@@ -93,10 +96,11 @@ type Label struct {
 
 type Labels []Label
 
-func (l Labels) Len() int           { return len(l) }
-func (l Labels) Less(i, j int) bool { return l[i].Label < l[j].Label
+func (l Labels) Len() int { return len(l) }
+func (l Labels) Less(i, j int) bool {
+	return l[i].Label < l[j].Label
 }
-func (l Labels) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
+func (l Labels) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 
 type data struct {
 	Series Series
@@ -143,7 +147,7 @@ func (p *Plot) SetYRange(r float64) {
 func (p *Plot) SetThreshold(min, max float64) {
 	p.plt.Threshold.Min = min
 	p.plt.Threshold.Max = max
-	p.plt.Threshold.Show = true
+	p.plt.Threshold.ShowRect = true
 }
 
 func (p *Plot) AddSeries(s Series) {
@@ -211,7 +215,7 @@ func (p *Plot) scaleData() {
 		p.plt.YMax = p.plt.YMin + (float64(p.plt.height) * (1 / p.plt.dy))
 	default:
 		p.plt.YMin = p.plt.Min.Value
-		p.plt.YMax = math.Max(p.plt.Max.Value, p.plt.Threshold.Max)
+		p.plt.YMax = p.plt.Max.Value
 
 		// Always set y min to zero when autoranging
 		if p.plt.YMin > 0 {
@@ -262,9 +266,35 @@ func (p *Plot) scaleData() {
 		p.plt.RangeAlert = true
 	}
 
-	if p.plt.Threshold.Show {
+	if p.plt.Threshold.ShowRect {
 		p.plt.Threshold.H = int(((p.plt.Threshold.Max - p.plt.Threshold.Min) * p.plt.dy) + 0.5)
 		p.plt.Threshold.Y = p.plt.height - int(((p.plt.Threshold.Max-p.plt.YMin)*p.plt.dy)+0.5)
+		p.plt.Threshold.UpperLimitPx = p.plt.Threshold.Y
+		p.plt.Threshold.LowerLimitPx = p.plt.Threshold.Y + p.plt.Threshold.H
+		p.plt.Threshold.ShowLowerLimit = true
+		p.plt.Threshold.ShowUpperLimit = true
+
+		// if rectangle outside viewing area don't display it
+		thresH := p.plt.Threshold.H
+		threshY := p.plt.Threshold.Y
+		if (thresH > p.plt.height && threshY > p.plt.height) || (thresH < 0 && threshY < 0) {
+			p.plt.Threshold.ShowRect = false
+			p.plt.Threshold.ShowLowerLimit = false
+			p.plt.Threshold.ShowUpperLimit = false
+		} else {
+			// clip H and Y if they're off the top of the display (but retain the actual min/max thresholds)
+			if p.plt.Threshold.Y < 0 {
+				p.plt.Threshold.H += p.plt.Threshold.Y
+				p.plt.Threshold.Y = 0
+				p.plt.Threshold.ShowUpperLimit = false
+			}
+
+			// clip if off the bottom of the display
+			if p.plt.Threshold.H > p.plt.height {
+				p.plt.Threshold.H = p.plt.height
+				p.plt.Threshold.ShowLowerLimit = false
+			}
+		}
 	}
 
 	return

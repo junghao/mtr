@@ -116,8 +116,14 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 
 <g transform="translate(10,60)">
 
-{{if .Threshold.Show}}
+{{if .Threshold.ShowRect}}
 <rect x="0" y="{{.Threshold.Y}}" width="780" height="{{.Threshold.H}}" fill="lightgrey" fill-opacity="0.3"/>
+{{if .Threshold.ShowUpperLimit}}
+<line style="stroke:rgb(255,0,0); fill: none; stroke-width: 1px; stroke-linecap: round; stroke-linejoin: round"  x1="0" y1="{{.Threshold.UpperLimitPx}}" x2="780" y2="{{.Threshold.UpperLimitPx}}"/>
+{{end}}
+{{if .Threshold.ShowLowerLimit}}
+<line style="stroke:rgb(255,0,0); fill: none; stroke-width: 1px; stroke-linecap: round; stroke-linejoin: round"  x1="0" y1="{{.Threshold.LowerLimitPx}}" x2="780" y2="{{.Threshold.LowerLimitPx}}"/>
+{{end}}
 {{end}}
 
 <text x="{{400}}" y="220" text-anchor="middle" dominant-baseline="hanging">{{.Axes.Xlabel}}</text>
@@ -156,7 +162,7 @@ const plotAppMetricsTemplate = `<?xml version="1.0"?>
 
 <g transform="translate(10,60)">
 
-{{if .Threshold.Show}}
+{{if .Threshold.ShowRect}}
 <rect x="0" y="{{.Threshold.Y}}" width="780" height="{{.Threshold.H}}" fill="lightgrey" fill-opacity="0.3"/>
 {{end}}
 
@@ -205,7 +211,7 @@ const plotAppTimersTemplate = `<?xml version="1.0"?>
 
 <g transform="translate(10,60)">
 
-{{if .Threshold.Show}}
+{{if .Threshold.ShowRect}}
 <rect x="0" y="{{.Threshold.Y}}" width="780" height="{{.Threshold.H}}" fill="lightgrey" fill-opacity="0.3"/>
 {{end}}
 
