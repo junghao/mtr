@@ -54,3 +54,35 @@ message FieldMetricThreshold {
 message FieldMetricThresholdResult {
     repeated FieldMetricThreshold result = 1;
 }
+
+message FieldModel {
+    // the modelID for the field threshold
+    string model_iD = 1;
+}
+
+message FieldModelResult {
+    repeated FieldModel result = 1;
+}
+
+message FieldDevice {
+    // The deviceID for the metric e.g., idu-birchfarm
+    string device_iD = 1;
+    // The modelID for the metric e.g., Trimble NetR9
+    string model_iD = 2;
+    // Decimal Latitude and Longitude, only uses three digits of precision after decimal
+    float latitude = 3;
+    float longitude = 4;
+}
+
+message FieldDeviceResult {
+    repeated FieldDevice result = 1;
+}
+
+message FieldType {
+    // The TypeID in the table field.type
+    string type_iD = 1;
+}
+
+message FieldTypeResult {
+    repeated FieldType result = 1;
+}

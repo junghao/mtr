@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/weft"
+	"github.com/golang/protobuf/proto"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -15,7 +17,7 @@ import (
 type fieldDevice struct {
 }
 
-func (a fieldDevice) put(r *http.Request) *weft.Result {
+func (f fieldDevice) put(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "modelID", "latitude", "longitude"}, []string{}); !res.Ok {
 		return res
 	}
@@ -75,7 +77,7 @@ func (a fieldDevice) put(r *http.Request) *weft.Result {
 	return weft.InternalServerError(err)
 }
 
-func (a fieldDevice) delete(r *http.Request) *weft.Result {
+func (f fieldDevice) delete(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID"}, []string{}); !res.Ok {
 		return res
 	}
@@ -103,6 +105,44 @@ func (f fieldDevice) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	b.WriteString(s)
 
 	h.Set("Content-Type", "application/json;version=1")
+
+	return &weft.StatusOK
+}
+
+func (f fieldDevice) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		return res
+	}
+
+	var err error
+	var rows *sql.Rows
+
+	if rows, err = dbR.Query(`SELECT deviceid, modelid, latitude, longitude
+		FROM
+		field.device JOIN field.model USING(modelpk)`); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	var fdr mtrpb.FieldDeviceResult
+
+	for rows.Next() {
+		var d mtrpb.FieldDevice
+
+		if err = rows.Scan(&d.DeviceID, &d.ModelID, &d.Latitude, &d.Longitude); err != nil {
+			return weft.InternalServerError(err)
+		}
+
+		fdr.Result = append(fdr.Result, &d)
+	}
+
+	var by []byte
+	if by, err = proto.Marshal(&fdr); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	b.Write(by)
+
+	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

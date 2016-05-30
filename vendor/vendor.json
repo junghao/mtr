@@ -58,8 +58,8 @@
 		{
 			"checksumSHA1": "FczzogSoZcKU3h21tCUyHzMsnBY=",
 			"path": "github.com/golang/protobuf/proto",
-			"revision": "7cc19b78d562895b13596ddce7aafb59dd789318",
-			"revisionTime": "2016-04-25T21:53:00Z"
+			"revision": "9e6977f30c91c78396e719e164e57f9287fff42c",
+			"revisionTime": "2016-05-24T15:56:25-04:00"
 		},
 		{
 			"path": "github.com/lib/pq",

@@ -25,6 +25,12 @@ It has these top-level messages:
 	FieldMetricTagResult
 	FieldMetricThreshold
 	FieldMetricThresholdResult
+	FieldModel
+	FieldModelResult
+	FieldDevice
+	FieldDeviceResult
+	FieldType
+	FieldTypeResult
 	Tag
 	TagResult
 	TagSearchResult
@@ -42,7 +48,9 @@ var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
-const _ = proto.ProtoPackageIsVersion1
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // DataLatencySummary is a summary of data latency metrics for each site.
 // mean should not be 0.  fifty and ninety may be unknown (0).

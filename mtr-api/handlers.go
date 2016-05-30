@@ -141,6 +141,8 @@ func fieldModelHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 		switch r.Header.Get("Accept") {
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
+		case "application/x-protobuf":
+			return f.proto(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}
@@ -161,6 +163,8 @@ func fieldDeviceHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 		switch r.Header.Get("Accept") {
 		case "application/json;version=1":
 			return f.jsonV1(r, h, b)
+		case "application/x-protobuf":
+			return f.proto(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}
@@ -170,14 +174,13 @@ func fieldDeviceHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 }
 
 func fieldTypeHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	//var f fieldType
+	var f fieldType
 
 	switch r.Method {
 	case "GET":
 		switch r.Header.Get("Accept") {
-		// TODO should be protobuf
-		//case "application/json;version=1":
-		//	return f.jsonV1(r, h, b)
+		case "application/x-protobuf":
+			return f.proto(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}

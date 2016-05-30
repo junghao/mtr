@@ -119,9 +119,13 @@ var routes = wt.Requests{
 	// Non specific Accept headers return svg.
 	// Model
 	{ID: wt.L(), URL: "/field/model", Accept: "application/json;version=1"},
+	// protobuf version
+	{ID: wt.L(), URL: "/field/model", Accept: "application/x-protobuf"},
 
 	// Device
 	{ID: wt.L(), URL: "/field/device", Accept: "application/json;version=1"},
+	// protobuf version
+	{ID: wt.L(), URL: "/field/device", Accept: "application/x-protobuf"},
 
 	// Metrics.  Resolution is optional on plots.  Resolution is fixed for sparks.
 	// Options for the plot parameter:
@@ -160,8 +164,7 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/field/metric/threshold", Accept: "application/x-protobuf"},
 
 	// Metric types
-	// TODO add protobuf
-	//{ID: wt.L(), URL: "/field/type", Accept: "application/json;version=1"},
+	{ID: wt.L(), URL: "/field/type", Accept: "application/x-protobuf"},
 
 	// Data latency
 
@@ -390,7 +393,7 @@ func TestFieldMetricTag(t *testing.T) {
 	}
 
 	if tr.Result == nil {
-		t.Error("got nil for /field/metric/tag protobuf")
+		t.Errorf("got nil for /field/metric/tag protobuf")
 	}
 
 	if len(tr.Result) != 1 {
@@ -440,11 +443,11 @@ func TestTag(t *testing.T) {
 	}
 
 	if tr.FieldMetric == nil {
-		t.Error("Got nil FieldMetric")
+		t.Errorf("Got nil FieldMetric")
 	}
 
 	if tr.DataLatency == nil {
-		t.Error("Got nil DataLatency")
+		t.Errorf("Got nil DataLatency")
 	}
 
 	if tr.FieldMetric[0].DeviceID != "gps-taupoairport" {
@@ -520,7 +523,7 @@ func TestDataLatencySummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 1 {
-		t.Error("expected 1 result.")
+		t.Errorf("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -546,7 +549,7 @@ func TestDataLatencySummary(t *testing.T) {
 	}
 
 	if d.Seconds == 0 {
-		t.Error("unexpected zero seconds")
+		t.Errorf("unexpected zero seconds")
 	}
 
 	if d.Upper != 15000 {
@@ -570,7 +573,7 @@ func TestDataLatencySummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 1 {
-		t.Error("expected 1 result.")
+		t.Errorf("expected 1 result.")
 	}
 }
 
@@ -604,7 +607,7 @@ func TestFieldMetricsSummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 1 {
-		t.Error("expected 1 result.")
+		t.Errorf("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -626,7 +629,7 @@ func TestFieldMetricsSummary(t *testing.T) {
 	}
 
 	if d.Seconds == 0 {
-		t.Error("unexpected zero seconds")
+		t.Errorf("unexpected zero seconds")
 	}
 
 	if d.Upper != 45000 {
@@ -651,7 +654,7 @@ func TestFieldMetricsSummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 0 {
-		t.Error("expected 0 results.")
+		t.Errorf("expected 0 results.")
 	}
 }
 
@@ -681,11 +684,11 @@ func TestFieldMetricsThreshold(t *testing.T) {
 	}
 
 	if f.Result == nil {
-		t.Error("got nil for /field/metric/threshold protobuf")
+		t.Errorf("got nil for /field/metric/threshold protobuf")
 	}
 
 	if len(f.Result) != 1 {
-		t.Error("expected 1 result.")
+		t.Errorf("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -733,11 +736,11 @@ func TestDataSites(t *testing.T) {
 	}
 
 	if f.Result == nil {
-		t.Error("got nil for /data/site protobuf")
+		t.Errorf("got nil for /data/site protobuf")
 	}
 
 	if len(f.Result) != 2 {
-		t.Error("expected 2 results.")
+		t.Errorf("expected 2 results.")
 	}
 
 	var found bool
@@ -757,7 +760,7 @@ func TestDataSites(t *testing.T) {
 	}
 
 	if !found {
-		t.Error("Didn't find site TAUP")
+		t.Errorf("Didn't find site TAUP")
 	}
 }
 
@@ -787,7 +790,7 @@ func TestDataLatencyTag(t *testing.T) {
 	}
 
 	if tr.Result == nil {
-		t.Error("got nil for /data/latency/tag protobuf")
+		t.Errorf("got nil for /data/latency/tag protobuf")
 	}
 
 	if len(tr.Result) != 3 {
@@ -833,11 +836,11 @@ func TestDataLatencyThreshold(t *testing.T) {
 	}
 
 	if f.Result == nil {
-		t.Error("got nil for /data/latency/threshold protobuf")
+		t.Errorf("got nil for /data/latency/threshold protobuf")
 	}
 
 	if len(f.Result) != 1 {
-		t.Error("expected 1 result.")
+		t.Errorf("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -856,5 +859,139 @@ func TestDataLatencyThreshold(t *testing.T) {
 
 	if d.Lower != 12000 {
 		t.Errorf("expected 12000 got %d", d.Lower)
+	}
+}
+
+// protobuf of /field/model endpoint
+func TestFieldModel(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/field/model", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var ftr mtrpb.FieldModelResult
+
+	if err = proto.Unmarshal(b, &ftr); err != nil {
+		t.Error(err)
+	}
+
+	// ftr.Result should be a slice of struct pointers
+	if ftr.Result == nil {
+		t.Errorf("got nil for /field/model protobuf")
+	}
+
+	if len(ftr.Result) != 1 {
+		t.Errorf("expected 1 result.")
+	}
+
+	m := ftr.Result[0]
+
+	if m.ModelID != "Trimble NetR9" {
+		t.Errorf("expected Trimble NetR9 got %s", m.ModelID)
+	}
+}
+
+// protobuf of /model/device endpoint
+func TestFieldDevice(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/field/device", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var fdr mtrpb.FieldDeviceResult
+
+	if err = proto.Unmarshal(b, &fdr); err != nil {
+		t.Error(err)
+	}
+
+	// ftr.Result should be a slice of struct pointers
+	if fdr.Result == nil {
+		t.Errorf("got nil for /field/device protobuf")
+	}
+
+	if len(fdr.Result) != 1 {
+		t.Errorf("expected 1 result.")
+	}
+
+	d := fdr.Result[0]
+
+	if d.ModelID != "Trimble NetR9" {
+		t.Errorf("expected Trimble NetR9 got %s", d.ModelID)
+	}
+
+	if d.DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport got %s", d.DeviceID)
+	}
+
+	if d.Latitude != -38.7427 {
+		t.Errorf("expected -38.7427 got %s", d.Latitude)
+	}
+
+	if d.Longitude != 176.081 {
+		t.Errorf("expected 176.081 got %s", d.Longitude)
+	}
+}
+
+// protobuf of /model/type endpoint
+func TestFieldType(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/field/type", Accept: "application/x-protobuf"}
+	//r := wt.Request{ID: wt.L(), URL: "/field/type", Accept: "application/json;version=1"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var ftr mtrpb.FieldTypeResult
+
+	if err = proto.Unmarshal(b, &ftr); err != nil {
+		t.Error(err)
+	}
+
+	// ftr.Result should be a slice of struct pointers
+	if ftr.Result == nil {
+		t.Errorf("got nil for /field/type protobuf")
+	}
+
+	if len(ftr.Result) != 12 {
+		t.Errorf("expected 12 results.")
+	}
+
+	if ftr.Result[0].TypeID != "centre" {
+		t.Errorf("expected centre got %s", ftr.Result[0].TypeID)
 	}
 }
