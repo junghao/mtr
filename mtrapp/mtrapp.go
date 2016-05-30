@@ -190,6 +190,7 @@ func sendCount(typeID internal.ID, t time.Time, count int) {
 
 	q := req.URL.Query()
 	q.Add("applicationID", appName)
+	q.Add("instanceID", instanceID)
 	q.Add("typeID", strconv.Itoa(int(typeID)))
 	q.Add("time", t.Format(time.RFC3339))
 	q.Add("count", strconv.Itoa(count))
@@ -226,6 +227,7 @@ func sendTimer(sourceID string, t time.Time, count, average, fifty, ninety int) 
 
 	q := req.URL.Query()
 	q.Add("applicationID", appName)
+	q.Add("instanceID", instanceID)
 	q.Add("sourceID", sourceID)
 	q.Add("time", t.Format(time.RFC3339))
 	q.Add("count", strconv.Itoa(count))

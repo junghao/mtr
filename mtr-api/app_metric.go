@@ -15,11 +15,11 @@ import (
 	"time"
 )
 
-type appMetric struct {
-	applicationID string
-	applicationPK int
-}
+//appMetric for get requests.
+type appMetric struct{}
 
+// InstanceMetric for sorting instances for SVG plots.
+// public for use with sort.
 type InstanceMetric struct {
 	instancePK, typePK int
 }
@@ -30,33 +30,18 @@ func (l InstanceMetrics) Len() int           { return len(l) }
 func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].instancePK }
 func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
-func (a *appMetric) loadPK(r *http.Request) (res *weft.Result) {
-	a.applicationID = r.URL.Query().Get("applicationID")
-
-	err := dbR.QueryRow(`SELECT applicationPK FROM app.application WHERE applicationID = $1`, a.applicationID).Scan(&a.applicationPK)
-	switch err {
-	case nil:
-		return &weft.StatusOK
-	case sql.ErrNoRows:
-		return &weft.NotFound
-	default:
-		return weft.InternalServerError(err)
-	}
-}
-
-func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	var res *weft.Result
-	if res = weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.Ok {
+func (a appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.Ok {
 		return res
 	}
 
-	if res = a.loadPK(r); !res.Ok {
-		return res
-	}
+	v := r.URL.Query()
+
+	applicationID := v.Get("applicationID")
 
 	var p ts.Plot
 
-	resolution := r.URL.Query().Get("resolution")
+	resolution := v.Get("resolution")
 
 	switch resolution {
 	case "", "minute":
@@ -64,7 +49,6 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
 		p.SetXLabel("12 hours")
 	case "five_minutes":
-		resolution = "five_minutes"
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*3), time.Now().UTC())
 		p.SetXLabel("48 hours")
 	case "hour":
@@ -76,8 +60,8 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 
 	var err error
 
-	if r.URL.Query().Get("yrange") != "" {
-		y := strings.Split(r.URL.Query().Get("yrange"), `,`)
+	if v.Get("yrange") != "" {
+		y := strings.Split(v.Get("yrange"), `,`)
 
 		var ymin, ymax float64
 
@@ -97,44 +81,44 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 	resTitle = strings.Replace(resTitle, "_", " ", -1)
 	resTitle = strings.Title(resTitle)
 
-	switch r.URL.Query().Get("group") {
+	switch v.Get("group") {
 	case "counters":
-		if res := a.loadCounters(resolution, &p); !res.Ok {
+		if res := a.loadCounters(applicationID, resolution, &p); !res.Ok {
 			return res
 		}
 
-		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Counters - Sum per %s", a.applicationID, resTitle))
+		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Counters - Sum per %s", applicationID, resTitle))
 		err = ts.MixedAppMetrics.Draw(p, b)
 	case "timers":
-		if res := a.loadTimers(resolution, &p); !res.Ok {
+		if res := a.loadTimers(applicationID, resolution, &p); !res.Ok {
 			return res
 		}
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Timers - 90th Percentile (ms) - Max per %s",
-			a.applicationID, resTitle))
-		err = ts.MixedAppMetrics.Draw(p, b)
+			applicationID, resTitle))
+		err = ts.ScatterAppTimers.Draw(p, b)
 	case "memory":
-		if res := a.loadMemory(resolution, &p); !res.Ok {
+		if res := a.loadMemory(applicationID, resolution, &p); !res.Ok {
 			return res
 		}
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Memory (bytes) - Average per %s",
-			a.applicationID, resTitle))
+			applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	case "objects":
-		if res := a.loadAppMetrics(resolution, internal.MemHeapObjects, &p); !res.Ok {
+		if res := a.loadAppMetrics(applicationID, resolution, internal.MemHeapObjects, &p); !res.Ok {
 			return res
 		}
 
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Memory Heap Objects (n) - Average per %s",
-			a.applicationID, resTitle))
+			applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	case "routines":
-		if res := a.loadAppMetrics(resolution, internal.Routines, &p); !res.Ok {
+		if res := a.loadAppMetrics(applicationID, resolution, internal.Routines, &p); !res.Ok {
 			return res
 		}
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Routines (n) - Average per %s",
-			a.applicationID, resTitle))
+			applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	default:
 		return weft.BadRequest("invalid value for type")
@@ -150,33 +134,33 @@ func (a *appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 
 }
 
-func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *weft.Result {
+func (a appMetric) loadCounters(applicationID, resolution string, p *ts.Plot) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
 	switch resolution {
 	case "minute":
 		rows, err = dbR.Query(`SELECT typePK, date_trunc('`+resolution+`',time) as t, sum(count)
-		FROM app.counter WHERE
-		applicationPK = $1
+		FROM app.counter
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
 		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('`+resolution+`',time), typePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	case "five_minutes":
 		rows, err = dbR.Query(`SELECT typePK,
 		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, sum(count)
-		FROM app.counter WHERE
-		applicationPK = $1
+		FROM app.counter
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', typePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	case "hour":
 		rows, err = dbR.Query(`SELECT typePK, date_trunc('`+resolution+`',time) as t, sum(count)
-		FROM app.counter WHERE
-		applicationPK = $1
+		FROM app.counter
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time), typePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
@@ -221,7 +205,7 @@ func (a *appMetric) loadCounters(resolution string, p *ts.Plot) *weft.Result {
 
 }
 
-func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
+func (a appMetric) loadTimers(applicationID, resolution string, p *ts.Plot) *weft.Result {
 	var err error
 
 	var rows *sql.Rows
@@ -229,27 +213,27 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 	switch resolution {
 	case "minute":
 		rows, err = dbR.Query(`SELECT sourcePK, date_trunc('`+resolution+`',time) as t, max(ninety), sum(count)
-		FROM app.timer WHERE
-		applicationPK = $1
+		FROM app.timer
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
 		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('`+resolution+`',time), sourcePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	case "five_minutes":
 		rows, err = dbR.Query(`SELECT sourcePK,
 		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
 		max(ninety), sum(count)
-		FROM app.timer WHERE
-		applicationPK = $1
+		FROM app.timer
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', sourcePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	case "hour":
 		rows, err = dbR.Query(`SELECT sourcePK, date_trunc('`+resolution+`',time) as t, max(ninety), sum(count)
-		FROM app.timer WHERE
-		applicationPK = $1
+		FROM app.timer
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time), sourcePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
@@ -260,21 +244,17 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 	defer rows.Close()
 
 	var t time.Time
-	var sourcePK, avg, n int
+	var sourcePK, max, n int
 	var sourceID string
 	pts := make(map[int][]ts.Point)
-	total := make(map[int]int)
-	rank := make(map[int]int) // track the slowest source value for sorting by colour.
+	total := make(map[int]int) // track the total counts (call) for each timer.
 
 	for rows.Next() {
-		if err = rows.Scan(&sourcePK, &t, &avg, &n); err != nil {
+		if err = rows.Scan(&sourcePK, &t, &max, &n); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pts[sourcePK] = append(pts[sourcePK], ts.Point{DateTime: t, Value: float64(avg)})
+		pts[sourcePK] = append(pts[sourcePK], ts.Point{DateTime: t, Value: float64(max)})
 		total[sourcePK] += n
-		if rank[sourcePK] < avg {
-			rank[sourcePK] = avg
-		}
 	}
 	rows.Close()
 
@@ -294,55 +274,14 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 	}
 	rows.Close()
 
-	// sort the sourcePKs slowest to fastest based on their slowest times.
-	keys := rankSlowest(rank)
-
-	// add the time series to the plot. Break the colours up based on source
-	// name suffix - GET, PUT, DELETE or other and colour them slowest to fastest.
-	// 4 different colours for each group.
+	// sort the sourcePKs based on number of calls.
+	keys := rank(total)
 
 	var labels ts.Labels
-	var get, put, delete, other int
 
 	for _, k := range keys {
-		id := strings.TrimPrefix(sourceIDs[k.Key], `main.`)
-
-		idx := strings.LastIndex(id, ".")
-		if idx > -1 && idx+1 < len(id) {
-			id = id[idx+1:]
-		}
-
-		var c string
-
-		switch id {
-		case "GET":
-			c = gets[3]
-			if get < 3 {
-				c = gets[get]
-			}
-			get++
-		case "PUT":
-			c = puts[3]
-			if put < 3 {
-				c = puts[put]
-			}
-			put++
-		case "DELETE":
-			c = deletes[3]
-			if delete < 3 {
-				c = deletes[delete]
-			}
-			delete++
-		default:
-			c = colours[3]
-			if other < 3 {
-				c = colours[other]
-			}
-			other++
-		}
-
-		p.AddSeries(ts.Series{Colour: c, Points: pts[k.Key]})
-		labels = append(labels, ts.Label{Colour: c, Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k.Key], `main.`), total[k.Key])})
+		p.AddSeries(ts.Series{Points: pts[k.Key]})
+		labels = append(labels, ts.Label{Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k.Key], `main.`), total[k.Key])})
 	}
 
 	p.SetLabels(labels)
@@ -351,7 +290,7 @@ func (a *appMetric) loadTimers(resolution string, p *ts.Plot) *weft.Result {
 
 }
 
-func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *weft.Result {
+func (a appMetric) loadMemory(applicationID, resolution string, p *ts.Plot) *weft.Result {
 	var err error
 
 	var rows *sql.Rows
@@ -359,26 +298,29 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *weft.Result {
 	switch resolution {
 	case "minute":
 		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(value)
-		FROM app.metric WHERE
-		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
+		FROM app.metric
+		 WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND typePK IN (1000, 1001, 1002)
 		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	case "five_minutes":
 		rows, err = dbR.Query(`SELECT instancePK, typePK,
 		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, avg(value)
-		FROM app.metric WHERE
-		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
+		FROM app.metric
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND typePK IN (1000, 1001, 1002)
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', typePK, instancePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	case "hour":
 		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(value)
-		FROM app.metric WHERE
-		applicationPK = $1 AND typePK IN (1000, 1001, 1002)
+		FROM app.metric
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND typePK IN (1000, 1001, 1002)
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
-		ORDER BY t ASC`, a.applicationPK)
+		ORDER BY t ASC`, applicationID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
@@ -432,7 +374,7 @@ func (a *appMetric) loadMemory(resolution string, p *ts.Plot) *weft.Result {
 
 }
 
-func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.Plot) *weft.Result {
+func (a appMetric) loadAppMetrics(applicationID, resolution string, typeID internal.ID, p *ts.Plot) *weft.Result {
 	var err error
 
 	var rows *sql.Rows
@@ -440,26 +382,29 @@ func (a *appMetric) loadAppMetrics(resolution string, typeID internal.ID, p *ts.
 	switch resolution {
 	case "minute":
 		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(value)
-		FROM app.metric WHERE
-		applicationPK = $1 AND typePK = $2
+		FROM app.metric
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND typePK = $2
 		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
-		ORDER BY t ASC`, a.applicationPK, int(typeID))
+		ORDER BY t ASC`, applicationID, int(typeID))
 	case "five_minutes":
 		rows, err = dbR.Query(`SELECT instancePK, typePK,
 		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t, avg(value)
-		FROM app.metric WHERE
-		applicationPK = $1 AND typePK = $2
+		FROM app.metric
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND typePK = $2
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min', typePK, instancePK
-		ORDER BY t ASC`, a.applicationPK, int(typeID))
+		ORDER BY t ASC`, applicationID, int(typeID))
 	case "hour":
 		rows, err = dbR.Query(`SELECT instancePK, typePK, date_trunc('`+resolution+`',time) as t, avg(value)
-		FROM app.metric WHERE
-		applicationPK = $1 AND typePK = $2
+		FROM app.metric
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND typePK = $2
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
-		ORDER BY t ASC`, a.applicationPK, int(typeID))
+		ORDER BY t ASC`, applicationID, int(typeID))
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
@@ -559,7 +504,7 @@ func merge(cs ...<-chan *weft.Result) <-chan *weft.Result {
 	return out
 }
 
-func rankSlowest(r map[int]int) SourceList {
+func rank(r map[int]int) SourceList {
 	pl := make(SourceList, len(r))
 	i := 0
 	for k, v := range r {

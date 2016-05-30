@@ -13,93 +13,63 @@ import (
 	"time"
 )
 
-type dataLatency struct {
-	dataSite
-	dataType
-	pk                            *weft.Result // for tracking pkLoad()
-	t                             time.Time
-	mean, min, max, fifty, ninety int
-}
+// dataLatency - table data.latency
+type dataLatency struct{}
 
-// TODO adopt this no-op approach further?
-// Also pass the http.Resquest every where?
-func (d *dataLatency) loadPK(r *http.Request) *weft.Result {
-	if d.pk == nil {
-		if d.pk = d.dataType.load(r); !d.pk.Ok {
-			return d.pk
-		}
-
-		if d.pk = d.dataSite.loadPK(r); !d.pk.Ok {
-			return d.pk
-		}
-
-		d.pk = &weft.StatusOK
-	}
-
-	return d.pk
-}
-
-/*
-loadThreshold loads thresholds for the data latency.  Assumes d.loadPK has been called first.
-*/
-func (d *dataLatency) threshold() (lower, upper int, res *weft.Result) {
-	res = &weft.StatusOK
-
-	if err := dbR.QueryRow(`SELECT lower,upper FROM data.latency_threshold
-		WHERE sitePK = $1 AND typePK = $2`,
-		d.sitePK, d.dataType.typePK).Scan(&lower, &upper); err != nil && err != sql.ErrNoRows {
-		res = weft.InternalServerError(err)
-	}
-
-	return
-}
-
-func (d *dataLatency) save(r *http.Request) *weft.Result {
+func (a dataLatency) put(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "time", "mean"}, []string{"min", "max", "fifty", "ninety"}); !res.Ok {
 		return res
 	}
 
+	v := r.URL.Query()
+
 	var err error
 
-	if d.mean, err = strconv.Atoi(r.URL.Query().Get("mean")); err != nil {
+	var t time.Time
+	var mean, min, max, fifty, ninety int
+
+	if mean, err = strconv.Atoi(v.Get("mean")); err != nil {
 		return weft.BadRequest("invalid value for mean")
 	}
 
-	if r.URL.Query().Get("min") != "" {
-		if d.min, err = strconv.Atoi(r.URL.Query().Get("min")); err != nil {
+	if v.Get("min") != "" {
+		if min, err = strconv.Atoi(v.Get("min")); err != nil {
 			return weft.BadRequest("invalid value for min")
 		}
 	}
 
-	if r.URL.Query().Get("max") != "" {
-		if d.max, err = strconv.Atoi(r.URL.Query().Get("max")); err != nil {
+	if v.Get("max") != "" {
+		if max, err = strconv.Atoi(v.Get("max")); err != nil {
 			return weft.BadRequest("invalid value for max")
 		}
 	}
 
-	if r.URL.Query().Get("fifty") != "" {
-		if d.fifty, err = strconv.Atoi(r.URL.Query().Get("fifty")); err != nil {
+	if v.Get("fifty") != "" {
+		if fifty, err = strconv.Atoi(v.Get("fifty")); err != nil {
 			return weft.BadRequest("invalid value for fifty")
 		}
 	}
 
-	if r.URL.Query().Get("ninety") != "" {
-		if d.ninety, err = strconv.Atoi(r.URL.Query().Get("ninety")); err != nil {
+	if v.Get("ninety") != "" {
+		if ninety, err = strconv.Atoi(v.Get("ninety")); err != nil {
 			return weft.BadRequest("invalid value for ninety")
 		}
 	}
 
-	if d.t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
+	if t, err = time.Parse(time.RFC3339, v.Get("time")); err != nil {
 		return weft.BadRequest("invalid time")
 	}
 
-	if res := d.loadPK(r); !res.Ok {
-		return res
-	}
+	siteID := v.Get("siteID")
+	typeID := v.Get("typeID")
 
-	if _, err = db.Exec(`INSERT INTO data.latency(sitePK, typePK, rate_limit, time, mean, min, max, fifty, ninety) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		d.sitePK, d.dataType.typePK, d.t.Truncate(time.Minute).Unix(),
-		d.t, int32(d.mean), int32(d.min), int32(d.max), int32(d.fifty), int32(d.ninety)); err != nil {
+	if _, err := db.Exec(`INSERT INTO data.latency(sitePK, typePK, rate_limit, time, mean, min, max, fifty, ninety)
+				SELECT sitePK, typePK, $3, $4, $5, $6, $7, $8, $9
+				FROM data.site, data.type
+				WHERE siteID = $1
+				AND typeID = $2`,
+		siteID, typeID, t.Truncate(time.Minute).Unix(),
+		t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			return &statusTooManyRequests
 		} else {
@@ -110,38 +80,31 @@ func (d *dataLatency) save(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (d *dataLatency) delete(r *http.Request) *weft.Result {
+func (a dataLatency) delete(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
 		return res
 	}
 
-	var err error
-	if res := d.loadPK(r); !res.Ok {
-		return res
-	}
+	v := r.URL.Query()
+
+	siteID := v.Get("siteID")
+	typeID := v.Get("typeID")
 
 	var txn *sql.Tx
+	var err error
 
 	if txn, err = db.Begin(); err != nil {
 		return weft.InternalServerError(err)
 	}
 
-	if _, err = txn.Exec(`DELETE FROM data.latency WHERE sitePK = $1 AND typePK = $2`,
-		d.sitePK, d.dataType.typePK); err != nil {
-		txn.Rollback()
-		return weft.InternalServerError(err)
-	}
-
-	if _, err = txn.Exec(`DELETE FROM data.latency_threshold WHERE sitePK = $1 AND typePK = $2`,
-		d.sitePK, d.dataType.typePK); err != nil {
-		txn.Rollback()
-		return weft.InternalServerError(err)
-	}
-
-	if _, err = txn.Exec(`DELETE FROM data.latency_tag WHERE sitePK = $1 AND typePK = $2`,
-		d.sitePK, d.typePK); err != nil {
-		txn.Rollback()
-		return weft.InternalServerError(err)
+	for _, table := range []string{"data.latency", "data.latency_threshold", "data.latency_tag"} {
+		if _, err = txn.Exec(`DELETE FROM `+table+` WHERE
+				sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
+				AND typePK = (SELECT typePK FROM data.type WHERE typeID = $2)`,
+			siteID, typeID); err != nil {
+			txn.Rollback()
+			return weft.InternalServerError(err)
+		}
 	}
 
 	if err = txn.Commit(); err != nil {
@@ -151,28 +114,24 @@ func (d *dataLatency) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (a dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"plot", "resolution", "yrange"}); !res.Ok {
 		return res
 	}
 
-	if res := d.loadPK(r); !res.Ok {
-		return res
-	}
-
-	d.siteID = r.URL.Query().Get("siteID")
+	v := r.URL.Query()
 
 	switch r.URL.Query().Get("plot") {
 	case "", "line":
-		resolution := r.URL.Query().Get("resolution")
+		resolution := v.Get("resolution")
 		if resolution == "" {
 			resolution = "minute"
 		}
-		if res := d.plot(resolution, b); !res.Ok {
+		if res := a.plot(v.Get("siteID"), v.Get("typeID"), resolution, b); !res.Ok {
 			return res
 		}
 	default:
-		if res := d.spark(b); !res.Ok {
+		if res := a.spark(v.Get("siteID"), v.Get("typeID"), b); !res.Ok {
 			return res
 		}
 	}
@@ -185,37 +144,71 @@ func (d *dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 /*
 plot draws an svg plot to b.  Assumes f.loadPK has been called first.
 */
-func (d *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
+func (a dataLatency) plot(siteID, typeID, resolution string, b *bytes.Buffer) *weft.Result {
+	var err error
+	// we need the sitePK often so read it once.
+	var sitePK int
+	if err = dbR.QueryRow(`SELECT sitePK FROM data.site WHERE siteID = $1`,
+		siteID).Scan(&sitePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		return weft.InternalServerError(err)
+	}
+
+	var typePK int
+	var scale float64
+	var display string
+
+	if err = dbR.QueryRow(`SELECT typePK, scale, display FROM data.type WHERE typeID = $1`,
+		typeID).Scan(&typePK, &scale, &display); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		return weft.InternalServerError(err)
+	}
+
 	var p ts.Plot
 
-	p.SetUnit(d.dataType.Unit)
+	p.SetUnit(display)
 
 	var lower, upper int
-	var res *weft.Result
 
-	if lower, upper, res = d.threshold(); !res.Ok {
-		return res
+	if err := dbR.QueryRow(`SELECT lower,upper FROM data.latency_threshold
+		WHERE sitePK = $1 AND typePK = $2`,
+		sitePK, typePK).Scan(&lower, &upper); err != nil && err != sql.ErrNoRows {
+		return weft.InternalServerError(err)
 	}
 
 	if !(lower == 0 && upper == 0) {
-		p.SetThreshold(float64(lower)*d.dataType.Scale, float64(upper)*d.dataType.Scale)
+		p.SetThreshold(float64(lower)*scale, float64(upper)*scale)
 	}
 
 	var tags []string
-
-	if tags, res = d.tags(); !res.Ok {
-		return res
-	}
-
-	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
-
-	p.SetTitle(fmt.Sprintf("Site: %s - %s", d.siteID, strings.Title(d.dataType.Name)))
-
-	var err error
 	var rows *sql.Rows
 
-	// TODO - loading avg(mean) at each resolution.  Need to add max(fifty) and max(ninety) when there are some values.
+	if rows, err = dbR.Query(`SELECT tag FROM data.latency_tag JOIN mtr.tag USING (tagpk) WHERE
+		sitePK = $1 AND typePK = $2
+		ORDER BY tag asc`,
+		sitePK, typePK); err != nil {
+		return weft.InternalServerError(err)
+	}
 
+	defer rows.Close()
+
+	for rows.Next() {
+		var s string
+		if err = rows.Scan(&s); err != nil {
+			return weft.InternalServerError(err)
+		}
+		tags = append(tags, s)
+	}
+	rows.Close()
+
+	p.SetSubTitle("Tags: " + strings.Join(tags, ","))
+	p.SetTitle(fmt.Sprintf("Site: %s - %s", siteID, strings.Title(typeID)))
+
+	// TODO - loading avg(mean) at each resolution.  Need to add max(fifty) and max(ninety) when there are some values.
 	switch resolution {
 	case "minute":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
@@ -226,7 +219,7 @@ func (d *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
-			d.sitePK, d.dataType.typePK)
+			sitePK, typePK)
 	case "five_minutes":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*2), time.Now().UTC())
 		p.SetXLabel("48 hours")
@@ -237,7 +230,7 @@ func (d *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
 		ORDER BY t ASC`,
-			d.sitePK, d.dataType.typePK)
+			sitePK, typePK)
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
@@ -247,7 +240,7 @@ func (d *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
-			d.sitePK, d.dataType.typePK)
+			sitePK, typePK)
 	default:
 		return weft.BadRequest("invalid resolution")
 	}
@@ -257,31 +250,33 @@ func (d *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 
 	defer rows.Close()
 
-	var t time.Time
-	var avg float64
 	var pts []ts.Point
 
 	for rows.Next() {
-		if err = rows.Scan(&t, &avg); err != nil {
+		var pt ts.Point
+		if err = rows.Scan(&pt.DateTime, &pt.Value); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pts = append(pts, ts.Point{DateTime: t, Value: avg * d.dataType.Scale})
+		pt.Value = pt.Value * scale
+		pts = append(pts, pt)
 	}
 	rows.Close()
 
 	// Add the latest value to the plot - this may be different to the average at minute or hour resolution.
-	t = time.Time{}
-	var value int32
+	var pt ts.Point
+
 	if err = dbR.QueryRow(`SELECT time, mean FROM data.latency WHERE
 			sitePK = $1 AND typePK = $2
 			ORDER BY time DESC
 			LIMIT 1`,
-		d.sitePK, d.dataType.typePK).Scan(&t, &value); err != nil {
+		sitePK, typePK).Scan(&pt.DateTime, &pt.Value); err != nil {
 		return weft.InternalServerError(err)
 	}
 
-	pts = append(pts, ts.Point{DateTime: t, Value: float64(value) * d.dataType.Scale})
-	p.SetLatest(ts.Point{DateTime: t, Value: float64(value) * d.dataType.Scale}, "deepskyblue")
+	pt.Value = pt.Value * scale
+
+	pts = append(pts, pt)
+	p.SetLatest(pt, "deepskyblue")
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
@@ -295,7 +290,7 @@ func (d *dataLatency) plot(resolution string, b *bytes.Buffer) *weft.Result {
 /*
 spark draws an svg spark line to b.  Assumes f.loadPK has been called first.
 */
-func (d *dataLatency) spark(b *bytes.Buffer) *weft.Result {
+func (a dataLatency) spark(siteID, typeID string, b *bytes.Buffer) *weft.Result {
 	var p ts.Plot
 
 	p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
@@ -304,26 +299,27 @@ func (d *dataLatency) spark(b *bytes.Buffer) *weft.Result {
 	var rows *sql.Rows
 
 	if rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
-		 avg(mean) FROM data.latency WHERE
-		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '12 hours'
-		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
-		ORDER BY t ASC`,
-		d.sitePK, d.dataType.typePK); err != nil {
+		 avg(mean) FROM data.latency
+		 WHERE sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
+		 AND typePK = (SELECT typePK FROM data.type WHERE typeID = $2)
+		 AND time > now() - interval '12 hours'
+		 GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
+		 ORDER BY t ASC`,
+		siteID, typeID); err != nil {
 		return weft.InternalServerError(err)
 	}
 
 	defer rows.Close()
 
-	var t time.Time
-	var avg float64
 	var pts []ts.Point
 
 	for rows.Next() {
-		if err = rows.Scan(&t, &avg); err != nil {
+		var pt ts.Point
+		if err = rows.Scan(&pt.DateTime, &pt.Value); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pts = append(pts, ts.Point{DateTime: t, Value: avg * d.dataType.Scale})
+		// No need to scale spark data for display.
+		pts = append(pts, pt)
 	}
 	rows.Close()
 
@@ -334,33 +330,4 @@ func (d *dataLatency) spark(b *bytes.Buffer) *weft.Result {
 	}
 
 	return &weft.StatusOK
-}
-
-// tags returns tags for f.  Assumes loadPK has been called.
-func (f *dataLatency) tags() (t []string, res *weft.Result) {
-	var rows *sql.Rows
-	var err error
-
-	if rows, err = dbR.Query(`SELECT tag FROM data.latency_tag JOIN mtr.tag USING (tagpk) WHERE
-		sitePK = $1 AND typePK = $2
-		ORDER BY tag asc`,
-		f.sitePK, f.typePK); err != nil {
-		res = weft.InternalServerError(err)
-		return
-	}
-
-	defer rows.Close()
-
-	var s string
-
-	for rows.Next() {
-		if err = rows.Scan(&s); err != nil {
-			res = weft.InternalServerError(err)
-			return
-		}
-		t = append(t, s)
-	}
-
-	res = &weft.StatusOK
-	return
 }

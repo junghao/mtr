@@ -1,61 +1,98 @@
 package main
 
 import (
-
+	"database/sql"
 	"github.com/GeoNet/weft"
 	"net/http"
 	"strconv"
 	"time"
 )
 
-type applicationTimer struct {
-	application
-	applicationSource
-	t                             time.Time
-	average, count, fifty, ninety int
-}
+// applicationTimer app.timer
+// for timing things.
+type applicationTimer struct{}
 
-func (a *applicationTimer) save(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "sourceID", "time", "average",
+// put inserts timers.  application and instance are added
+// to the DB on the fly if required e.g., the first time an
+// application sends a timer from an instance.
+func (a applicationTimer) put(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"applicationID", "instanceID", "sourceID", "time", "average",
 		"count", "fifty", "ninety"}, []string{}); !res.Ok {
 		return res
 	}
 
-	var err error
+	v := r.URL.Query()
 
-	if a.average, err = strconv.Atoi(r.URL.Query().Get("average")); err != nil {
+	var err error
+	var t time.Time
+	var average, count, fifty, ninety int
+
+	applicationID := v.Get("applicationID")
+	instanceID := v.Get("instanceID")
+	sourceID := v.Get("sourceID")
+
+	if average, err = strconv.Atoi(v.Get("average")); err != nil {
 		return weft.BadRequest("invalid average")
 	}
 
-	if a.count, err = strconv.Atoi(r.URL.Query().Get("count")); err != nil {
+	if count, err = strconv.Atoi(v.Get("count")); err != nil {
 		return weft.BadRequest("invalid count")
 	}
 
-	if a.fifty, err = strconv.Atoi(r.URL.Query().Get("fifty")); err != nil {
+	if fifty, err = strconv.Atoi(v.Get("fifty")); err != nil {
 		return weft.BadRequest("invalid fifty")
 	}
 
-	if a.ninety, err = strconv.Atoi(r.URL.Query().Get("ninety")); err != nil {
+	if ninety, err = strconv.Atoi(v.Get("ninety")); err != nil {
 		return weft.BadRequest("invalid ninety")
 	}
 
-	if a.t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
+	if t, err = time.Parse(time.RFC3339, v.Get("time")); err != nil {
 		return weft.BadRequest("invalid time")
 	}
 
-	if res := a.applicationSource.loadPK(r); !res.Ok {
-		return res
+	var result sql.Result
+
+	// If we insert one row then return.
+	// This will be the most common outcome.
+	if result, err = db.Exec(`INSERT INTO app.timer(applicationPK, instancePK, sourcePK, time, average, count, fifty, ninety)
+	 			SELECT applicationPK, instancePK, sourcePK, $4, $5, $6, $7, $8
+	 			FROM app.application, app.instance, app.source
+				WHERE applicationID = $1
+				AND instanceID = $2
+				AND sourceID = $3`,
+		applicationID, instanceID, sourceID, t, average, count, fifty, ninety); err == nil {
+		var i int64
+		if i, err = result.RowsAffected(); err != nil {
+			return weft.InternalServerError(err)
+		}
+		if i == 1 {
+			return &weft.StatusOK
+		}
 	}
 
-	if res := a.application.loadPK(r); !res.Ok {
-		return res
+	// Most likely causes of error are missing application or instance.  Add them.
+	// Ignore errors - this could race from other handlers.
+	db.Exec(`INSERT INTO app.application(applicationID) VALUES($1)`, applicationID)
+	db.Exec(`INSERT INTO app.instance(instanceID) VALUES($1)`, instanceID)
+	db.Exec(`INSERT INTO app.source(sourceID) VALUES($1)`, sourceID)
+
+	// Try to insert again - if we insert one row then return.
+	if result, err = db.Exec(`INSERT INTO app.timer(applicationPK, instancePK, sourcePK, time, average, count, fifty, ninety)
+	 			SELECT applicationPK, instancePK, sourcePK, $4, $5, $6, $7, $8
+	 			FROM app.application, app.instance, app.source
+				WHERE applicationID = $1
+				AND instanceID = $2
+				AND sourceID = $3`,
+		applicationID, instanceID, sourceID, t, average, count, fifty, ninety); err == nil {
+		var i int64
+		if i, err = result.RowsAffected(); err != nil {
+			return weft.InternalServerError(err)
+		}
+		if i == 1 {
+			return &weft.StatusOK
+		}
 	}
 
-	// TODO - what to do when sending from multiple instances and primary key violations?
-	if _, err = db.Exec(`INSERT INTO app.timer(applicationPK, sourcePK, time, average, count, fifty, ninety) VALUES($1,$2,$3,$4,$5,$6,$7)`,
-		a.applicationPK, a.sourcePK, a.t, a.average, a.count, a.fifty, a.ninety); err != nil {
-		return weft.InternalServerError(err)
-	}
-
-	return &weft.StatusOK
+	return weft.InternalServerError(err)
 }

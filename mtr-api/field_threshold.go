@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
@@ -11,77 +12,95 @@ import (
 	"strconv"
 )
 
+// fieldThreshold - table field.threshold
+// to be considered good metrics must be within the thresholds.
 type fieldThreshold struct {
-	lower, upper int
 }
 
-func (f *fieldThreshold) save(r *http.Request) *weft.Result {
+func (f fieldThreshold) save(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "lower", "upper"}, []string{}); !res.Ok {
 		return res
 	}
 
+	v := r.URL.Query()
 	var err error
 
-	if f.lower, err = strconv.Atoi(r.URL.Query().Get("lower")); err != nil {
+	var lower, upper int
+
+	if lower, err = strconv.Atoi(v.Get("lower")); err != nil {
 		return weft.BadRequest("invalid lower")
 	}
 
-	if f.upper, err = strconv.Atoi(r.URL.Query().Get("upper")); err != nil {
+	if upper, err = strconv.Atoi(v.Get("upper")); err != nil {
 		return weft.BadRequest("invalid upper")
 	}
 
-	var fm fieldMetric
+	deviceID := v.Get("deviceID")
+	typeID := v.Get("typeID")
 
-	if res := fm.loadPK(r); !res.Ok {
-		return res
-	}
+	var result sql.Result
 
-	if _, err = db.Exec(`INSERT INTO field.threshold(devicePK, typePK, lower, upper) 
-		VALUES ($1,$2,$3,$4)`,
-		fm.devicePK, fm.fieldType.typePK, f.lower, f.upper); err != nil {
-		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
-			// ignore unique constraint errors
-		} else {
+	// TODO - use upsert with PG 9.5?
+
+	// return if insert succeeds
+	if result, err = db.Exec(`INSERT INTO field.threshold(devicePK, typePK, lower, upper)
+		SELECT devicePK, typePK, $3, $4
+				FROM field.device, field.type
+				WHERE deviceID = $1
+				AND typeID = $2`,
+		deviceID, typeID, lower, upper); err == nil {
+		var i int64
+		if i, err = result.RowsAffected(); err != nil {
 			return weft.InternalServerError(err)
+		}
+		if i == 1 {
+			return &weft.StatusOK
 		}
 	}
 
-	if _, err = db.Exec(`UPDATE field.threshold SET lower=$3, upper=$4 
-		WHERE 
-		devicePK = $1 
-		AND
-		typePK = $2`,
-		fm.devicePK, fm.fieldType.typePK, f.lower, f.upper); err != nil {
-		return weft.InternalServerError(err)
+	// return if update one row
+	if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == errorUniqueViolation {
+		if result, err = db.Exec(`UPDATE field.threshold SET lower=$3, upper=$4
+		WHERE devicePK = (SELECT devicePK FROM field.device WHERE deviceID = $1)
+		AND typePK = (SELECT typePK FROM field.type WHERE typeID = $2)`,
+			deviceID, typeID, lower, upper); err == nil {
+			var i int64
+			if i, err = result.RowsAffected(); err != nil {
+				return weft.InternalServerError(err)
+			}
+			if i == 1 {
+				return &weft.StatusOK
+			}
+		}
 	}
 
-	return &weft.StatusOK
+	if err == nil {
+		err = fmt.Errorf("no rows affected, check your query.")
+	}
+
+	return weft.InternalServerError(err)
 }
 
-func (f *fieldThreshold) delete(r *http.Request) *weft.Result {
+func (f fieldThreshold) delete(r *http.Request) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.Ok {
 		return res
 	}
 
 	var err error
 
-	var fm fieldMetric
+	v := r.URL.Query()
 
-	if res := fm.loadPK(r); !res.Ok {
-		return res
-	}
-
-	if _, err = db.Exec(`DELETE FROM field.threshold 
-		WHERE devicePK = $1
-		AND typePK = $2 `,
-		fm.devicePK, fm.fieldType.typePK); err != nil {
+	if _, err = db.Exec(`DELETE FROM field.threshold
+		WHERE devicePK = (SELECT devicePK FROM field.device WHERE deviceID = $1)
+		AND typePK = (SELECT typePK FROM field.type WHERE typeID = $2)`,
+		v.Get("deviceID"), v.Get("typeID")); err != nil {
 		return weft.InternalServerError(err)
 	}
 
 	return &weft.StatusOK
 }
 
-func (f *fieldThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f fieldThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
@@ -104,7 +123,7 @@ func (f *fieldThreshold) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer)
 	return &weft.StatusOK
 }
 
-func (f *fieldThreshold) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f fieldThreshold) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}

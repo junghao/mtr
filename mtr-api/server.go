@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"github.com/GeoNet/map180"
 	"github.com/GeoNet/mtr/mtrapp"
@@ -10,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"bytes"
 )
 
 var mux *http.ServeMux
@@ -54,8 +54,8 @@ func main() {
 	}
 	defer db.Close()
 
-	db.SetMaxIdleConns(50)
-	db.SetMaxOpenConns(50)
+	db.SetMaxIdleConns(30)
+	db.SetMaxOpenConns(30)
 
 	if err = db.Ping(); err != nil {
 		log.Println("ERROR: problem pinging DB - is it up and contactable? 500s will be served")
@@ -69,8 +69,8 @@ func main() {
 	}
 	defer dbR.Close()
 
-	dbR.SetMaxIdleConns(50)
-	dbR.SetMaxOpenConns(50)
+	dbR.SetMaxIdleConns(30)
+	dbR.SetMaxOpenConns(30)
 
 	if err = dbR.Ping(); err != nil {
 		log.Println("ERROR: problem pinging DB - is it up and contactable? 500s will be served")
@@ -79,7 +79,7 @@ func main() {
 	// For map zoom regions other than NZ will need to read some config from somewhere.
 	wm, err = map180.Init(dbR, map180.Region(`newzealand`), 256000000)
 	if err != nil {
-		log.Println("ERROR: problem with map180 config: %s", err)
+		log.Printf("ERROR: problem with map180 config: %s", err.Error())
 	}
 
 	go deleteMetrics()
@@ -97,6 +97,7 @@ func home(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	return &weft.NotFound
 }
 
+// inbound wraps the mux and adds basic auth.
 func inbound(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -128,7 +129,7 @@ func health(w http.ResponseWriter, r *http.Request) {
 // TODO delete app instance and time source that have no metrics?
 
 /*
-deleteMetics deletes old metrics.
+deleteMetrics deletes old metrics.
 */
 func deleteMetrics() {
 	ticker := time.NewTicker(time.Minute).C

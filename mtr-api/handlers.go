@@ -25,9 +25,7 @@ func applicationMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *
 
 	switch r.Method {
 	case "PUT":
-		return a.save(r)
-	case "DELETE":
-		return a.delete(r)
+		return a.put(r)
 	default:
 		return &weft.MethodNotAllowed
 	}
@@ -38,7 +36,7 @@ func applicationCounterHandler(r *http.Request, h http.Header, b *bytes.Buffer) 
 
 	switch r.Method {
 	case "PUT":
-		return a.save(r)
+		return a.put(r)
 	default:
 		return &weft.MethodNotAllowed
 	}
@@ -49,19 +47,18 @@ func applicationTimerHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 
 	switch r.Method {
 	case "PUT":
-		return a.save(r)
+		return a.put(r)
 	default:
 		return &weft.MethodNotAllowed
 	}
 }
-
 
 func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var f fieldMetric
 
 	switch r.Method {
 	case "PUT":
-		return f.save(r)
+		return f.put(r)
 	case "DELETE":
 		return f.delete(r)
 	case "GET":
@@ -79,7 +76,7 @@ func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 
 	switch r.Method {
 	case "PUT":
-		return f.save(r, h, b)
+		return f.put(r, h, b)
 	case "DELETE":
 		return f.delete(r, h, b)
 	case "GET":
@@ -96,16 +93,17 @@ func fieldMetricTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 
 func tagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var t tag
+	var ts tagSearch
 
 	switch r.Method {
 	case "PUT":
-		return t.save(r)
+		return t.put(r)
 	case "DELETE":
 		return t.delete(r)
 	case "GET":
 		switch r.Header.Get("Accept") {
 		case "application/x-protobuf":
-			return t.single(r, h, b)
+			return ts.singleProto(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}
@@ -115,13 +113,13 @@ func tagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 }
 
 func tagsHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	var t tag
+	var ts tagSearch
 
 	switch r.Method {
 	case "GET":
 		switch r.Header.Get("Accept") {
 		case "application/x-protobuf":
-			return t.all(r, h, b)
+			return ts.allProto(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}
@@ -136,7 +134,7 @@ func fieldModelHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 
 	switch r.Method {
 	case "PUT":
-		return f.save(r)
+		return f.put(r)
 	case "DELETE":
 		return f.delete(r)
 	case "GET":
@@ -156,7 +154,7 @@ func fieldDeviceHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 
 	switch r.Method {
 	case "PUT":
-		return f.save(r)
+		return f.put(r)
 	case "DELETE":
 		return f.delete(r)
 	case "GET":
@@ -172,13 +170,14 @@ func fieldDeviceHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 }
 
 func fieldTypeHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	var f fieldType
+	//var f fieldType
 
 	switch r.Method {
 	case "GET":
 		switch r.Header.Get("Accept") {
-		case "application/json;version=1":
-			return f.jsonV1(r, h, b)
+		// TODO should be protobuf
+		//case "application/json;version=1":
+		//	return f.jsonV1(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}
@@ -232,12 +231,12 @@ func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 	case "GET":
 		switch r.Header.Get("Accept") {
 		case "application/x-protobuf":
-			return d.proto(r, h, b)
+			return d.allProto(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}
 	case "PUT":
-		return d.save(r)
+		return d.put(r)
 	case "DELETE":
 		return d.delete(r)
 	default:
@@ -250,7 +249,7 @@ func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 
 	switch r.Method {
 	case "PUT":
-		return d.save(r)
+		return d.put(r)
 	case "DELETE":
 		return d.delete(r)
 	case "GET":
@@ -270,7 +269,7 @@ func dataLatencyThresholdHandler(r *http.Request, h http.Header, b *bytes.Buffer
 	case "GET":
 		switch r.Header.Get("Accept") {
 		case "application/x-protobuf":
-			return d.proto(r, h, b)
+			return d.get(r, h, b)
 		default:
 			return &weft.NotAcceptable
 		}
@@ -296,7 +295,7 @@ func dataLatencyTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 			return &weft.NotAcceptable
 		}
 	case "PUT":
-		return f.save(r, h, b)
+		return f.put(r, h, b)
 	case "DELETE":
 		return f.delete(r, h, b)
 	default:
@@ -311,7 +310,7 @@ func dataLatencySummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) 
 	case "GET":
 		switch r.Header.Get("Accept") {
 		case "application/x-protobuf":
-			return d.proto(r, h, b)
+			return d.get(r, h, b)
 			//default:
 			//	return f.svg(r, h, b)
 		default:

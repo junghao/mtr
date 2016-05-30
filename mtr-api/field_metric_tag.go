@@ -10,70 +10,65 @@ import (
 	"net/http"
 )
 
+// fieldMetricTag - table field.metric_tag
 type fieldMetricTag struct {
-	tag
-	fieldDevice
-	fieldType
 }
 
-func (f *fieldMetricTag) loadPK(r *http.Request) *weft.Result {
-	if res := f.tag.loadPK(r); !res.Ok {
-		return res
-	}
-
-	if res := f.fieldDevice.loadPK(r); !res.Ok {
-		return res
-	}
-
-	if res := f.fieldType.loadPK(r); !res.Ok {
-		return res
-	}
-
-	return &weft.StatusOK
-}
-
-func (f *fieldMetricTag) save(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f fieldMetricTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
 
-	if res := f.loadPK(r); !res.Ok {
-		return res
-	}
+	v := r.URL.Query()
 
-	if _, err := db.Exec(`INSERT INTO field.metric_tag(devicePK, typePK, tagPK)
-			VALUES($1, $2, $3)`,
-		f.devicePK, f.typePK, f.tagPK); err != nil {
+	var err error
+	var result sql.Result
+
+	if result, err = db.Exec(`INSERT INTO field.metric_tag(devicePK, typePK, tagPK)
+			SELECT devicePK, typePK, tagPK
+				FROM field.device, field.type, mtr.tag
+				WHERE deviceID = $1
+				AND typeID = $2
+				AND tag = $3`,
+		v.Get("deviceID"), v.Get("typeID"), v.Get("tag")); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
+			return &weft.StatusOK
 		} else {
 			return weft.InternalServerError(err)
 		}
 	}
 
+	var i int64
+	if i, err = result.RowsAffected(); err != nil {
+		return weft.InternalServerError(err)
+	}
+	if i != 1 {
+		return weft.BadRequest("Didn't create row, check your query parameters exist")
+	}
+
 	return &weft.StatusOK
 }
 
-func (f *fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
 
-	if res := f.loadPK(r); !res.Ok {
-		return res
-	}
+	v := r.URL.Query()
 
 	if _, err := db.Exec(`DELETE FROM field.metric_tag
-			WHERE devicePK = $1
-			AND typePK = $2
-			AND tagPK = $3`, f.devicePK, f.typePK, f.tagPK); err != nil {
+			WHERE devicePK = (SELECT devicePK FROM field.device WHERE deviceID = $1)
+			AND typePK = (SELECT typePK FROM field.type WHERE typeID = $2)
+			AND tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $3)`,
+		v.Get("deviceID"), v.Get("typeID"), v.Get("tag")); err != nil {
 		return weft.InternalServerError(err)
 	}
 
 	return &weft.StatusOK
 }
 
-func (t *fieldMetricTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (t fieldMetricTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}

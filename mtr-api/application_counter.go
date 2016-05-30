@@ -1,56 +1,86 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/GeoNet/weft"
-	"github.com/lib/pq"
 	"net/http"
 	"strconv"
 	"time"
 )
 
-type applicationCounter struct {
-	application
-	applicationType
-	t time.Time
-	c int
-}
+// applicationCounter - table app.counter
+// things like HTTP requests, messages sent etc.
+type applicationCounter struct{}
 
-func (a *applicationCounter) save(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "typeID", "time", "count"}, []string{}); !res.Ok {
+// put inserts counters.  application and instance are added
+// to the DB on the fly if required e.g., the first time an
+// application sends a counter from an instance.
+func (a applicationCounter) put(r *http.Request) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"applicationID", "instanceID", "typeID", "time", "count"}, []string{}); !res.Ok {
 		return res
 	}
 
-	var err error
+	v := r.URL.Query()
 
-	if a.c, err = strconv.Atoi(r.URL.Query().Get("count")); err != nil {
+	var err error
+	var t time.Time
+	var c, typePK int
+
+	if c, err = strconv.Atoi(v.Get("count")); err != nil {
 		return weft.BadRequest("invalid count")
 	}
 
-	if a.t, err = time.Parse(time.RFC3339, r.URL.Query().Get("time")); err != nil {
+	if t, err = time.Parse(time.RFC3339, v.Get("time")); err != nil {
 		return weft.BadRequest("invalid time")
 	}
 
-	if res := a.applicationType.loadPK(r); !res.Ok {
-		return res
+	// TODO could validate this from internal
+	if typePK, err = strconv.Atoi(v.Get("typeID")); err != nil {
+		return weft.BadRequest("invalid typeID")
 	}
 
-	if res := a.application.loadPK(r); !res.Ok {
-		return res
-	}
+	applicationID := v.Get("applicationID")
+	instanceID := v.Get("instanceID")
 
-	// TODO convert to UPSERT
-	if _, err = db.Exec(`INSERT INTO app.counter(applicationPK, typePK, time, count) VALUES($1,$2,$3,$4)`,
-		a.applicationPK, a.typePK, a.t, a.c); err != nil {
-		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
-			if _, err := db.Exec(`UPDATE app.counter set count = count + $4
-			WHERE applicationPK = $1 AND typePK = $2 AND time = $3`,
-				a.applicationPK, a.typePK, a.t, a.c); err != nil {
-				return weft.InternalServerError(err)
-			}
-		} else {
+	var result sql.Result
+
+	// If we insert one row then return.
+	// This will be the most common outcome.
+	if result, err = db.Exec(`INSERT INTO app.counter(applicationPK, instancePK, typePK, time, count)
+				SELECT applicationPK, instancePK, $3, $4, $5
+				FROM app.application, app.instance
+				WHERE applicationID = $1
+				AND instanceID = $2`,
+		applicationID, instanceID, typePK, t, c); err == nil {
+		var i int64
+		if i, err = result.RowsAffected(); err != nil {
 			return weft.InternalServerError(err)
+		}
+		if i == 1 {
+			return &weft.StatusOK
 		}
 	}
 
-	return &weft.StatusOK
+	// Most likely causes of error are missing application or instance.  Add them.
+	// Ignore errors - this could race from other handlers.
+	db.Exec(`INSERT INTO app.application(applicationID) VALUES($1)`, applicationID)
+	db.Exec(`INSERT INTO app.instance(instanceID) VALUES($1)`, instanceID)
+
+	// Try to insert again - if we insert one row then return.
+	if result, err = db.Exec(`INSERT INTO app.counter(applicationPK, instancePK, typePK, time, count)
+				SELECT applicationPK, instancePK, $3, $4, $5
+				FROM app.application, app.instance
+				WHERE applicationID = $1
+				AND instanceID = $2`,
+		applicationID, instanceID, typePK, t, c); err == nil {
+		var i int64
+		if i, err = result.RowsAffected(); err != nil {
+			return weft.InternalServerError(err)
+		}
+		if i == 1 {
+			return &weft.StatusOK
+		}
+	}
+
+	return weft.InternalServerError(err)
 }
