@@ -192,6 +192,7 @@ var routes = wt.Requests{
 
 	// All data sites as protobuf
 	{ID: wt.L(), URL: "/data/site", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/data/type", Accept: "application/x-protobuf"},
 
 	// min, max, fifty, ninety are optional latency values
 	{ID: wt.L(), URL: "/data/latency?siteID=WGTN&typeID=latency.strong&time=2015-05-14T23:40:30Z&mean=10000&min=10&max=100000&fifty=9000&ninety=12000", Method: "PUT"},
@@ -993,5 +994,42 @@ func TestFieldType(t *testing.T) {
 
 	if ftr.Result[0].TypeID != "centre" {
 		t.Errorf("expected centre got %s", ftr.Result[0].TypeID)
+	}
+}
+
+func TestDataTypes(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/data/type", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var dtr mtrpb.DataTypeResult
+
+	if err = proto.Unmarshal(b, &dtr); err != nil {
+		t.Error(err)
+	}
+
+	if dtr.Result == nil {
+		t.Errorf("got nil for /data/type protobuf")
+	}
+
+	if len(dtr.Result) != 4 {
+		t.Errorf("expected 4 results, got %d.", len(dtr.Result))
+	}
+
+	if dtr.Result[0].TypeID != "latency.gnss.1hz" {
+		t.Errorf("expected latency.gnss.1hz got %s", dtr.Result[0].TypeID)
 	}
 }

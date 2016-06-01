@@ -323,3 +323,19 @@ func dataLatencySummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) 
 		return &weft.MethodNotAllowed
 	}
 }
+
+func dataTypeHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var f dataType
+
+	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return f.proto(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
