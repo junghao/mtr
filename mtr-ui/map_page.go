@@ -35,7 +35,7 @@ func mapPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	case "", "/":
 		p.TypeID = "voltage"
 	case "/voltage", "/conn", "/ping":
-		p.TypeID = s
+		p.TypeID = strings.TrimPrefix(s, "/")
 	default:
 		return weft.InternalServerError(fmt.Errorf("Unknown map type"))
 	}
