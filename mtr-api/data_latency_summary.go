@@ -13,7 +13,7 @@ import (
 type dataLatencySummary struct {
 }
 
-func (d *dataLatencySummary) get(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (d dataLatencySummary) get(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
 		return res
 	}

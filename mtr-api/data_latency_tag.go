@@ -14,7 +14,7 @@ import (
 type dataLatencyTag struct {
 }
 
-func (a *dataLatencyTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (a dataLatencyTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
@@ -50,7 +50,7 @@ func (a *dataLatencyTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *w
 	return &weft.StatusOK
 }
 
-func (a *dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (a dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
@@ -68,7 +68,7 @@ func (a *dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer)
 	return &weft.StatusOK
 }
 
-func (a *dataLatencyTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (a dataLatencyTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
