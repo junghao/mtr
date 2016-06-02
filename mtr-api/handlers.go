@@ -313,11 +313,9 @@ func dataLatencySummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) 
 	case "GET":
 		switch r.Header.Get("Accept") {
 		case "application/x-protobuf":
-			return d.get(r, h, b)
-			//default:
-			//	return f.svg(r, h, b)
+			return d.proto(r, h, b)
 		default:
-			return &weft.NotAcceptable
+			return d.svg(r, h, b)
 		}
 	default:
 		return &weft.MethodNotAllowed
