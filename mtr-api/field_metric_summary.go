@@ -103,12 +103,18 @@ func (f fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		return weft.InternalServerError(err)
 	}
 
-	if rows, err = dbR.Query(`with p as (select geom, time, value, lower, upper,
-			st_transform(geom::geometry, 3857) as pt
+	var bboxWkt string
+	if bboxWkt, err = map180.BboxToWKTPolygon(bbox); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	// TODO: handle maps that cross 180 (ST_Within)
+	if rows, err = dbR.Query(`WITH p as (SELECT geom, time, value, lower, upper,
+			ST_Transform(geom::geometry, 3857) as pt
 			FROM field.metric_summary
-			where typeID = $1)
-			select ST_X(pt), ST_Y(pt)*-1, ST_X(geom::geometry),ST_Y(geom::geometry), time,
-			value, lower,upper from p`, typeID); err != nil {
+			WHERE typeID = $1)
+			SELECT ST_X(pt), ST_Y(pt)*-1, ST_X(geom::geometry), ST_Y(geom::geometry), time, value, lower, upper FROM p
+			WHERE ST_Within(geom::geometry, ST_GeomFromText($2, 4326))`, typeID, bboxWkt); err != nil {
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
