@@ -98,12 +98,18 @@ func (d dataLatencySummary) svg(r *http.Request, h http.Header, b *bytes.Buffer)
 		return weft.InternalServerError(err)
 	}
 
+	var bboxWkt string
+	if bboxWkt, err = map180.BboxToWKTPolygon(bbox); err != nil {
+		return weft.InternalServerError(err)
+	}
+
 	if rows, err = dbR.Query(`with p as (select geom, time, mean, lower, upper,
 			st_transform(geom::geometry, 3857) as pt
 			FROM data.latency_summary
 			where typeID = $1)
 			select ST_X(pt), ST_Y(pt)*-1, ST_X(geom::geometry),ST_Y(geom::geometry), time,
-			mean, lower,upper from p`, typeID); err != nil {
+			mean, lower,upper from p
+			WHERE ST_Within(geom::geometry, ST_GeomFromText($2, 4326))`, typeID, bboxWkt); err != nil {
 		return weft.InternalServerError(err)
 	}
 
