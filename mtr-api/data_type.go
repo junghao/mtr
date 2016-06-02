@@ -12,7 +12,7 @@ import (
 type dataType struct {
 }
 
-func (f *dataType) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f dataType) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
