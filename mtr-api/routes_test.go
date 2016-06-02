@@ -66,7 +66,7 @@ var routes = wt.Requests{
 	// Delete all metrics typeID for a device
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage", Method: "DELETE"},
 
-	// Save a metrics
+	// Save a metric
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=14100", Method: "PUT"},
 
 	// Should get a rate limit error for sends in the same minute
