@@ -34,6 +34,7 @@ func init() {
 	mux.HandleFunc("/field/metric/tag", weft.MakeHandlerAPI(fieldMetricTagHandler))
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/data/site", weft.MakeHandlerAPI(dataSiteHandler))
+	mux.HandleFunc("/data/type", weft.MakeHandlerAPI(dataTypeHandler))
 	mux.HandleFunc("/data/latency", weft.MakeHandlerAPI(dataLatencyHandler))
 	mux.HandleFunc("/data/latency/summary", weft.MakeHandlerAPI(dataLatencySummaryHandler))
 	mux.HandleFunc("/data/latency/tag", weft.MakeHandlerAPI(dataLatencyTagHandler))

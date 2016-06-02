@@ -71,3 +71,11 @@ message DataLatencyThresholdResult {
     repeated DataLatencyThreshold result = 1;
 }
 
+message DataType {
+    // The TypeID in the table data.type
+    string type_iD = 1;
+}
+
+message DataTypeResult {
+    repeated DataType result = 1;
+}
