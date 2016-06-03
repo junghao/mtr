@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package mtrpb;
+option go_package = "mtrpb";
+
+message AppIDSummary {
+    // The applicationid for the metric e.g., mtr-api
+    string application_iD = 1;
+}
+
+message AppIDSummaryResult {
+    repeated AppIDSummary result = 1;
+}

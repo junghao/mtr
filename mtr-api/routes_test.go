@@ -41,6 +41,9 @@ var routes = wt.Requests{
 	// Add a timer value.
 	{ID: wt.L(), URL: "/application/timer?applicationID=test-app&instanceID=test-instance&sourceID=func-name&count=10&average=12&fifty=13&ninety=14&time=2015-05-14T21:40:30Z", Method: "PUT"},
 
+	// a list of all application IDs
+	{ID: wt.L(), URL: "/app", Accept: "application/x-protobuf"},
+
 	// SVG plots
 	{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=timers"},
 	{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=counters"},
@@ -1031,5 +1034,43 @@ func TestDataTypes(t *testing.T) {
 
 	if dtr.Result[0].TypeID != "latency.gnss.1hz" {
 		t.Errorf("expected latency.gnss.1hz got %s", dtr.Result[0].TypeID)
+	}
+}
+
+// protobuf for /app endpoint
+func TestAppIDs(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/app", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var dtr mtrpb.AppIDSummaryResult
+
+	if err = proto.Unmarshal(b, &dtr); err != nil {
+		t.Error(err)
+	}
+
+	if dtr.Result == nil {
+		t.Errorf("got nil for /app protobuf")
+	}
+
+	if len(dtr.Result) != 1 {
+		t.Errorf("expected 1 result, got %d.", len(dtr.Result))
+	}
+
+	if dtr.Result[0].ApplicationID != "test-app" {
+		t.Errorf("expected mtr-api got %s", dtr.Result[0].ApplicationID)
 	}
 }

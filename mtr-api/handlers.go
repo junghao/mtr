@@ -6,6 +6,22 @@ import (
 	"net/http"
 )
 
+func appHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var a appID
+
+	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return a.proto(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
+
 func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var a appMetric
 

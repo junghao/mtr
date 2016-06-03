@@ -20,7 +20,7 @@ type Tag struct {
 func (m *Tag) Reset()                    { *m = Tag{} }
 func (m *Tag) String() string            { return proto.CompactTextString(m) }
 func (*Tag) ProtoMessage()               {}
-func (*Tag) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{0} }
+func (*Tag) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
 
 type TagResult struct {
 	Result []*Tag `protobuf:"bytes,1,rep,name=result" json:"result,omitempty"`
@@ -29,7 +29,7 @@ type TagResult struct {
 func (m *TagResult) Reset()                    { *m = TagResult{} }
 func (m *TagResult) String() string            { return proto.CompactTextString(m) }
 func (*TagResult) ProtoMessage()               {}
-func (*TagResult) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{1} }
+func (*TagResult) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
 
 func (m *TagResult) GetResult() []*Tag {
 	if m != nil {
@@ -46,7 +46,7 @@ type TagSearchResult struct {
 func (m *TagSearchResult) Reset()                    { *m = TagSearchResult{} }
 func (m *TagSearchResult) String() string            { return proto.CompactTextString(m) }
 func (*TagSearchResult) ProtoMessage()               {}
-func (*TagSearchResult) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{2} }
+func (*TagSearchResult) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
 
 func (m *TagSearchResult) GetFieldMetric() []*FieldMetricSummary {
 	if m != nil {
@@ -68,7 +68,7 @@ func init() {
 	proto.RegisterType((*TagSearchResult)(nil), "mtrpb.TagSearchResult")
 }
 
-var fileDescriptor2 = []byte{
+var fileDescriptor3 = []byte{
 	// 201 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xe2, 0xe2, 0x2c, 0x49, 0x4c, 0xd7,
 	0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0xcd, 0x2d, 0x29, 0x2a, 0x48, 0x92, 0xe2, 0x4a, 0x49,
