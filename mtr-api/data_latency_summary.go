@@ -30,10 +30,16 @@ func (d dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buffe
 	switch typeID {
 	case "":
 		rows, err = dbR.Query(`SELECT siteID, typeID, time, mean, fifty, ninety, lower, upper
-		FROM data.latency_summary`)
+		FROM data.latency_summary
+		JOIN data.site USING (sitePK)
+		JOIN data.latency_threshold USING (sitePK, typePK)
+		JOIN data.type USING (typePK)`)
 	default:
 		rows, err = dbR.Query(`SELECT siteID, typeID, time, mean, fifty, ninety, lower, upper
 		FROM data.latency_summary
+		JOIN data.site USING (sitePK)
+		JOIN data.latency_threshold USING (sitePK, typePK)
+		JOIN data.type USING (typePK)
 		WHERE typeID = $1;`, typeID)
 	}
 	if err != nil {
@@ -106,6 +112,9 @@ func (d dataLatencySummary) svg(r *http.Request, h http.Header, b *bytes.Buffer)
 	if rows, err = dbR.Query(`with p as (select geom, time, mean, lower, upper,
 			st_transform(geom::geometry, 3857) as pt
 			FROM data.latency_summary
+			JOIN data.site USING (sitePK)
+			JOIN data.type USING (typePK)
+			JOIN data.latency_threshold USING (sitePK, typePK)
 			where typeID = $1)
 			select ST_X(pt), ST_Y(pt)*-1, ST_X(geom::geometry),ST_Y(geom::geometry), time,
 			mean, lower,upper from p

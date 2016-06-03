@@ -103,7 +103,12 @@ func (a *tagSearch) fieldMetric() <-chan *weft.Result {
 		var rows *sql.Rows
 
 		if rows, err = dbR.Query(`SELECT deviceID, modelID, typeid, time, value, lower, upper
-	 			  FROM field.metric_tag JOIN field.metric_summary USING (devicepk, typepk)
+	 			  FROM field.metric_tag
+	 			  JOIN field.metric_summary USING (devicepk, typepk)
+	 			  JOIN field.device USING (devicePK)
+	 			  JOIN field.type USING (typePK)
+	 			  JOIN field.model USING (modelPK)
+	 			  JOIN field.threshold using (devicePK, typePK)
 			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
 			out <- weft.InternalServerError(err)
 			return
@@ -140,7 +145,11 @@ func (a *tagSearch) dataLatency() <-chan *weft.Result {
 		var rows *sql.Rows
 
 		if rows, err = dbR.Query(`SELECT siteID, typeID, time, mean, fifty, ninety, lower, upper
-	 			  FROM data.latency_tag JOIN data.latency_summary USING (sitePK, typePK)
+	 			  FROM data.latency_tag
+	 			  JOIN data.latency_summary USING (sitePK, typePK)
+	 			  JOIN data.latency_threshold USING (sitePK, typePK)
+	 			  JOIN data.site USING (sitePK)
+				  JOIN data.type USING (typePK)
 			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
 			out <- weft.InternalServerError(err)
 			return
