@@ -63,6 +63,16 @@ CREATE TABLE field.metric (
 	PRIMARY KEY(devicePK, typePK, rate_limit)
 );
 
+CREATE INDEX ON field.metric (time);
+
+CREATE TABLE field.metric_summary (
+	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL,
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	value INTEGER NOT NULL,
+	PRIMARY KEY(devicePK, typePK)
+);
+
 CREATE TABLE field.threshold (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL, 

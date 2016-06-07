@@ -50,6 +50,20 @@ CREATE TABLE data.latency (
   PRIMARY KEY(sitePK, typePK, rate_limit)
 );
 
+CREATE INDEX ON data.latency (time);
+
+CREATE TABLE data.latency_summary (
+  sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
+  typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,
+  time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+  mean INTEGER NOT NULL,
+  min INTEGER NOT NULL,
+  max INTEGER NOT NULL,
+  fifty INTEGER NOT NULL,
+  ninety INTEGER NOT NULL,
+  PRIMARY KEY(sitePK, typePK)
+);
+
 CREATE TABLE data.latency_threshold (
   sitePK SMALLINT REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
   typePK SMALLINT REFERENCES data.type(typePK) ON DELETE CASCADE NOT NULL,

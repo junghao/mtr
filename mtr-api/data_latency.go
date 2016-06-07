@@ -63,7 +63,9 @@ func (a dataLatency) put(r *http.Request) *weft.Result {
 	siteID := v.Get("siteID")
 	typeID := v.Get("typeID")
 
-	if _, err := db.Exec(`INSERT INTO data.latency(sitePK, typePK, rate_limit, time, mean, min, max, fifty, ninety)
+	var result sql.Result
+
+	if result, err = db.Exec(`INSERT INTO data.latency(sitePK, typePK, rate_limit, time, mean, min, max, fifty, ninety)
 				SELECT sitePK, typePK, $3, $4, $5, $6, $7, $8, $9
 				FROM data.site, data.type
 				WHERE siteID = $1
@@ -74,6 +76,43 @@ func (a dataLatency) put(r *http.Request) *weft.Result {
 			return &statusTooManyRequests
 		} else {
 			return weft.InternalServerError(err)
+		}
+	}
+
+	var i int64
+	if i, err = result.RowsAffected(); err != nil {
+		return weft.InternalServerError(err)
+	}
+	if i != 1 {
+		return weft.BadRequest("Didn't create row, check your query parameters exist")
+	}
+
+	// Update the summary values if the incoming is newer.
+	if result, err = db.Exec(`UPDATE data.latency_summary SET
+				time = $3, mean = $4, min = $5, max = $6, fifty = $7, ninety = $8
+				WHERE time < $3
+				AND sitePK = (SELECT sitePK from data.site WHERE siteID = $1)
+				AND typePK = (SELECT typePK from data.type WHERE typeID = $2)`,
+		siteID, typeID, t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	// If no rows change either the values are old or it's the first time we've seen this metric.
+	if i, err = result.RowsAffected(); err != nil {
+		return weft.InternalServerError(err)
+	}
+	if i != 1 {
+		if _, err = db.Exec(`INSERT INTO data.latency_summary(sitePK, typePK, time, mean, min, max, fifty, ninety)
+				SELECT sitePK, typePK, $3, $4, $5, $6, $7, $8
+				FROM data.site, data.type
+				WHERE siteID = $1
+				AND typeID = $2`,
+			siteID, typeID, t, int32(mean), int32(min), int32(max), int32(fifty), int32(ninety)); err != nil {
+			if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
+				// incoming value was old
+			} else {
+				return weft.InternalServerError(err)
+			}
 		}
 	}
 
@@ -97,7 +136,7 @@ func (a dataLatency) delete(r *http.Request) *weft.Result {
 		return weft.InternalServerError(err)
 	}
 
-	for _, table := range []string{"data.latency", "data.latency_threshold", "data.latency_tag"} {
+	for _, table := range []string{"data.latency", "data.latency_summary", "data.latency_threshold", "data.latency_tag"} {
 		if _, err = txn.Exec(`DELETE FROM `+table+` WHERE
 				sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
 				AND typePK = (SELECT typePK FROM data.type WHERE typeID = $2)`,
