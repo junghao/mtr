@@ -205,7 +205,7 @@ const plotAppTimersTemplate = `<?xml version="1.0"?>
 <text x="0" y="0" text-anchor="start" dominant-baseline="hanging" font-size="14px" fill="darkslategray">{{.Axes.Title}}</text>
 <text x="0" y="18" text-anchor="start" dominant-baseline="hanging" font-size="12px" fill="darkslategray">{{.Axes.SubTitle}}</text>
 {{if .Labels}}
-<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Labels}}<tspan fill="lightgrey" dy="10px" x="780">{{.Label}}</tspan>{{end}}</text>
+<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Labels}}<tspan fill="{{.Colour}}" dy="10px" x="780">{{.Label}}</tspan>{{end}}</text>
 {{end}}
 </g>
 
@@ -225,7 +225,7 @@ const plotAppTimersTemplate = `<?xml version="1.0"?>
 {{end}}
 
 {{range .Data}}
-<g style="stroke: #e34a33; fill: #e34a33; opacity: 0.3">
+<g style="stroke: {{.Series.Colour}}; fill: {{.Series.Colour}}; opacity: 0.3">
 {{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" />{{end}}
 </g>
 {{end}}
