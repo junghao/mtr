@@ -427,10 +427,6 @@ func TestTag(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := refreshViews(); err != nil {
-		t.Error(err)
-	}
-
 	r := wt.Request{ID: wt.L(), URL: "/tag/TAUP", Accept: "application/x-protobuf"}
 
 	var b []byte
@@ -504,10 +500,6 @@ func TestDataLatencySummary(t *testing.T) {
 
 	// Load test data.
 	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
-		t.Error(err)
-	}
-
-	if err := refreshViews(); err != nil {
 		t.Error(err)
 	}
 
@@ -588,10 +580,6 @@ func TestFieldMetricsSummary(t *testing.T) {
 
 	// Load test data.
 	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
-		t.Error(err)
-	}
-
-	if err := refreshViews(); err != nil {
 		t.Error(err)
 	}
 

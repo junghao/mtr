@@ -36,10 +36,18 @@ func (f fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 	switch typeID {
 	case "":
 		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value, lower, upper
-		FROM field.metric_summary`)
+		FROM field.metric_summary
+		JOIN field.device using (devicePK)
+		JOIN field.model using (modelPK)
+		JOIN field.threshold using (devicePK, typePK)
+		JOIN field.type using (typePK)`)
 	default:
 		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value, lower, upper
 		FROM field.metric_summary
+		JOIN field.device using (devicePK)
+		JOIN field.model using (modelPK)
+		JOIN field.threshold using (devicePK, typePK)
+		JOIN field.type using (typePK)
 		WHERE typeID = $1;`, typeID)
 	}
 	if err != nil {
@@ -112,6 +120,9 @@ func (f fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	if rows, err = dbR.Query(`WITH p as (SELECT geom, time, value, lower, upper,
 			ST_Transform(geom::geometry, 3857) as pt
 			FROM field.metric_summary
+			JOIN field.device using (devicePK)
+			JOIN field.threshold using (devicePK, typePK)
+			JOIN field.type using (typePK)
 			WHERE typeID = $1)
 			SELECT ST_X(pt), ST_Y(pt)*-1, ST_X(geom::geometry), ST_Y(geom::geometry), time, value, lower, upper FROM p
 			WHERE ST_Within(geom::geometry, ST_GeomFromText($2, 4326))`, typeID, bboxWkt); err != nil {

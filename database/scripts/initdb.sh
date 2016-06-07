@@ -41,5 +41,4 @@ psql --host=127.0.0.1 --quiet --username=$db_user --dbname=mtr --file=${ddl_dir}
 psql --host=127.0.0.1 --quiet --username=$db_user --dbname=mtr --file=${ddl_dir}/field-schema.ddl
 psql --host=127.0.0.1 --quiet --username=$db_user --dbname=mtr --file=${ddl_dir}/app-schema.ddl
 psql --host=127.0.0.1 --quiet --username=$db_user --dbname=mtr --file=${ddl_dir}/data-schema.ddl
-psql --host=127.0.0.1 --quiet --username=$db_user --dbname=mtr --file=${ddl_dir}/views.ddl
 psql --host=127.0.0.1 --quiet --username=$db_user mtr -f ${ddl_dir}/user-permissions.ddl

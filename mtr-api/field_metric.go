@@ -38,6 +38,9 @@ func (f fieldMetric) put(r *http.Request) *weft.Result {
 		return weft.BadRequest("invalid time")
 	}
 
+	deviceID := v.Get("deviceID")
+	typeID := v.Get("typeID")
+
 	var result sql.Result
 
 	if result, err = db.Exec(`INSERT INTO field.metric(devicePK, typePK, rate_limit, time, value)
@@ -45,7 +48,7 @@ func (f fieldMetric) put(r *http.Request) *weft.Result {
 				FROM field.device, field.type
 				WHERE deviceID = $1
 				AND typeID = $2`,
-		v.Get("deviceID"), v.Get("typeID"), t.Truncate(time.Minute).Unix(), t, int32(val)); err != nil {
+		deviceID, typeID, t.Truncate(time.Minute).Unix(), t, int32(val)); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			return &statusTooManyRequests
 		} else {
@@ -59,6 +62,34 @@ func (f fieldMetric) put(r *http.Request) *weft.Result {
 	}
 	if i != 1 {
 		return weft.BadRequest("Didn't create row, check your query parameters exist")
+	}
+
+	// Update the summary value if the incoming value is newer.
+	if result, err = db.Exec(`UPDATE field.metric_summary SET time = $3, value = $4
+				WHERE time < $3
+				AND devicePK = (SELECT devicePK FROM field.device WHERE deviceID = $1)
+				AND typePK = (SELECT typePK FROM field.type WHERE typeID = $2)`,
+		deviceID, typeID, t, int32(val)); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	// If no rows change either the value is old or it's the first time we've seen this metric.
+	if i, err = result.RowsAffected(); err != nil {
+		return weft.InternalServerError(err)
+	}
+	if i != 1 {
+		if result, err = db.Exec(`INSERT INTO field.metric_summary(devicePK, typePK, time, value)
+				SELECT devicePK, typePK, $3, $4
+				FROM field.device, field.type
+				WHERE deviceID = $1
+				AND typeID = $2`,
+			deviceID, typeID, t, int32(val)); err != nil {
+			if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
+				// incoming value was old
+			} else {
+				return weft.InternalServerError(err)
+			}
+		}
 	}
 
 	return &weft.StatusOK
@@ -81,7 +112,7 @@ func (f fieldMetric) delete(r *http.Request) *weft.Result {
 		return weft.InternalServerError(err)
 	}
 
-	for _, table := range []string{"field.metric", "field.metric_tag", "field.threshold"} {
+	for _, table := range []string{"field.metric", "field.metric_summary", "field.metric_tag", "field.threshold"} {
 		if _, err = txn.Exec(`DELETE FROM `+table+` WHERE
 				devicePK = (SELECT devicePK FROM field.device WHERE deviceID = $1)
 				 AND typePK = (SELECT typePK from field.type WHERE typeID = $2)`,
