@@ -121,12 +121,10 @@ var routes = wt.Requests{
 	// GET requests
 	// Non specific Accept headers return svg.
 	// Model
-	{ID: wt.L(), URL: "/field/model", Accept: "application/json;version=1"},
 	// protobuf version
 	{ID: wt.L(), URL: "/field/model", Accept: "application/x-protobuf"},
 
 	// Device
-	{ID: wt.L(), URL: "/field/device", Accept: "application/json;version=1"},
 	// protobuf version
 	{ID: wt.L(), URL: "/field/device", Accept: "application/x-protobuf"},
 
@@ -161,7 +159,6 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/field/metric/summary?typeID=voltage", Accept: "application/x-protobuf"},
 
 	// Thresholds
-	{ID: wt.L(), URL: "/field/metric/threshold", Accept: "application/json;version=1"},
 
 	// All field metric thresholds as protobuf
 	{ID: wt.L(), URL: "/field/metric/threshold", Accept: "application/x-protobuf"},
@@ -959,7 +956,6 @@ func TestFieldType(t *testing.T) {
 	}
 
 	r := wt.Request{ID: wt.L(), URL: "/field/type", Accept: "application/x-protobuf"}
-	//r := wt.Request{ID: wt.L(), URL: "/field/type", Accept: "application/json;version=1"}
 
 	var b []byte
 	var err error

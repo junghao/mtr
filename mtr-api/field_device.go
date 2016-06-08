@@ -89,25 +89,6 @@ func (f fieldDevice) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (f fieldDevice) jsonV1(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
-	var s string
-
-	if err := dbR.QueryRow(`SELECT COALESCE(array_to_json(array_agg(row_to_json(l))), '[]')
-		FROM (SELECT deviceid AS "DeviceID", modelid AS "ModelID", latitude AS "Latitude",
-			longitude AS "Longitude" FROM field.device JOIN field.model USING(modelpk)) l`).Scan(&s); err != nil {
-		return weft.InternalServerError(err)
-	}
-
-	b.WriteString(s)
-
-	h.Set("Content-Type", "application/json;version=1")
-
-	return &weft.StatusOK
-}
 
 func (f fieldDevice) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
