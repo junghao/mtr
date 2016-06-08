@@ -7,20 +7,22 @@ import (
 
 type mtrUiPage struct {
 	page
-	Panels      []panel
-	SparkGroups []sparkGroup
-	GroupRows   []idCount
-	Path        string
-	ModelID     string
-	SiteID      string
-	DeviceID    string
-	TypeID      string
-	Status      string
-	MtrApiUrl   string
-	Resolution  string
-	fieldResult []*mtrpb.FieldMetricSummary
-	dataResult  []*mtrpb.DataLatencySummary
-	param       string
+	Panels        []panel
+	SparkGroups   []sparkGroup
+	GroupRows     []idCount
+	AppIDs        []app
+	Path          string
+	ModelID       string
+	SiteID        string
+	DeviceID      string
+	TypeID        string
+	ApplicationID string
+	Status        string
+	MtrApiUrl     string
+	Resolution    string
+	fieldResult   []*mtrpb.FieldMetricSummary
+	dataResult    []*mtrpb.DataLatencySummary
+	param         string
 }
 
 type panel struct {
@@ -51,6 +53,10 @@ type idCount struct {
 	Description string
 	Link        string
 	Count       int
+}
+
+type app struct {
+	ID string
 }
 
 type panels []panel
@@ -95,6 +101,14 @@ func (p *mtrUiPage) pageParam(q url.Values) int {
 			p.param = p.param + "&"
 		}
 		p.param = p.param + "siteID=" + p.SiteID
+	}
+	p.ApplicationID = q.Get("applicationID")
+	if p.ApplicationID != "" {
+		n++
+		if n > 1 {
+			p.param = p.param + "&"
+		}
+		p.param = p.param + "applicationID=" + p.ApplicationID
 	}
 	p.Status = q.Get("status")
 	if p.Status != "" {

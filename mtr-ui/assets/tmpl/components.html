@@ -113,6 +113,16 @@
 </div>
 {{end}}
 
+{{define "app_ids"}}
+<div class="row">
+{{range .AppIDs}}
+    <div class="col-xs-12 col-md-12">
+        <a href="/app/plot?applicationID={{.ID}}">{{.ID}}</a>
+    </div>
+{{end}}
+</div>
+{{end}}
+
 
 {{define "field_plot"}}
 <div class="row">

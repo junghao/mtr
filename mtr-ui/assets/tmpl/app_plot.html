@@ -1,0 +1,69 @@
+{{define "body"}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-tabs">
+            <li role="presentation"><a href="/">Home</a></li>
+            <li role="presentation"><a href="/data">Data</a></li>
+            <li role="presentation"><a href="/field">Field</a></li>
+            <li role="presentation"><a href="/app">Apps</a></li>
+            <li role="presentation"><a href="/map">Map</a></li>
+            <li role="presentation"><a href="/tag">Tag</a></li>
+        </ul>
+    </div>
+</div>
+<div class="col-xs-12 col-md-12 h3">Application ID: {{.ApplicationID}}</div>
+<img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=counters&resolution={{.Resolution}}" />
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+<br>
+<img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=timers&resolution={{.Resolution}}" />
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+<br>
+<img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=memory&resolution={{.Resolution}}" />
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+<br>
+<img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=routines&resolution={{.Resolution}}" />
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+<br>
+<img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=objects&resolution={{.Resolution}}" />
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+{{end}}

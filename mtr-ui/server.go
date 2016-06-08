@@ -34,9 +34,10 @@ func init() {
 	}
 
 	mux = http.NewServeMux()
-	mux.HandleFunc("/", weft.MakeHandlerPage(homepageHandler))
+	mux.HandleFunc("/", weft.MakeHandlerPage(homePageHandler))
 	mux.HandleFunc("/field", weft.MakeHandlerPage(fieldPageHandler))
 	mux.HandleFunc("/field/", weft.MakeHandlerPage(fieldPageHandler))
+	mux.HandleFunc("/field/metric", weft.MakeHandlerPage(metricDetailHandler))
 	mux.HandleFunc("/field/metrics", weft.MakeHandlerPage(fieldMetricsPageHandler))
 	mux.HandleFunc("/field/devices", weft.MakeHandlerPage(fieldDevicesPageHandler))
 	mux.HandleFunc("/field/plot", weft.MakeHandlerPage(fieldPlotPageHandler))
@@ -47,10 +48,12 @@ func init() {
 	mux.HandleFunc("/data/plot", weft.MakeHandlerPage(dataPlotPageHandler))
 	mux.HandleFunc("/map", weft.MakeHandlerPage(mapPageHandler))
 	mux.HandleFunc("/map/", weft.MakeHandlerPage(mapPageHandler))
-	mux.HandleFunc("/field/metric", weft.MakeHandlerPage(metricDetailHandler))
-	mux.HandleFunc("/search", weft.MakeHandlerPage(searchHandler))
+	mux.HandleFunc("/search", weft.MakeHandlerPage(searchPageHandler))
 	mux.HandleFunc("/tag", weft.MakeHandlerPage(tagPageHandler))
 	mux.HandleFunc("/tag/", weft.MakeHandlerPage(tagPageHandler))
+	mux.HandleFunc("/app", weft.MakeHandlerPage(appPageHandler))
+	mux.HandleFunc("/app/", weft.MakeHandlerPage(appPageHandler))
+	mux.HandleFunc("/app/plot", weft.MakeHandlerPage(appPlotPageHandler))
 }
 
 func main() {

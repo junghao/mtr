@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func homepageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func homePageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 

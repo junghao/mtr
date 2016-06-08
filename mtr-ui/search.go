@@ -80,7 +80,7 @@ func getMatchingMetrics(urlString string) (parsedTags matchingMetrics, err error
 	return parsedTags, nil
 }
 
-func searchHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func searchPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 
 	var err error
 	var p *searchPage
