@@ -31,7 +31,7 @@ func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].ins
 func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
 func (a appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange", "sourceID"}); !res.Ok {
 		return res
 	}
 
@@ -90,12 +90,22 @@ func (a appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Counters - Sum per %s", applicationID, resTitle))
 		err = ts.MixedAppMetrics.Draw(p, b)
 	case "timers":
-		if res := a.loadTimers(applicationID, resolution, &p); !res.Ok {
-			return res
-		}
+		sourceID := v.Get("sourceID")
+		if sourceID != "" {
+			if res := a.loadTimersWithSourceID(applicationID, sourceID, resolution, &p); !res.Ok {
+				return res
+			}
 
-		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Timers - 90th Percentile (ms) - Max per %s",
-			applicationID, resTitle))
+			p.SetTitle(fmt.Sprintf("Application: %s, Source: %s, Metric: Timers - 90th Percentile (ms) per %s",
+				applicationID, sourceID, resTitle))
+		} else {
+			if res := a.loadTimers(applicationID, resolution, &p); !res.Ok {
+				return res
+			}
+
+			p.SetTitle(fmt.Sprintf("Application: %s, Metric: Timers - 90th Percentile (ms) - Max per %s",
+				applicationID, resTitle))
+		}
 		err = ts.ScatterAppTimers.Draw(p, b)
 	case "memory":
 		if res := a.loadMemory(applicationID, resolution, &p); !res.Ok {
@@ -280,8 +290,79 @@ func (a appMetric) loadTimers(applicationID, resolution string, p *ts.Plot) *wef
 	var labels ts.Labels
 
 	for _, k := range keys {
-		p.AddSeries(ts.Series{Points: pts[k.Key]})
-		labels = append(labels, ts.Label{Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k.Key], `main.`), total[k.Key])})
+		p.AddSeries(ts.Series{Points: pts[k.Key], Colour: "#e34a33"})
+		labels = append(labels, ts.Label{Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(sourceIDs[k.Key], `main.`), total[k.Key]), Colour: "lightgrey"})
+	}
+
+	p.SetLabels(labels)
+
+	return &weft.StatusOK
+
+}
+
+func (a appMetric) loadTimersWithSourceID(applicationID, sourceID, resolution string, p *ts.Plot) *weft.Result {
+	var err error
+
+	var rows *sql.Rows
+
+	switch resolution {
+	case "minute":
+		rows, err = dbR.Query(`SELECT date_trunc('minute',time) as t, avg(average), max(fifty), max(ninety), sum(count)
+		FROM app.timer
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND sourcePK = (SELECT sourcePK from app.source WHERE sourceID = $2)
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('minute',time)
+		ORDER BY t ASC`, applicationID, sourceID)
+	case "five_minutes":
+		rows, err = dbR.Query(`SELECT
+		date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
+		avg(average), max(fifty), max(ninety), sum(count)
+		FROM app.timer
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND sourcePK = (SELECT sourcePK from app.source WHERE sourceID = $2)
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
+		ORDER BY t ASC`, applicationID, sourceID)
+	case "hour":
+		rows, err = dbR.Query(`SELECT date_trunc('hour',time) as t, avg(average), max(fifty), max(ninety), sum(count)
+		FROM app.timer
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND sourcePK = (SELECT sourcePK from app.source WHERE sourceID = $2)
+		AND time > now() - interval '28 days'
+		GROUP BY date_trunc('hour', time)
+		ORDER BY t ASC`, applicationID, sourceID)
+	default:
+		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
+	}
+	if err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	defer rows.Close()
+
+	var t time.Time
+	var avg_mean float64
+	var max_fifty, max_ninety, n int
+	pts := make(map[internal.ID][]ts.Point)
+
+	for rows.Next() {
+		if err = rows.Scan(&t, &avg_mean, &max_fifty, &max_ninety, &n); err != nil {
+			return weft.InternalServerError(err)
+		}
+
+		pts[internal.AvgMean] = append(pts[internal.AvgMean], ts.Point{DateTime: t, Value: avg_mean})
+		pts[internal.MaxFifty] = append(pts[internal.MaxFifty], ts.Point{DateTime: t, Value: float64(max_fifty)})
+		pts[internal.MaxNinety] = append(pts[internal.MaxNinety], ts.Point{DateTime: t, Value: float64(max_ninety)})
+	}
+	rows.Close()
+
+	var labels ts.Labels
+
+	for k, v := range pts {
+		i := int(k)
+		p.AddSeries(ts.Series{Points: v, Colour: internal.Colour(i)})
+		labels = append(labels, ts.Label{Label: fmt.Sprintf("%s (n=%d)", strings.TrimPrefix(internal.Label(i), `main.`), len(v)), Colour: internal.Colour(i)})
 	}
 
 	p.SetLabels(labels)

@@ -31,6 +31,11 @@ const (
 	MsgTx   ID = 1202
 	MsgProc ID = 1203
 	MsgErr  ID = 1204
+
+	// Timer
+	AvgMean   ID = 2001
+	MaxFifty  ID = 2002
+	MaxNinety ID = 2003
 )
 
 var idColours = map[int]string{
@@ -53,6 +58,10 @@ var idColours = map[int]string{
 	1202: "#984ea3",
 	1203: "deepskyblue",
 	1204: "#e41a1c",
+
+	2001: "#ff0000",
+	2002: "#00ff00",
+	2003: "#0000ff",
 }
 
 var idLabels = map[int]string{
@@ -75,6 +84,10 @@ var idLabels = map[int]string{
 	1202: "Msg Tx",
 	1203: "Msg Processed",
 	1204: "Msg Error",
+
+	2001: "Avg Mean",
+	2002: "Max Fifty",
+	2003: "Max Ninety",
 }
 
 func Colour(id int) string {
