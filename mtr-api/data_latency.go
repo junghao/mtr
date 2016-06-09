@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/GeoNet/mtr/internal"
 	"github.com/GeoNet/mtr/ts"
 	"github.com/GeoNet/weft"
 	"github.com/lib/pq"
@@ -253,7 +254,7 @@ func (a dataLatency) plot(siteID, typeID, resolution string, b *bytes.Buffer) *w
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
 		p.SetXLabel("12 hours")
 
-		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean) FROM data.latency WHERE
+		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
 		AND time > now() - interval '12 hours'
 		GROUP BY date_trunc('`+resolution+`',time)
@@ -264,7 +265,7 @@ func (a dataLatency) plot(siteID, typeID, resolution string, b *bytes.Buffer) *w
 		p.SetXLabel("48 hours")
 
 		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
-		 avg(mean) FROM data.latency WHERE
+		 avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
 		AND time > now() - interval '2 days'
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
@@ -274,7 +275,7 @@ func (a dataLatency) plot(siteID, typeID, resolution string, b *bytes.Buffer) *w
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
 
-		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean) FROM data.latency WHERE
+		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time)
@@ -289,35 +290,60 @@ func (a dataLatency) plot(siteID, typeID, resolution string, b *bytes.Buffer) *w
 
 	defer rows.Close()
 
-	var pts []ts.Point
+	pts := make(map[internal.ID]([]ts.Point))
+
+	var mean float64
+	var fifty int
+	var ninety int
+	var pt ts.Point
 
 	for rows.Next() {
-		var pt ts.Point
-		if err = rows.Scan(&pt.DateTime, &pt.Value); err != nil {
+		if err = rows.Scan(&pt.DateTime, &mean, &fifty, &ninety); err != nil {
 			return weft.InternalServerError(err)
 		}
-		pt.Value = pt.Value * scale
-		pts = append(pts, pt)
+		pt.Value = mean * scale
+		pts[internal.Mean] = append(pts[internal.Mean], pt)
+
+		pt.Value = float64(fifty) * scale
+		pts[internal.Fifty] = append(pts[internal.Fifty], pt)
+
+		pt.Value = float64(ninety) * scale
+		pts[internal.Ninety] = append(pts[internal.Ninety], pt)
+
 	}
 	rows.Close()
 
 	// Add the latest value to the plot - this may be different to the average at minute or hour resolution.
-	var pt ts.Point
-
-	if err = dbR.QueryRow(`SELECT time, mean FROM data.latency WHERE
+	if err = dbR.QueryRow(`SELECT time, mean, fifty, ninety FROM data.latency WHERE
 			sitePK = $1 AND typePK = $2
 			ORDER BY time DESC
 			LIMIT 1`,
-		sitePK, typePK).Scan(&pt.DateTime, &pt.Value); err != nil {
+		sitePK, typePK).Scan(&pt.DateTime, &mean, &fifty, &ninety); err != nil {
 		return weft.InternalServerError(err)
 	}
 
-	pt.Value = pt.Value * scale
+	pt.Value = mean * scale
+	pts[internal.Mean] = append(pts[internal.Mean], pt)
+	p.SetLatest(pt, internal.Colour(int(internal.Mean)))
 
-	pts = append(pts, pt)
-	p.SetLatest(pt, "deepskyblue")
+	// No latest label for fifty and ninety
+	pt.Value = float64(fifty) * scale
+	pts[internal.Fifty] = append(pts[internal.Fifty], pt)
 
-	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
+	pt.Value = float64(ninety) * scale
+	pts[internal.Ninety] = append(pts[internal.Ninety], pt)
+
+	for k, v := range pts {
+		i := int(k)
+		p.AddSeries(ts.Series{Colour: internal.Colour(i), Points: v})
+	}
+
+	// We need the labels in the order of "Mean, Fifty, Ninety" so put labels in the "range pts" won't work
+	var labels ts.Labels
+	labels = append(labels, ts.Label{Label: internal.Label(int(internal.Mean)), Colour: internal.Colour(int(internal.Mean))})
+	labels = append(labels, ts.Label{Label: internal.Label(int(internal.Fifty)), Colour: internal.Colour(int(internal.Fifty))})
+	labels = append(labels, ts.Label{Label: internal.Label(int(internal.Ninety)), Colour: internal.Colour(int(internal.Ninety))})
+	p.SetLabels(labels)
 
 	if err = ts.Line.Draw(p, b); err != nil {
 		return weft.InternalServerError(err)
@@ -362,7 +388,7 @@ func (a dataLatency) spark(siteID, typeID string, b *bytes.Buffer) *weft.Result 
 	}
 	rows.Close()
 
-	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
+	p.AddSeries(ts.Series{Colour: internal.Colour(int(internal.Mean)), Points: pts})
 
 	if err = ts.SparkLine.Draw(p, b); err != nil {
 		return weft.InternalServerError(err)
