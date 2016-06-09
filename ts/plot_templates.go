@@ -110,7 +110,7 @@ const plotBaseTemplate = `<?xml version="1.0"?>
 </text>
 {{end}}
 {{if .Labels}}
-<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Labels}}<tspan fill="{{.Colour}}">{{.Label}}</tspan> {{end}}</text>
+<text x="780" y="18" text-anchor="end" dominant-baseline="hanging" font-size="8px" fill="darkslategray">{{range .Labels}}<tspan fill="{{.Colour}}" dy="10px" x="780">{{.Label}}</tspan> {{end}}</text>
 {{end}}
 </g>
 
