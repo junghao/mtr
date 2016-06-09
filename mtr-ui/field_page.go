@@ -19,6 +19,7 @@ func fieldPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR"
+	p.ActiveTab = "Field"
 
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
@@ -48,6 +49,7 @@ func fieldMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR"
+	p.ActiveTab = "Field"
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -90,6 +92,7 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR"
+	p.ActiveTab = "Field"
 
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
@@ -122,7 +125,8 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
-	p.Border.Title = "GeoNet MTR"
+	p.Border.Title = "GeoNet MTR - Field"
+	p.ActiveTab = "Field"
 	p.pageParam(r.URL.Query())
 
 	if p.Resolution == "" {

@@ -69,6 +69,21 @@
 </div>
 {{end}}
 
+{{define "top_nav_tabs"}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-tabs">
+            <li role="presentation" {{if eq .ActiveTab "Home"}}class="active"{{end}}><a href="/">Home</a></li>
+            <li role="presentation" {{if eq .ActiveTab "Data"}}class="active"{{end}}><a href="/data">Data</a></li>
+            <li role="presentation" {{if eq .ActiveTab "Field"}}class="active"{{end}}><a href="/field">Field</a></li>
+            <li role="presentation" {{if eq .ActiveTab "Apps"}}class="active"{{end}}><a href="/app">Apps</a></li>
+            <li role="presentation" {{if eq .ActiveTab "Map"}}class="active"{{end}}><a href="/map">Map</a></li>
+            <li role="presentation" {{if eq .ActiveTab "Tag"}}class="active"{{end}}><a href="/tag">Tag</a></li>
+        </ul>
+    </div>
+</div>
+{{end}}
+
 {{define "spark_rows"}}
 {{$mtrApiUrl:=.MtrApiUrl}}
 {{template "page_parm_list" .}}
@@ -136,6 +151,18 @@
             <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
             <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
             <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+{{end}}
+
+{{define "app_plot_res"}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
         </ul>
     </div>
 </div>

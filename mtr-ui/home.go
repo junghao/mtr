@@ -16,7 +16,8 @@ func homePageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 
 	// We create a page struct with variables to substitute into the loaded template
 	p := mtrUiPage{}
-	p.Border.Title = "GeoNet MTR"
+	p.Border.Title = "GeoNet MTR - Home"
+	p.ActiveTab = "Home"
 
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)

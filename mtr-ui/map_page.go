@@ -10,6 +10,7 @@ import (
 
 type mapPage struct {
 	page
+	ActiveTab string
 	MtrApiUrl string
 	TypeID    string
 }
@@ -24,7 +25,8 @@ func mapPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 
 	p := mapPage{}
 	p.MtrApiUrl = mtrApiUrl.String()
-	p.Border.Title = "GeoNet MTR"
+	p.Border.Title = "GeoNet MTR - Map"
+	p.ActiveTab = "Map"
 
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)

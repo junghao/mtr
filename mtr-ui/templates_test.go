@@ -10,7 +10,7 @@ func TestTemplates(t *testing.T) {
 	b := bytes.Buffer{}
 
 	var sp searchPage
-	if err := tagsTemplate.ExecuteTemplate(&b, "border", sp); err != nil {
+	if err := tagSearchTemplate.ExecuteTemplate(&b, "border", sp); err != nil {
 		t.Error(err)
 	}
 

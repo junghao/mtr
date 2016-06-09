@@ -43,7 +43,6 @@ func (f fieldModel) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-
 func (f fieldModel) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res

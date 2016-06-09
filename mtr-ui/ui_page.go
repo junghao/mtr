@@ -7,6 +7,7 @@ import (
 
 type mtrUiPage struct {
 	page
+	ActiveTab     string
 	Panels        []panel
 	SparkGroups   []sparkGroup
 	GroupRows     []idCount

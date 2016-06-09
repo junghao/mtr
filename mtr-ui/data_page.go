@@ -20,7 +20,8 @@ func dataPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 	// We create a page struct with variables to substitute into the loaded template
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
-	p.Border.Title = "GeoNet MTR"
+	p.Border.Title = "GeoNet MTR - Data"
+	p.ActiveTab = "Data"
 
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
@@ -49,7 +50,8 @@ func dataMetricsPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *we
 
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
-	p.Border.Title = "GeoNet MTR"
+	p.Border.Title = "GeoNet MTR - Data Metrics"
+	p.ActiveTab = "Data"
 	p.MtrApiUrl = mtrApiUrl.String()
 
 	if err = p.populateTags(); err != nil {
@@ -93,7 +95,8 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
-	p.Border.Title = "GeoNet MTR"
+	p.Border.Title = "GeoNet MTR - Data Sites"
+	p.ActiveTab = "Data"
 	p.MtrApiUrl = mtrApiUrl.String()
 
 	if err = p.populateTags(); err != nil {
@@ -120,7 +123,8 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
-	p.Border.Title = "GeoNet MTR"
+	p.Border.Title = "GeoNet MTR - Data"
+	p.ActiveTab = "Data"
 	p.pageParam(r.URL.Query())
 
 	if p.Resolution == "" {

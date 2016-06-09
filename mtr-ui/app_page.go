@@ -34,6 +34,7 @@ func appPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR - applications"
+	p.ActiveTab = "Apps"
 
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
@@ -62,6 +63,7 @@ func appPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR - application ID"
+	p.ActiveTab = "Apps"
 
 	// get the applicationID and resolution params from the URL
 	p.pageParam(r.URL.Query())

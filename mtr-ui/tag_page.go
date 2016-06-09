@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/GeoNet/weft"
 	"net/http"
 	"strings"
@@ -10,9 +9,10 @@ import (
 
 type tagPage struct {
 	page
-	Path    string
-	TagTabs []string
-	Tags    []string
+	ActiveTab string
+	Path      string
+	TagTabs   []string
+	Tags      []string
 }
 
 var tagGrouper = []string{"ABC", "DEF", "GHI", "JKL", "MNO", "POR", "STU", "VWXYZ", "0123456789"}
@@ -27,6 +27,7 @@ func tagPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	p := tagPage{}
 	p.Path = r.URL.Path
 	p.Border.Title = "GeoNet MTR"
+	p.ActiveTab = "Tag"
 
 	if err = p.populateTags(); err != nil {
 		return weft.InternalServerError(err)
@@ -67,7 +68,6 @@ func tagPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	}
 
 	if err = tagPageTemplate.ExecuteTemplate(b, "border", p); err != nil {
-		fmt.Println(err)
 		return weft.InternalServerError(err)
 	}
 	return &weft.StatusOK

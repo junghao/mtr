@@ -1,5 +1,8 @@
 {{define "body"}}
 {{$mtrApiUrl:=.MtrApiUrl}}
+
+{{template "top_nav_tabs" .}}
+
 {{if .MatchingMetrics}}
 <h3>Search Results for Tag: {{.TagName}}</h3>
 <div class="row">

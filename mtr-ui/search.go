@@ -11,6 +11,7 @@ import (
 
 type searchPage struct {
 	page
+	ActiveTab       string // used to satisfy the templates, but not used for search page
 	MtrApiUrl       *url.URL
 	TagName         string
 	MatchingMetrics matchingMetrics
@@ -109,7 +110,7 @@ func searchPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 		return weft.InternalServerError(err)
 	}
 
-	if err := tagsTemplate.ExecuteTemplate(b, "border", p); err != nil {
+	if err := tagSearchTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return weft.InternalServerError(err)
 	}
 

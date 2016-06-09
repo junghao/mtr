@@ -1,16 +1,6 @@
 {{define "body"}}
-<div class="row">
-    <div class="col-xs-12 col-md-12">
-        <ul class="nav nav-tabs">
-            <li role="presentation" class="active"><a href="/">Home</a></li>
-            <li role="presentation"><a href="/data">Data</a></li>
-            <li role="presentation"><a href="/field">Field</a></li>
-            <li role="presentation"><a href="/app">Apps</a></li>
-            <li role="presentation"><a href="/map">Map</a></li>
-            <li role="presentation"><a href="/tag">Tag</a></li>
-        </ul>
-    </div>
-</div>
+
+{{template "top_nav_tabs" .}}
 
 {{template "panels" .}}
 {{end}}
