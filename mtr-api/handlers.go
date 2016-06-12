@@ -229,6 +229,8 @@ func fieldMetricLatestHandler(r *http.Request, h http.Header, b *bytes.Buffer) *
 		switch r.Header.Get("Accept") {
 		case "application/x-protobuf":
 			return f.proto(r, h, b)
+		case "application/vnd.geo+json":
+			return f.geoJSON(r, h, b)
 		default:
 			return f.svg(r, h, b)
 		}

@@ -209,3 +209,67 @@ func (f fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 
 	return &weft.StatusOK
 }
+
+
+func (f fieldLatest) geoJSON(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"typeID"}, []string{}); !res.Ok {
+		return res
+	}
+
+	var rows *sql.Rows
+	var err error
+
+	typeID := r.URL.Query().Get("typeID")
+
+	var d string
+	err = db.QueryRow("select typeID FROM field.type where typeID = $1", typeID).Scan(&d)
+
+	if err == sql.ErrNoRows {
+		return &weft.NotFound
+	}
+	if err != nil {
+		return weft.ServiceUnavailableError(err)
+	}
+
+	if rows, err = dbR.Query(`
+		WITH p as (SELECT geom, time, value, lower, upper
+		FROM field.metric_summary
+		JOIN field.device using (devicePK)
+		JOIN field.threshold using (devicePK, typePK)
+		JOIN field.type using (typePK)
+		WHERE typeID = $1)
+		SELECT row_to_json(fc)
+		FROM ( SELECT 'FeatureCollection' as type, COALESCE(array_to_json(array_agg(f)), '[]') as features
+		from (SELECT 'Feature' as type,
+				ST_AsGeoJSON(p.geom)::json as geometry,
+				row_to_json(
+					(SELECT l FROM
+						(
+						SELECT
+						"time",
+						value,
+						lower,
+						upper
+						) as l
+					)
+				) as properties FROM p
+		) as f ) as fc`, typeID); err != nil {
+		return weft.InternalServerError(err)
+	}
+	defer rows.Close()
+
+	var gj string
+
+	if rows.Next() {
+
+		if err = rows.Scan(&gj); err != nil {
+			return weft.InternalServerError(err)
+		}
+	}
+
+	rows.Close()
+	b.WriteString(gj)
+	h.Set("Content-Type", "application/vnd.geo+json")
+
+	return &weft.StatusOK
+}

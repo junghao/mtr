@@ -182,6 +182,9 @@ var routes = wt.Requests{
 	// Latest voltage metrics
 	{ID: wt.L(), URL: "/field/metric/summary?typeID=voltage", Accept: "application/x-protobuf"},
 
+	// Same as above, but returned as GeoJSON
+	{ID: wt.L(), URL: "/field/metric/summary?typeID=voltage", Accept: "application/vnd.geo+json"},
+
 	// Thresholds
 
 	// All field metric thresholds as protobuf
