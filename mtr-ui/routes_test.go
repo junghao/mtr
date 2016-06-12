@@ -50,6 +50,11 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/map/voltage"},
 	{ID: wt.L(), URL: "/map/ping"},
 
+	// applications page
+	{ID: wt.L(), URL: "/app"},
+	// this page uses the applicationID to construct img elements which are not validated:
+	{ID: wt.L(), URL: "/app/plot?applicationID=test-app"},
+
 	// tag page
 	{ID: wt.L(), URL: "/tag/"},
 	{ID: wt.L(), URL: "/tag/A-C"},

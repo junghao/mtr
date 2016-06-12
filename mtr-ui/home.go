@@ -14,6 +14,11 @@ func homePageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 		return res
 	}
 
+	// handle invalid endpoints
+	if r.URL.Path != "" && r.URL.Path != "/" {
+		return &weft.NotFound
+	}
+
 	// We create a page struct with variables to substitute into the loaded template
 	p := mtrUiPage{}
 	p.Border.Title = "GeoNet MTR - Home"
