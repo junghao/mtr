@@ -36,7 +36,7 @@ const (
 	AvgMean   ID = 2001
 	MaxFifty  ID = 2002
 	MaxNinety ID = 2003
-	
+
 	// Data latency
 	Mean   ID = 3001
 	Fifty  ID = 3002
@@ -67,7 +67,7 @@ var idColours = map[int]string{
 	2001: "#ff0000",
 	2002: "#00ff00",
 	2003: "#0000ff",
-	
+
 	3001: "deepskyblue",
 	3002: "deeppink",
 	3003: "limegreen",
@@ -97,7 +97,7 @@ var idLabels = map[int]string{
 	2001: "Avg Mean",
 	2002: "Max Fifty",
 	2003: "Max Ninety",
-	
+
 	3001: "Mean",
 	3002: "Fifty",
 	3003: "Ninety",
