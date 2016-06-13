@@ -75,6 +75,19 @@ var routes = wt.Requests{
 	// Should get a rate limit error for sends in the same minute
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=15100", Method: "PUT", Status: http.StatusTooManyRequests},
 
+	// Field states
+
+	// update the field state to true (bool: on->true, off->false)
+	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=true", Method: "PUT"},
+	// try modifying the same device and type ID but a different value, tests insert/update of table.
+	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=false", Method: "PUT"},
+	// get the protobuf
+	{ID: wt.L(), URL: "/field/state", Accept: "application/x-protobuf"},
+
+	// delete the state and add again (for protobuf tests)
+	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=voltage", Method: "DELETE"},
+	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=true", Method: "PUT"},
+
 	// Tags
 	{ID: wt.L(), URL: "/tag/LINZ", Method: "DELETE"},
 
@@ -1056,5 +1069,58 @@ func TestAppIDs(t *testing.T) {
 
 	if dtr.Result[0].ApplicationID != "test-app" {
 		t.Errorf("expected mtr-api got %s", dtr.Result[0].ApplicationID)
+	}
+}
+
+// protobuf for /field/state endpoint
+func TestFieldState(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/field/state", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	// get the protobuf data back
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Fatal(err)
+	}
+
+	var dtr mtrpb.FieldStateResult
+
+	if err = proto.Unmarshal(b, &dtr); err != nil {
+		t.Fatal(err)
+	}
+
+	if dtr.Result == nil {
+		t.Fatalf("got nil for /field/state protobuf")
+	}
+
+	if len(dtr.Result) != 1 {
+		t.Fatalf("expected 1 result, got %d.", len(dtr.Result))
+	}
+
+	res := dtr.Result[0]
+
+	if res.DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport got %s", res.DeviceID)
+	}
+
+	if res.TypeID != "voltage" {
+		t.Errorf("expected voltage got %s", res.TypeID)
+	}
+
+	if res.Seconds != 1431639630 {
+		t.Errorf("expected 1431639630 got %d", res.Seconds)
+	}
+
+	if res.Value != true {
+		t.Errorf("expected true got %s", res.Value)
 	}
 }

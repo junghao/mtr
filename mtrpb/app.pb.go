@@ -36,6 +36,8 @@ It has these top-level messages:
 	FieldDeviceResult
 	FieldType
 	FieldTypeResult
+	FieldState
+	FieldStateResult
 	Tag
 	TagResult
 	TagSearchResult
