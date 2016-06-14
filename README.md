@@ -55,6 +55,8 @@ and visit:
 * http://localhost:8080/field/metric?deviceID=gps-taupoairport&typeID=voltage
 * http://localhost:8080/data/latency?siteID=TAUP&typeID=latency.strong
 
+There is also `all.sh` to build and test all Go subprojects.  See also the `.travis.yaml` file.  
+
 ### Adding Features
 
 * Prefer URL query parameters over body content for PUT methods for API consistency.  Follow the query parameter naming scheme.

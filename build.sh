@@ -65,4 +65,6 @@ do
 		echo "CMD [\"/${i}\"]" >> docker-build-tmp/Dockerfile
 
 		docker build -t quay.io/geonet/${i}:$VERSION -f docker-build-tmp/Dockerfile docker-build-tmp
+
+		rm -f $DOCKER_TMP/$i
 done
