@@ -59,7 +59,7 @@ CREATE TABLE field.state_type (
 	typeID TEXT NOT NULL UNIQUE
 );
 
-INSERT INTO field.state_type(typePK, typeID) VALUES(1, 'mains');
+INSERT INTO field.state_type(typePK, typeID) VALUES(1000, 'mains');
 
 CREATE TABLE field.state (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE field.state (
 
 CREATE TABLE field.state_tag(
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
-	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES field.state_type(typePK) ON DELETE CASCADE NOT NULL,
 	tagPK INTEGER REFERENCES mtr.tag(tagPK) ON DELETE CASCADE NOT NULL,
 	PRIMARY KEY(devicePK, typePK, tagPK)
 );

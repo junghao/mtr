@@ -101,3 +101,16 @@ message FieldState {
 message FieldStateResult {
     repeated FieldState result = 1;
 }
+
+message FieldStateTag {
+    // The deviceID for the metric e.g., idu-birchfarm
+    string device_iD = 1;
+    // The typeID for the metric e.g., conn
+    string type_iD  = 2;
+    // The tag for the metric e.g., TAUP
+    string tag = 3;
+}
+
+message FieldStateTagResult {
+    repeated FieldStateTag result = 1;
+}

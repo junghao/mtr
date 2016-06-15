@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// tagSearch for tag search results.
+// tag_search for tag search results.
 // needed for use with singleProto and fan out.
 type tagSearch struct {
 	tag       string
@@ -69,10 +69,11 @@ func (a *tagSearch) singleProto(r *http.Request, h http.Header, b *bytes.Buffer)
 	// Load tagged metrics, latency etc in parallel.
 	c1 := a.fieldMetric()
 	c2 := a.dataLatency()
+	c3 := a.fieldState()
 
 	resFinal := &weft.StatusOK
 
-	for res := range merge(c1, c2) {
+	for res := range merge(c1, c2, c3) {
 		if !res.Ok {
 			resFinal = res
 		}
@@ -129,6 +130,45 @@ func (a *tagSearch) fieldMetric() <-chan *weft.Result {
 			fmr.Seconds = tm.Unix()
 
 			a.tagResult.FieldMetric = append(a.tagResult.FieldMetric, &fmr)
+		}
+
+		out <- &weft.StatusOK
+		return
+	}()
+	return out
+}
+
+func (a *tagSearch) fieldState() <-chan *weft.Result {
+	out := make(chan *weft.Result)
+	go func() {
+		defer close(out)
+		var err error
+		var rows *sql.Rows
+
+		if rows, err = dbR.Query(`SELECT deviceID, typeID, time, value
+					FROM field.state_tag
+					JOIN field.state USING (devicePK, typePK)
+					JOIN field.device USING (devicePK)
+					JOIN field.state_type USING (typePK)
+					WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
+			out <- weft.InternalServerError(err)
+			return
+		}
+		defer rows.Close()
+
+		var tm time.Time
+
+		for rows.Next() {
+			var fs mtrpb.FieldState
+
+			if err = rows.Scan(&fs.DeviceID, &fs.TypeID, &tm, &fs.Value); err != nil {
+				out <- weft.InternalServerError(err)
+				return
+			}
+
+			fs.Seconds = tm.Unix()
+
+			a.tagResult.FieldState = append(a.tagResult.FieldState, &fs)
 		}
 
 		out <- &weft.StatusOK

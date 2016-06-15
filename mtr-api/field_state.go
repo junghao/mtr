@@ -38,7 +38,7 @@ func (f fieldState) save(r *http.Request) *weft.Result {
 	if result, err = db.Exec(`UPDATE field.state SET
 				time = $3, value = $4
 				WHERE devicePK = (SELECT devicePK from field.device WHERE deviceID = $1)
-				AND typePK = (SELECT typePK from field.type WHERE typeID = $2)`,
+				AND typePK = (SELECT typePK from field.state_type WHERE typeID = $2)`,
 		deviceID, typeID, t, value); err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -53,7 +53,7 @@ func (f fieldState) save(r *http.Request) *weft.Result {
 		return &weft.StatusOK
 	} else if result, err = db.Exec(`INSERT INTO field.state(devicePK, typePK, time, value)
 					SELECT devicePK, typePK, $3, $4
-					FROM field.device, field.type
+					FROM field.device, field.state_type
 					WHERE deviceID = $1
 					AND typeID = $2`,
 		deviceID, typeID, t, value); err == nil {
@@ -79,7 +79,7 @@ func (f fieldState) delete(r *http.Request) *weft.Result {
 
 	if _, err := db.Exec(`DELETE FROM field.state
 			WHERE devicePK = (SELECT devicePK FROM field.device WHERE deviceID = $1)
-			AND typePK = (SELECT typePK from field.type WHERE typeID = $2)`,
+			AND typePK = (SELECT typePK from field.state_type WHERE typeID = $2)`,
 		q.Get("deviceID"), q.Get("typeID")); err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -98,7 +98,7 @@ func (f fieldState) allProto(r *http.Request, h http.Header, b *bytes.Buffer) *w
 	if rows, err = dbR.Query(`SELECT deviceID, typeID, time, value
 				FROM field.state
 				JOIN field.device USING (devicePK)
-				JOIN field.type USING (typePK)`); err != nil {
+				JOIN field.state_type USING (typePK)`); err != nil {
 		return weft.InternalServerError(err)
 	}
 

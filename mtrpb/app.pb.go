@@ -38,6 +38,8 @@ It has these top-level messages:
 	FieldTypeResult
 	FieldState
 	FieldStateResult
+	FieldStateTag
+	FieldStateTagResult
 	Tag
 	TagResult
 	TagSearchResult

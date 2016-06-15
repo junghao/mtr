@@ -78,15 +78,15 @@ var routes = wt.Requests{
 	// Field states
 
 	// update the field state to true (bool: on->true, off->false)
-	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=true", Method: "PUT"},
+	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=mains&time=2015-05-14T21:40:30Z&value=true", Method: "PUT"},
 	// try modifying the same device and type ID but a different value, tests insert/update of table.
-	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=false", Method: "PUT"},
+	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=mains&time=2015-05-14T21:40:30Z&value=false", Method: "PUT"},
 	// get the protobuf
 	{ID: wt.L(), URL: "/field/state", Accept: "application/x-protobuf"},
 
 	// delete the state and add again (for protobuf tests)
-	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=voltage", Method: "DELETE"},
-	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=voltage&time=2015-05-14T21:40:30Z&value=true", Method: "PUT"},
+	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=mains", Method: "DELETE"},
+	{ID: wt.L(), URL: "/field/state?deviceID=gps-taupoairport&typeID=mains&time=2015-05-14T21:40:30Z&value=true", Method: "PUT"},
 
 	// Tags
 	{ID: wt.L(), URL: "/tag/LINZ", Method: "DELETE"},
@@ -107,6 +107,7 @@ var routes = wt.Requests{
 
 	// tag must exist before it can be added to a metric
 	{ID: wt.L(), URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "PUT", Status: http.StatusBadRequest},
+	{ID: wt.L(), URL: "/field/state/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "PUT", Status: http.StatusBadRequest},
 	{ID: wt.L(), URL: "/tag/LINZ", Method: "PUT"},
 	{ID: wt.L(), URL: "/tag/TAUP", Method: "PUT"},
 
@@ -114,11 +115,21 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=TAUP", Method: "PUT"},
 	{ID: wt.L(), URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "PUT"},
 
-	// Delete a tag on a metric
-	{ID: wt.L(), URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "DELETE"},
+	// Create a tag on a field state, same conditions as for metric type.
+	{ID: wt.L(), URL: "/field/state/tag?deviceID=gps-taupoairport&typeID=mains&tag=TAUP", Method: "PUT"},
+	{ID: wt.L(), URL: "/field/state/tag?deviceID=gps-taupoairport&typeID=mains&tag=LINZ", Method: "PUT"},
 
-	// protobuf of all tagged field metrics
+	// get all of the metric tags and state tags
+	{ID: wt.L(), URL: "/field/metric/tag", Method: "GET", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/field/state/tag", Method: "GET", Accept: "application/x-protobuf"},
+
+	// Delete a tag on a metric and state
+	{ID: wt.L(), URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=mains&tag=LINZ", Method: "DELETE"},
+	{ID: wt.L(), URL: "/field/state/tag?deviceID=gps-taupoairport&typeID=mains&tag=LINZ", Method: "DELETE"},
+
+	// protobuf of all tagged field metrics and field states
 	{ID: wt.L(), URL: "/field/metric/tag", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/field/state/tag", Accept: "application/x-protobuf"},
 
 	// Thresholds
 	// Create a threshold on a metric
@@ -460,12 +471,20 @@ func TestTag(t *testing.T) {
 		t.Errorf("Got nil DataLatency")
 	}
 
+	if tr.FieldState == nil {
+		t.Errorf("Got nil FieldState")
+	}
+
 	if tr.FieldMetric[0].DeviceID != "gps-taupoairport" {
 		t.Errorf("expected deviceID gps-taupoairport got %s", tr.FieldMetric[0].DeviceID)
 	}
 
 	if tr.DataLatency[0].SiteID != "TAUP" {
 		t.Errorf("expected siteID TAUP got %s", tr.DataLatency[0].SiteID)
+	}
+
+	if tr.FieldState[0].DeviceID != "gps-taupoairport" {
+		t.Errorf("expected deviceID gps-taupoairport got %s", tr.FieldState[0].DeviceID)
 	}
 }
 
@@ -1112,8 +1131,8 @@ func TestFieldState(t *testing.T) {
 		t.Errorf("expected gps-taupoairport got %s", res.DeviceID)
 	}
 
-	if res.TypeID != "voltage" {
-		t.Errorf("expected voltage got %s", res.TypeID)
+	if res.TypeID != "mains" {
+		t.Errorf("expected mains got %s", res.TypeID)
 	}
 
 	if res.Seconds != 1431639630 {
@@ -1122,5 +1141,54 @@ func TestFieldState(t *testing.T) {
 
 	if res.Value != true {
 		t.Errorf("expected true got %s", res.Value)
+	}
+}
+
+// protobuf for /field/state/tag endpoint
+func TestFieldStateTag(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/field/state/tag", Method: "GET", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	// get the protobuf data back
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Fatal(err)
+	}
+
+	var tr mtrpb.FieldStateTagResult
+
+	if err = proto.Unmarshal(b, &tr); err != nil {
+		t.Fatal(err)
+	}
+
+	if tr.Result == nil {
+		t.Fatalf("got nil for /field/state protobuf")
+	}
+
+	if len(tr.Result) != 1 {
+		t.Fatalf("expected 1 result, got %d.", len(tr.Result))
+	}
+
+	res := tr.Result[0]
+
+	if res.DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport got %s", res.DeviceID)
+	}
+
+	if res.TypeID != "mains" {
+		t.Errorf("expected mains got %s", res.TypeID)
+	}
+
+	if res.Tag != "TAUP" {
+		t.Errorf("expected TAUP got %s", res.Tag)
 	}
 }
