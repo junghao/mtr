@@ -86,3 +86,31 @@ message FieldType {
 message FieldTypeResult {
     repeated FieldType result = 1;
 }
+
+message FieldState {
+    // the deviceID in field.device
+    string device_iD = 1;
+    // the typeID in field.type
+    string type_iD = 2;
+    // Unix time in seconds for the state in field.state (don't need nanos).
+    int64 seconds = 3;
+    // the on/off value state in field.state
+    bool value = 4;
+}
+
+message FieldStateResult {
+    repeated FieldState result = 1;
+}
+
+message FieldStateTag {
+    // The deviceID for the metric e.g., idu-birchfarm
+    string device_iD = 1;
+    // The typeID for the metric e.g., conn
+    string type_iD  = 2;
+    // The tag for the metric e.g., TAUP
+    string tag = 3;
+}
+
+message FieldStateTagResult {
+    repeated FieldStateTag result = 1;
+}

@@ -32,6 +32,8 @@ func init() {
 	mux.HandleFunc("/field/metric/summary", weft.MakeHandlerAPI(fieldMetricLatestHandler))
 	mux.HandleFunc("/field/metric/threshold", weft.MakeHandlerAPI(fieldThresholdHandler))
 	mux.HandleFunc("/field/metric/tag", weft.MakeHandlerAPI(fieldMetricTagHandler))
+	mux.HandleFunc("/field/state", weft.MakeHandlerAPI(fieldStateHandler))
+	mux.HandleFunc("/field/state/tag", weft.MakeHandlerAPI(fieldStateTagHandler))
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/data/site", weft.MakeHandlerAPI(dataSiteHandler))
 	mux.HandleFunc("/data/type", weft.MakeHandlerAPI(dataTypeHandler))

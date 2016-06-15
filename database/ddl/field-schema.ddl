@@ -54,6 +54,28 @@ INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES
 INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(11, 'rf.signal', 'rf signal', 'dB', 1.0, 'db');
 INSERT INTO field.type(typePK, typeID, description, unit, scale, display) VALUES(12, 'rf.noise', 'rf signal', 'dB', 1.0, 'db');
 
+CREATE TABLE field.state_type (
+	typePK SMALLINT PRIMARY KEY,
+	typeID TEXT NOT NULL UNIQUE
+);
+
+INSERT INTO field.state_type(typePK, typeID) VALUES(1000, 'mains');
+
+CREATE TABLE field.state (
+	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES field.state_type(typePK) ON DELETE CASCADE NOT NULL,
+	time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+	value BOOLEAN NOT NULL,
+	PRIMARY KEY(devicePK, typePK)
+);
+
+CREATE TABLE field.state_tag(
+	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
+	typePK SMALLINT REFERENCES field.state_type(typePK) ON DELETE CASCADE NOT NULL,
+	tagPK INTEGER REFERENCES mtr.tag(tagPK) ON DELETE CASCADE NOT NULL,
+	PRIMARY KEY(devicePK, typePK, tagPK)
+);
+
 CREATE TABLE field.metric (
 	devicePK SMALLINT REFERENCES field.device(devicePK) ON DELETE CASCADE NOT NULL,
 	typePK SMALLINT REFERENCES field.type(typePK) ON DELETE CASCADE NOT NULL,
@@ -87,4 +109,3 @@ CREATE TABLE field.metric_tag(
 	tagPK INTEGER REFERENCES mtr.tag(tagPK) ON DELETE CASCADE NOT NULL,
 	PRIMARY KEY(devicePK, typePK, tagPK)
 );
-

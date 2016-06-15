@@ -237,6 +237,46 @@ func fieldMetricLatestHandler(r *http.Request, h http.Header, b *bytes.Buffer) *
 	}
 }
 
+func fieldStateHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var f fieldState
+
+	switch r.Method {
+	case "PUT":
+		return f.save(r)
+	case "DELETE":
+		return f.delete(r)
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return f.allProto(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
+
+func fieldStateTagHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var f fieldStateTag
+
+	switch r.Method {
+	case "PUT":
+		return f.put(r, h, b)
+	case "DELETE":
+		return f.delete(r, h, b)
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return f.all(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
+
 func dataSiteHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var d dataSite
 

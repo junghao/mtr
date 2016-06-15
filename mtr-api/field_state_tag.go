@@ -10,11 +10,12 @@ import (
 	"net/http"
 )
 
-// fieldMetricTag - table field.metric_tag
-type fieldMetricTag struct {
+// This code is virtually identical to field_metric_tag.go.  We might be able to unify these.
+
+type fieldStateTag struct {
 }
 
-func (f fieldMetricTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f fieldStateTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
@@ -24,9 +25,9 @@ func (f fieldMetricTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	var err error
 	var result sql.Result
 
-	if result, err = db.Exec(`INSERT INTO field.metric_tag(devicePK, typePK, tagPK)
+	if result, err = db.Exec(`INSERT INTO field.state_tag(devicePK, typePK, tagPK)
 				SELECT devicePK, typePK, tagPK
-				FROM field.device, field.type, mtr.tag
+				FROM field.device, field.state_type, mtr.tag
 				WHERE deviceID = $1
 				AND typeID = $2
 				AND tag = $3`,
@@ -50,16 +51,16 @@ func (f fieldMetricTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	return &weft.StatusOK
 }
 
-func (f fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (f fieldStateTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
 		return res
 	}
 
 	v := r.URL.Query()
 
-	if _, err := db.Exec(`DELETE FROM field.metric_tag
+	if _, err := db.Exec(`DELETE FROM field.state_tag
 			WHERE devicePK = (SELECT devicePK FROM field.device WHERE deviceID = $1)
-			AND typePK = (SELECT typePK FROM field.type WHERE typeID = $2)
+			AND typePK = (SELECT typePK FROM field.state_type WHERE typeID = $2)
 			AND tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $3)`,
 		v.Get("deviceID"), v.Get("typeID"), v.Get("tag")); err != nil {
 		return weft.InternalServerError(err)
@@ -68,7 +69,7 @@ func (f fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) 
 	return &weft.StatusOK
 }
 
-func (t fieldMetricTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func (t fieldStateTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
 		return res
 	}
@@ -76,19 +77,19 @@ func (t fieldMetricTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT deviceID, tag, typeID from field.metric_tag
+	if rows, err = dbR.Query(`SELECT deviceID, tag, typeID from field.state_tag
 				JOIN mtr.tag USING (tagpk)
 				JOIN field.device USING (devicepk)
-				JOIN field.type USING (typepk)
+				JOIN field.state_type USING (typepk)
 				ORDER BY tag ASC`); err != nil {
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
 
-	var ts mtrpb.FieldMetricTagResult
+	var ts mtrpb.FieldStateTagResult
 
 	for rows.Next() {
-		var t mtrpb.FieldMetricTag
+		var t mtrpb.FieldStateTag
 
 		if err = rows.Scan(&t.DeviceID, &t.Tag, &t.TypeID); err != nil {
 			return weft.InternalServerError(err)
