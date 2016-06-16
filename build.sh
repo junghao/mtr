@@ -29,7 +29,7 @@ rm -rf $DOCKER_TMP/*
 VERSION='git-'`git rev-parse --short HEAD`
 
 # Prefix for the logs.  Will be ignored if log/logentries is not used.
-BUILD='-X github.com/GeoNet/geonet-web/vendor/github.com/GeoNet/log/logentries.Prefix='$VERSION
+BUILD='-X github.com/GeoNet/mtr/vendor/github.com/GeoNet/log/logentries.Prefix='$VERSION
 
 # The current working dir to use in GOBIN etc e.g., geonet-web
 CWD=${PWD##*/}
