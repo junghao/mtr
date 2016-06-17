@@ -79,3 +79,31 @@ message DataType {
 message DataTypeResult {
     repeated DataType result = 1;
 }
+
+message DataCompleteness {
+    // The siteID for the completeness e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the completeness e.g., latency.gnss.1hz
+    string type_iD  = 2;
+    // Unix time in seconds for the metric value (don't need nanos).
+    int64 seconds = 3;
+    // The mean completeness
+    float completeness = 4;
+}
+
+message DataCompletenessResult {
+    repeated DataCompleteness result = 1;
+}
+
+message DataCompletenessTag {
+    // The siteID for the latency e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the latency e.g., latency.gnss.1hz
+    string type_iD  = 2;
+    // The tag for the latency e.g., TAUP
+    string tag = 3;
+}
+
+message DataCompletenessTagResult {
+    repeated DataCompletenessTag result = 1;
+}

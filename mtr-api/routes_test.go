@@ -241,6 +241,11 @@ var routes = wt.Requests{
 	// protobuf of all latency thresholds
 	{ID: wt.L(), URL: "/data/latency/threshold", Accept: "application/x-protobuf"},
 
+	// Delete data.completeness
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&time=2015-05-14T23:40:30Z&count=300", Method: "PUT"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz", Method: "DELETE"},
+
 	// Tags
 
 	{ID: wt.L(), URL: "/tag/FRED", Method: "DELETE"},
@@ -258,8 +263,14 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=DAGG", Method: "PUT"},
 	{ID: wt.L(), URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", Method: "PUT"},
 
+	// Create a tag on a completeness
+	{ID: wt.L(), URL: "/data/completeness/tag?siteID=TAUP&typeID=gnss.1hz&tag=TAUP", Method: "PUT"},
+
 	// protobuf of all tagged data latencies
 	{ID: wt.L(), URL: "/data/latency/tag", Accept: "application/x-protobuf"},
+
+	// protobuf of all tagged data completeness
+	{ID: wt.L(), URL: "/data/completeness/tag", Accept: "application/x-protobuf"},
 
 	// Latency plots.  Resolution is optional on plots and sparks.
 	// Options for the plot parameter:
@@ -272,6 +283,12 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute"},
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour"},
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&plot=spark"},
+
+	// Completeness plots.
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=five_minutes"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=hour"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=twelve_hours"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&plot=spark"},
 
 	// Tags
 
@@ -393,6 +410,25 @@ func TestPlotData(t *testing.T) {
 			t.Error(err)
 		}
 	}
+
+	// Load some completeness data (every 5 mins)
+	now = time.Now().UTC()
+	v = 300
+	for i := -720; i < 0; i += 5 {
+		if i >= -100 {
+			v = int(300*(1/(float64(i)+101.0))) + 200
+			if v > 300 {
+				v = 300
+			}
+		}
+
+		r.URL = fmt.Sprintf("/data/completeness?siteID=TAUP&typeID=gnss.1hz&time=%s&count=%d",
+			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v)
+
+		if _, err = r.Do(testServer.URL); err != nil {
+			t.Error(err)
+		}
+	}
 }
 
 // All field metric tags as a protobuf.
@@ -504,6 +540,10 @@ func TestTag(t *testing.T) {
 		t.Errorf("Got nil FieldState")
 	}
 
+	if tr.DataCompleteness == nil {
+		t.Errorf("Got nil DataCompleteness")
+	}
+
 	if tr.FieldMetric[0].DeviceID != "gps-taupoairport" {
 		t.Errorf("expected deviceID gps-taupoairport got %s", tr.FieldMetric[0].DeviceID)
 	}
@@ -514,6 +554,10 @@ func TestTag(t *testing.T) {
 
 	if tr.FieldState[0].DeviceID != "gps-taupoairport" {
 		t.Errorf("expected deviceID gps-taupoairport got %s", tr.FieldState[0].DeviceID)
+	}
+
+	if tr.DataCompleteness[0].SiteID != "TAUP" {
+		t.Errorf("expected siteID TAUP got %s", tr.DataCompleteness[0].SiteID)
 	}
 }
 
