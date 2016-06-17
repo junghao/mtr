@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
@@ -20,11 +21,12 @@ type searchPage struct {
 type matchingMetrics []metricInfo
 
 type metricInfo struct {
-	TypeID   string
-	DeviceID string
-	SiteID   string
-	Tag      string
-	Status   string
+	TypeID           string
+	DeviceID         string
+	SiteID           string
+	Tag              string
+	Status           string
+	CompletenessInfo string
 }
 
 func newSearchPage(apiUrl *url.URL) (s *searchPage, err error) {
@@ -78,6 +80,20 @@ func getMatchingMetrics(urlString string) (parsedTags matchingMetrics, err error
 			parsedTags = append(parsedTags, m)
 		}
 	}
+
+	if tr.DataCompleteness != nil {
+		for _, v := range tr.DataCompleteness {
+			// Data completeness default returns
+			m := metricInfo{
+				TypeID:           v.TypeID,
+				SiteID:           v.SiteID,
+				Status:           completenessStatusString(v),
+				CompletenessInfo: fmt.Sprintf("%4.2f", v.Completeness),
+			}
+			parsedTags = append(parsedTags, m)
+		}
+	}
+
 	return parsedTags, nil
 }
 

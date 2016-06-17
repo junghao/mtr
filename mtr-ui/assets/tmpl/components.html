@@ -207,6 +207,21 @@
 </div>
 {{end}}
 
+{{define "data_completeness_plot"}}
+<div class="row">
+    <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/completeness?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/></div>
+</div>
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/data/completeness/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/data/completeness/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
+            <li role="presentation" {{if eq .Resolution "twelve_hours"}}class="active"{{end}}><a href="/data/completeness/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=twelve_hours">28 Days</a></li>
+        </ul>
+    </div>
+</div>
+{{end}}
+
 {{define "page_parm_list"}}
 <div class="row">
     <div class="col-xs-12 col-md-12">

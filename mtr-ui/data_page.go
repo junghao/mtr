@@ -144,6 +144,28 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	return &weft.StatusOK
 }
 
+func dataCompletenessPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
+		return res
+	}
+	p := mtrUiPage{}
+	p.Path = r.URL.Path
+	p.MtrApiUrl = mtrApiUrl.String()
+	p.Border.Title = "GeoNet MTR - Data Completeness"
+	p.ActiveTab = "Data"
+	p.pageParam(r.URL.Query())
+
+	if p.Resolution == "" {
+		p.Resolution = "five_minutes"
+	}
+
+	if err := dataTemplate.ExecuteTemplate(b, "border", p); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	return &weft.StatusOK
+}
+
 func getDataSummary() (p panel, err error) {
 	u := *mtrApiUrl
 	u.Path = "/data/latency/summary"
@@ -467,4 +489,12 @@ func removeTypeIDPrefix(typeID string) string {
 	}
 
 	return typeID
+}
+
+func completenessStatusString(r *mtrpb.DataCompleteness) string {
+	switch {
+	case r.Completeness >= 1.0:
+		return "good"
+	}
+	return "bad"
 }
