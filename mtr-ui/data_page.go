@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
@@ -120,12 +121,17 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
 		return res
 	}
+
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
 	p.MtrApiUrl = mtrApiUrl.String()
 	p.Border.Title = "GeoNet MTR - Data"
 	p.ActiveTab = "Data"
 	p.pageParam(r.URL.Query())
+
+	if err := p.getDataSiteTags(); err != nil {
+		return weft.InternalServerError(err)
+	}
 
 	if p.Resolution == "" {
 		p.Resolution = "minute"
@@ -333,6 +339,31 @@ func (p *mtrUiPage) getDataCountList() (err error) {
 	}
 	sort.Sort(idCounts(p.GroupRows))
 	p.Panels = nil
+	return
+}
+
+func (p *mtrUiPage) getDataSiteTags() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/data/latency/tag"
+	u.RawQuery = "siteID=" + p.SiteID + "&typeID=" + p.TypeID
+
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var f mtrpb.DataLatencyTagResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
+	for _, r := range f.Result {
+		p.Tags = append(p.Tags, r.Tag)
+	}
+
+	sort.Strings(p.Tags)
 	return
 }
 

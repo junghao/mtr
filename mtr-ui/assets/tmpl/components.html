@@ -140,6 +140,18 @@
 
 
 {{define "field_plot"}}
+{{if .Tags}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <div class="h4">
+        Tags:&nbsp;
+        {{range .Tags}}
+        <a href="/search?tagQuery={{.}}">{{.}}</a>
+        {{end}}
+        </div>
+    </div>
+</div>
+{{end}}
 <div class="row">
     <div class="col-xs-12 col-md-12">
         <img src="{{.MtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/>
@@ -169,6 +181,18 @@
 {{end}}
 
 {{define "data_plot"}}
+{{if .Tags}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        <div class="h4">
+            Tags:&nbsp;
+            {{range .Tags}}
+            <a href="/search?tagQuery={{.}}">{{.}}</a>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}
 <div class="row">
     <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/></div>
 </div>

@@ -21,6 +21,7 @@ type mtrUiPage struct {
 	Status        string
 	MtrApiUrl     string
 	Resolution    string
+	Tags          []string
 	fieldResult   []*mtrpb.FieldMetricSummary
 	dataResult    []*mtrpb.DataLatencySummary
 	param         string
