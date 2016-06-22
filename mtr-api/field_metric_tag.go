@@ -69,21 +69,39 @@ func (f fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) 
 }
 
 func (t fieldMetricTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"deviceID", "typeID"}); !res.Ok {
 		return res
 	}
 
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT deviceID, tag, typeID from field.metric_tag
+	deviceID := r.URL.Query().Get("deviceID")
+	typeID := r.URL.Query().Get("typeID")
+
+	if deviceID == "" && typeID == "" {
+		if rows, err = dbR.Query(`SELECT deviceID, tag, typeID from field.metric_tag
 				JOIN mtr.tag USING (tagpk)
 				JOIN field.device USING (devicepk)
 				JOIN field.type USING (typepk)
 				ORDER BY tag ASC`); err != nil {
-		return weft.InternalServerError(err)
+			return weft.InternalServerError(err)
+		}
+		defer rows.Close()
+	} else if deviceID != "" && typeID != "" {
+		if rows, err = dbR.Query(`SELECT deviceID, tag, typeID from field.metric_tag
+				JOIN mtr.tag USING (tagpk)
+				JOIN field.device USING (devicepk)
+				JOIN field.type USING (typepk)
+				WHERE deviceID=$1 AND typeID=$2
+				ORDER BY tag ASC`, deviceID, typeID); err != nil {
+			return weft.InternalServerError(err)
+		}
+		defer rows.Close()
+
+	} else {
+		return weft.BadRequest("Invalid parameter. Please specify both deviceID and typeID.")
 	}
-	defer rows.Close()
 
 	var ts mtrpb.FieldMetricTagResult
 

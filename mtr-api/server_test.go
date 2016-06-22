@@ -52,6 +52,13 @@ func setup(t *testing.T) {
 		t.Error(r.Msg)
 	}
 
+	if r := delApplication("mtr-api"); !r.Ok {
+		t.Error(r.Msg)
+	}
+
+	if r := delApplication("mtr-ui"); !r.Ok {
+		t.Error(r.Msg)
+	}
 }
 
 func delApplication(applicationID string) *weft.Result {

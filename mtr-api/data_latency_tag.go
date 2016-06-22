@@ -69,19 +69,34 @@ func (a dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) 
 }
 
 func (a dataLatencyTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"siteID", "typeID"}); !res.Ok {
 		return res
 	}
 
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT siteID, tag, typeID from data.latency_tag
+	siteID := r.URL.Query().Get("siteID")
+	typeID := r.URL.Query().Get("typeID")
+
+	if siteID == "" && typeID == "" {
+		if rows, err = dbR.Query(`SELECT siteID, tag, typeID from data.latency_tag
 				JOIN mtr.tag USING (tagpk)
 				JOIN data.site USING (sitepk)
 				JOIN data.type USING (typepk)
 				ORDER BY tag ASC`); err != nil {
-		return weft.InternalServerError(err)
+			return weft.InternalServerError(err)
+		}
+		defer rows.Close()
+	} else if siteID != "" && typeID != "" {
+		if rows, err = dbR.Query(`SELECT siteID, tag, typeID from data.latency_tag
+				JOIN mtr.tag USING (tagpk)
+				JOIN data.site USING (sitepk)
+				JOIN data.type USING (typepk)
+				WHERE siteID=$1 AND typeID=$2
+				ORDER BY tag ASC`, siteID, typeID); err != nil {
+			return weft.InternalServerError(err)
+		}
 	}
 	defer rows.Close()
 

@@ -439,6 +439,32 @@ func TestFieldMetricTag(t *testing.T) {
 	if tr.Result[0].TypeID != "voltage" {
 		t.Errorf("expected voltage as the first typeID got %s", tr.Result[0].TypeID)
 	}
+
+	// Test tag result for parameter with deviceID+typeID
+	r = wt.Request{ID: wt.L(), URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage", Accept: "application/x-protobuf"}
+	if err = proto.Unmarshal(b, &tr); err != nil {
+		t.Error(err)
+	}
+
+	if tr.Result == nil {
+		t.Errorf("got nil for /field/metric/tag protobuf")
+	}
+
+	if len(tr.Result) != 1 {
+		t.Errorf("expected 1 tag result got %d", len(tr.Result))
+	}
+
+	if tr.Result[0].Tag != "TAUP" {
+		t.Errorf("expected TAUP as the first tag got %s", tr.Result[0].Tag)
+	}
+
+	if tr.Result[0].DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport as the first deviceID got %s", tr.Result[0].DeviceID)
+	}
+
+	if tr.Result[0].TypeID != "voltage" {
+		t.Errorf("expected voltage as the first typeID got %s", tr.Result[0].TypeID)
+	}
 }
 
 // protobuf of field metrics and latencies for a single tag.
@@ -831,6 +857,32 @@ func TestDataLatencyTag(t *testing.T) {
 
 	if tr.Result[0].TypeID != "latency.strong" {
 		t.Errorf("expected latency.stronge as the first typeID got %s", tr.Result[0].TypeID)
+	}
+
+	// Test tag result for parameter with siteID+typeID
+	r = wt.Request{ID: wt.L(), URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong", Accept: "application/x-protobuf"}
+	if err = proto.Unmarshal(b, &tr); err != nil {
+		t.Error(err)
+	}
+
+	if tr.Result == nil {
+		t.Errorf("got nil for /data/latency/tag protobuf")
+	}
+
+	if len(tr.Result) != 3 {
+		t.Errorf("expected 3 tag result got %d", len(tr.Result))
+	}
+
+	if tr.Result[0].Tag != "DAGG" {
+		t.Errorf("expected DAGG as the first tag got %s", tr.Result[0].Tag)
+	}
+
+	if tr.Result[0].SiteID != "TAUP" {
+		t.Errorf("expected gps-taupoairport as the first deviceID got %s", tr.Result[0].SiteID)
+	}
+
+	if tr.Result[0].TypeID != "latency.strong" {
+		t.Errorf("expected voltage as the first typeID got %s", tr.Result[0].TypeID)
 	}
 }
 
