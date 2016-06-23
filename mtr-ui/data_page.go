@@ -117,9 +117,11 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 }
 
 func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution", "interactive"}); !res.Ok {
 		return res
 	}
+
+	q := r.URL.Query()
 
 	p := mtrUiPage{}
 	p.Path = r.URL.Path
@@ -128,16 +130,54 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	p.ActiveTab = "Data"
 	p.pageParam(r.URL.Query())
 
-	if err := p.getDataSiteTags(); err != nil {
+	var err error
+	if err = p.getDataSiteTags(); err != nil {
 		return weft.InternalServerError(err)
 	}
 
-	if p.Resolution == "" {
+	// Resolution not required if we're in "interactive" mode otherwise default is minute
+	if p.Resolution == "" && !p.Interactive {
 		p.Resolution = "minute"
 	}
 
 	if err := p.getLatencyHistoryLog(); err != nil {
 		return weft.InternalServerError(err)
+	}
+
+	// Set thresholds on plot by drawing a box in dygraph.  Protobuf contains all thresholds, so select ours
+	u := *mtrApiUrl
+	u.Path = "/data/latency/threshold"
+	// TODO: use these params when the API is updated
+	//params := url.Values{}
+	//params.Add("typeID", q.Get("typeID"))
+	//params.Add("siteID", q.Get("siteID"))
+	//u.RawQuery = params.Encode()
+
+	var protoData []byte
+	if protoData, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	var f mtrpb.DataLatencyThresholdResult
+	if err = proto.Unmarshal(protoData, &f); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	// TODO: use this simpler logic when the API is updated
+	//if f.Result != nil && len(f.Result) >= 1 {
+	//	p.Thresholds = []int32{f.Result[0].Lower, f.Result[0].Upper}
+	//} else {
+	//	p.Thresholds = []int32{0, 0}
+	//}
+	if f.Result != nil {
+		// TODO: modify mtr-api to accept options for typeID and siteID to allow querying of a single item
+		for _, row := range f.Result {
+			if row.SiteID == q.Get("siteID") && row.TypeID == q.Get("typeID") {
+				p.Thresholds = []int32{row.Lower, row.Upper}
+			}
+		}
+	} else {
+		p.Thresholds = []int32{0, 0}
 	}
 
 	if err := dataTemplate.ExecuteTemplate(b, "border", p); err != nil {

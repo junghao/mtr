@@ -154,15 +154,50 @@
 {{end}}
 <div class="row">
     <div class="col-xs-12 col-md-12">
+        {{if .Interactive}}
+        <div id="graphdiv" class="graph">
+            <script type="text/javascript">
+                var res = {{urlquery .Resolution}};
+                if (!res) {
+                    res = "minute"
+                }
+
+                var graphOptions = {
+                     title: 'Field Metrics (deviceID: {{urlquery .DeviceID}}, typeID: {{urlquery .TypeID}})',
+                     //connectSeparatedPoints: true,
+                     xlabel: 'Local Time',
+                     ylabel: 'Latency (ms)',
+                     drawPoints: true,
+                     pointSize: 2,
+                     rollPeriod: 1,
+                     showRoller: true,
+                     strokeWidth: 2,
+                };
+
+                showGraph("/p/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution="+res,
+                            graphOptions,
+                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
+            </script>
+        </div>
+        {{else}}
         <img src="{{.MtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/>
+        {{end}}
     </div>
 </div>
 <div class="row">
     <div class="col-xs-12 col-md-12">
         <ul class="nav nav-pills">
-            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
-            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
-            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
+            <li role="presentation" {{if and (eq .Resolution "minute") (not .Interactive)}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if and (eq .Resolution "five_minutes") (not .Interactive)}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if and (eq .Resolution "hour") (not .Interactive)}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "minute")}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=minute">Interactive 12 Hours</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "five_minutes")}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "hour")}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=hour">28 Days</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "full")}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=full">All Data</a></li>
         </ul>
     </div>
 </div>
@@ -191,9 +226,17 @@
 <div class="row">
     <div class="col-xs-12 col-md-12">
         <ul class="nav nav-pills">
-            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">12 Hours</a></li>
-            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
-            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
+            <li role="presentation" {{if and (eq .Resolution "minute") (not .Interactive)}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">SVG 12 Hours</a></li>
+            <li role="presentation" {{if and (eq .Resolution "five_minutes") (not .Interactive)}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if and (eq .Resolution "hour") (not .Interactive)}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "minute")}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true&resolution=minute">Interactive 12 Hours</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "five_minutes")}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "hour")}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true&resolution=hour">28 Days</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "full")}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true&resolution=full">All Data</a></li>
         </ul>
     </div>
 </div>
@@ -213,23 +256,66 @@
 </div>
 {{end}}
 <div class="row">
+
+    {{if .Interactive }}
+
+    <br>
+    <div class="graph col-xs-12 col-md-12" id="graphdiv"></div>
+    <script>
+
+        var res = {{urlquery .Resolution}};
+        if (!res) {
+            res = "minute"
+        }
+
+        var graphOptions = {
+             title: 'Data Latency (siteID: {{urlquery .SiteID}}, typeID: {{urlquery .TypeID}})',
+             //connectSeparatedPoints: true,
+             xlabel: 'Local Time',
+             ylabel: 'Latency (ms)',
+             drawPoints: true,
+             pointSize: 2,
+             rollPeriod: 1, // the number of points "rolled" or averaged into one, can modify interactively
+             showRoller: true,
+             strokeWidth: 2,
+        };
+
+        showGraph("/p/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution="+res,
+                    graphOptions,
+                    {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
+    </script>
+
+    {{else}}
+
     <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/></div>
+
+    {{end}}
+
 </div>
 <div class="row">
     <div class="col-xs-12 col-md-12">
         <ul class="nav nav-pills">
-            <li role="presentation" {{if eq .Resolution "minute"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
-            <li role="presentation" {{if eq .Resolution "five_minutes"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
-            <li role="presentation" {{if eq .Resolution "hour"}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
+            <li role="presentation" {{if and (eq .Resolution "minute") (not .Interactive)}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
+            <li role="presentation" {{if and (eq .Resolution "five_minutes") (not .Interactive)}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if and (eq .Resolution "hour") (not .Interactive)}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
+        </ul>
+    </div>
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "minute")}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=minute">Interactive 12 Hours</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "five_minutes")}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=five_minutes">48 Hours</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "hour")}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=hour">28 Days</a></li>
+            <li role="presentation" {{if and (.Interactive) (eq .Resolution "full")}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=full">All Data</a></li>
         </ul>
     </div>
 </div>
+
 {{if .LatencyLog}}
 <div class="row">
     <div class="col-xs-12 col-md-12">
         {{$upper:=.LatencyLog.Upper}}
         {{$lower:=.LatencyLog.Lower}}
-        <h4>Uppeer:{{$upper}}, Lower:{{$lower}}</h4>
+        <h4>Upper:{{$upper}}, Lower:{{$lower}}</h4>
         <table class="history-log">
             <thead><tr><th>time</th><th>mean</th><th>fifty</th><th>ninety</th></tr></thead>
             <tbody>

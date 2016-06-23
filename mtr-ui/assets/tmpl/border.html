@@ -9,6 +9,10 @@
     <title>{{ .Border.Title }}</title>
     <link rel="stylesheet" href="//static.geonet.org.nz/bootstrap/3.3.6/css/bootstrap.min.css">
 
+    {{ if .Interactive }}
+    <script src="//static.geonet.org.nz/dygraph/dygraph-combined.js"></script>
+    <script src="/js/graph.js"></script>
+    {{end}}
 
     <style>
 		.footer {
@@ -65,6 +69,11 @@
 			height:53px;
 			display:block;
 		}
+
+		.graph{
+			width: 100vw;
+		}
+
 		.linked {
 			padding: 10px;
 			margin: 0px 0;
@@ -196,7 +205,7 @@
     </div>
     <script src="//static.geonet.org.nz/jquery/js/jquery-1.11.3.min.js"></script>
     <script src="//static.geonet.org.nz/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-    <script type="text/javascript">
+    <script>
         $(document).keypress(function(e) {
             if(!$('#search_query').is(':focus')) {
                 if (e.charCode==47) {

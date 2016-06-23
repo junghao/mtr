@@ -4,6 +4,109 @@
 
 <div class="row">
     <div class="col-xs-12 col-md-12">
+        {{if .Interactive}}
+        <div id="graphdiv" class="graph">
+            <script>
+                var now = new Date();
+                // sets initial zoom window
+                //var dateRange = [ new Date().setDate(now.getDate() - 1), now ];
+                var dateRange = null;
+
+                var res = {{urlquery .Resolution}};
+                if (!res) {
+                    res = "minute"
+                }
+
+                var counterOptions = {
+                    title: 'Application - Metric Counters: (application ID: {{urlquery .ApplicationID}})',
+                    //connectSeparatedPoints: true,
+                    xlabel: 'Local Time',
+                    ylabel: 'Count',
+                    drawPoints: true,
+                    pointSize: 2,
+                    rollPeriod: 1,
+                    showRoller: true,
+                    strokeWidth: 2,
+                    dateWindow: dateRange,
+                };
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=counters&resolution="+res,
+                            counterOptions,
+                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                );
+
+                var timerOptions = {
+                    title: 'Application - Metric Timers: (application ID: {{urlquery .ApplicationID}})',
+                    //connectSeparatedPoints: true,
+                    xlabel: 'Local Time',
+                    ylabel: 'Time (ms)',
+                    drawPoints: true,
+                    pointSize: 2,
+                    rollPeriod: 1,
+                    showRoller: true,
+                    strokeWidth: 2,
+                    dateWindow: dateRange,
+                };
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=timers&resolution="+res,
+                            timerOptions,
+                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                );
+
+                var memoryOptions = {
+                    title: 'Application - Metric Memory: (application ID: {{urlquery .ApplicationID}})',
+                    //connectSeparatedPoints: true,
+                    xlabel: 'Local Time',
+                    ylabel: 'Bytes',
+                    drawPoints: true,
+                    pointSize: 2,
+                    rollPeriod: 1,
+                    showRoller: true,
+                    strokeWidth: 2,
+                    dateWindow: dateRange,
+                };
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=memory&resolution="+res,
+                            memoryOptions,
+                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                );
+
+                var routineOptions = {
+                    title: 'Application - Metric Routines: (application ID: {{urlquery .ApplicationID}})',
+                    //connectSeparatedPoints: true,
+                    xlabel: 'Local Time',
+                    ylabel: 'Count',
+                    drawPoints: true,
+                    pointSize: 2,
+                    rollPeriod: 1,
+                    showRoller: true,
+                    strokeWidth: 2,
+                    dateWindow: dateRange,
+                };
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=routines&resolution="+res,
+                            routineOptions,
+                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                );
+
+                var objectOptions = {
+                    title: 'Application - Metric Memory Heap Objects: (application ID: {{urlquery .ApplicationID}})',
+                    //connectSeparatedPoints: true,
+                    xlabel: 'Local Time',
+                    ylabel: 'Count',
+                    drawPoints: true,
+                    pointSize: 2,
+                    rollPeriod: 1,
+                    showRoller: true,
+                    strokeWidth: 0.0, // draw points but not lines connecting them
+                    dateWindow: dateRange,
+                };
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=objects&resolution="+res,
+                            objectOptions,
+                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                );
+
+            </script>
+        </div>
+        {{template "app_plot_res" .}}
+
+        {{else}}
         <img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=counters&resolution={{.Resolution}}" />
         {{template "app_plot_res" .}}
         <br>
@@ -21,3 +124,4 @@
         {{end}}
     </div>
 </div>
+{{end}}

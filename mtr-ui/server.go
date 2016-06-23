@@ -8,6 +8,7 @@ import (
 	"github.com/GeoNet/weft"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 )
@@ -33,7 +34,19 @@ func init() {
 		log.Fatal(err)
 	}
 
+	// Add a proxy handler for CSV from mtr-api.geonet.org.nz
+	// proxies requests like http://localhost:8081/p/data/latency?siteID=GISB&typeID=latency.gnss.1hz
+	// with Accept="text/csv".  Avoids cross origin errors.
+	apiDirector := func(r *http.Request) {
+		r.Host = mtrApiUrl.Host
+		r.URL.Scheme = mtrApiUrl.Scheme
+		r.URL.Host = mtrApiUrl.Host
+	}
+
 	mux = http.NewServeMux()
+	mux.Handle("/p/", http.StripPrefix("/p", &httputil.ReverseProxy{Director: apiDirector}))
+	mux.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("assets/js"))))
+
 	mux.HandleFunc("/", weft.MakeHandlerPage(homePageHandler))
 	mux.HandleFunc("/field", weft.MakeHandlerPage(fieldPageHandler))
 	mux.HandleFunc("/field/", weft.MakeHandlerPage(fieldPageHandler))

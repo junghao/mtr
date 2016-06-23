@@ -12,6 +12,7 @@ type metricDetailPage struct {
 	page
 	MtrApiUrl    *url.URL
 	MetricDetail metricDetail
+	Interactive  bool
 }
 
 type metricDetail struct {
