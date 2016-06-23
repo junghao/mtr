@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
@@ -128,6 +129,10 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 	p.Border.Title = "GeoNet MTR - Field"
 	p.ActiveTab = "Field"
 	p.pageParam(r.URL.Query())
+
+	if err := p.getFieldMetricTags(); err != nil {
+		return weft.InternalServerError(err)
+	}
 
 	if p.Resolution == "" {
 		p.Resolution = "minute"
@@ -365,6 +370,31 @@ func (p *mtrUiPage) getFieldCountList() (err error) {
 	}
 	sort.Sort(idCounts(p.GroupRows))
 	p.Panels = nil
+	return
+}
+
+func (p *mtrUiPage) getFieldMetricTags() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/field/metric/tag"
+	u.RawQuery = "deviceID=" + p.DeviceID + "&typeID=" + p.TypeID
+
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var f mtrpb.FieldMetricTagResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
+	for _, r := range f.Result {
+		p.Tags = append(p.Tags, r.Tag)
+	}
+
+	sort.Strings(p.Tags)
 	return
 }
 
