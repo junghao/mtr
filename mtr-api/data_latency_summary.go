@@ -17,6 +17,7 @@ import (
 type dataLatencySummary struct {
 }
 
+// TODO: returns weft.NotFound when query result is empty?
 func (d dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
 		return res

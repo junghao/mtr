@@ -400,6 +400,20 @@ func dataCompletenessHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 		return d.delete(r)
 	case "GET":
 		switch r.Header.Get("Accept") {
+		default:
+			return d.svg(r, h, b)
+		}
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
+
+func dataCompletenessSummaryHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var d dataCompletenessSummary
+
+	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
 		case "application/x-protobuf":
 			return d.proto(r, h, b)
 		default:

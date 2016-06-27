@@ -42,6 +42,7 @@ func init() {
 	mux.HandleFunc("/data/latency/tag", weft.MakeHandlerAPI(dataLatencyTagHandler))
 	mux.HandleFunc("/data/latency/threshold", weft.MakeHandlerAPI(dataLatencyThresholdHandler))
 	mux.HandleFunc("/data/completeness", weft.MakeHandlerAPI(dataCompletenessHandler))
+	mux.HandleFunc("/data/completeness/summary", weft.MakeHandlerAPI(dataCompletenessSummaryHandler))
 	mux.HandleFunc("/data/completeness/tag", weft.MakeHandlerAPI(dataCompletenessTagHandler))
 	mux.HandleFunc("/app", weft.MakeHandlerAPI(appHandler))
 	mux.HandleFunc("/app/metric", weft.MakeHandlerAPI(appMetricHandler))

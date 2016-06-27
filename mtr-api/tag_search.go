@@ -210,7 +210,6 @@ func (a *tagSearch) dataLatency() <-chan *weft.Result {
 			}
 
 			dls.Seconds = tm.Unix()
-
 			a.tagResult.DataLatency = append(a.tagResult.DataLatency, &dls)
 		}
 
@@ -230,26 +229,19 @@ func (a *tagSearch) dataCompleteness() <-chan *weft.Result {
 		// Returns the last 5 minutes count for all completeness with given tag.
 		// Could be empty if the siteid+typeid has no data in 5 minutes.
 		if rows, err = dbR.Query(
-			`SELECT siteid, typeid, COALESCE(time, null::timestamp) as t, count, expected FROM
-				(SELECT DISTINCT ON (sitepk, typepk)
-					sitepk, typepk,c.count, c.time FROM data.completeness
-				LEFT JOIN
-					(SELECT sitepk, typepk, count, max(time) as time FROM data.completeness
-					WHERE time >(select current_timestamp - interval '5' minute)
-					GROUP BY sitepk, typepk, count) c USING (sitepk,typepk)
-				JOIN data.completeness_tag USING (typepk, sitepk)
-  	            WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)
-				) z
-			JOIN data.completeness_type USING(typePK)
-			JOIN data.site USING(sitePK)
-			ORDER BY t ASC`, a.tag); err != nil {
+			`SELECT siteID, typeID, time, count, expected
+	 			  FROM data.completeness_tag
+	 			  JOIN data.completeness_summary USING (sitePK, typePK)
+	 			  JOIN data.site USING (sitePK)
+				  JOIN data.completeness_type USING (typePK)
+			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
 			out <- weft.InternalServerError(err)
 			return
 		}
 		defer rows.Close()
-
 		for rows.Next() {
-			var dls mtrpb.DataCompleteness
+
+			var dls mtrpb.DataCompletenessSummary
 			var expected int
 
 			// data could be null
@@ -270,7 +262,6 @@ func (a *tagSearch) dataCompleteness() <-chan *weft.Result {
 			if count.Valid {
 				dls.Completeness = float32(count.Int64) / (float32(expected) / 288)
 			}
-
 			a.tagResult.DataCompleteness = append(a.tagResult.DataCompleteness, &dls)
 		}
 

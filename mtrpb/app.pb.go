@@ -24,8 +24,8 @@ It has these top-level messages:
 	DataLatencyThresholdResult
 	DataType
 	DataTypeResult
-	DataCompleteness
-	DataCompletenessResult
+	DataCompletenessSummary
+	DataCompletenessSummaryResult
 	DataCompletenessTag
 	DataCompletenessTagResult
 	FieldMetricSummary

@@ -18,5 +18,5 @@ message TagSearchResult {
     repeated FieldMetricSummary field_metric = 1;
     repeated DataLatencySummary data_latency = 2;
     repeated FieldState field_state = 3;
-    repeated DataCompleteness data_completeness = 4;
+    repeated DataCompletenessSummary data_completeness = 4;
 }

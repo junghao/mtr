@@ -242,12 +242,11 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/latency/threshold", Accept: "application/x-protobuf"},
 
 	// Delete data.completeness
-	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=WGTN&typeID=gnss.1hz&time=2015-05-14T23:40:30Z&count=300", Method: "PUT"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=WGTN&typeID=gnss.1hz", Method: "DELETE"},
 	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&time=2015-05-14T23:40:30Z&count=300", Method: "PUT"},
-	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz", Method: "DELETE"},
 
 	// Tags
-
 	{ID: wt.L(), URL: "/tag/FRED", Method: "DELETE"},
 	{ID: wt.L(), URL: "/tag/DAGG", Method: "DELETE"},
 
@@ -672,6 +671,66 @@ func TestDataLatencySummary(t *testing.T) {
 
 	if len(f.Result) != 1 {
 		t.Errorf("expected 1 result.")
+	}
+}
+
+// protobuf of latency summary info.
+func TestDataCompletenessSummary(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/data/completeness/summary", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.DataCompletenessSummaryResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Errorf("expected 1 result.")
+	}
+
+	d := f.Result[0]
+
+	if d.SiteID != "TAUP" {
+		t.Errorf("expected TAUP got %s", d.SiteID)
+	}
+
+	if d.TypeID != "gnss.1hz" {
+		t.Errorf("expected gnss.1hz got %s", d.TypeID)
+	}
+
+	if d.Seconds == 0 {
+		t.Errorf("unexpected zero seconds")
+	}
+
+	r.URL = "/data/completeness/summary?typeID=gnss.1hz"
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	f.Reset()
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Errorf("expected 1 result got %d results", len(f.Result))
 	}
 }
 
@@ -1186,7 +1245,7 @@ func TestAppIDs(t *testing.T) {
 	}
 
 	if dtr.Result[0].ApplicationID != "test-app" {
-		t.Errorf("expected mtr-api got %s", dtr.Result[0].ApplicationID)
+		t.Errorf("expected test-app got %s", dtr.Result[0].ApplicationID)
 	}
 }
 

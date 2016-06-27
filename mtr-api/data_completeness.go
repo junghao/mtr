@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/mtr/ts"
 	"github.com/GeoNet/weft"
-	"github.com/golang/protobuf/proto"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -63,6 +61,35 @@ func (a dataCompleteness) put(r *http.Request) *weft.Result {
 		return weft.BadRequest("Didn't create row, check your query parameters exist")
 	}
 
+	// Update the summary values if the incoming is newer.
+	if result, err = db.Exec(`UPDATE data.completeness_summary SET
+				time = $3, count = $4
+				WHERE time < $3
+				AND sitePK = (SELECT sitePK from data.site WHERE siteID = $1)
+				AND typePK = (SELECT typePK from data.completeness_type WHERE typeID = $2)`,
+		siteID, typeID, t, int32(count)); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	// If no rows change either the values are old or it's the first time we've seen this metric.
+	if i, err = result.RowsAffected(); err != nil {
+		return weft.InternalServerError(err)
+	}
+	if i != 1 {
+		if _, err = db.Exec(`INSERT INTO data.completeness_summary(sitePK, typePK, time, count)
+				SELECT sitePK, typePK, $3, $4
+				FROM data.site, data.completeness_type
+				WHERE siteID = $1
+				AND typeID = $2`,
+			siteID, typeID, t, int32(count)); err != nil {
+			if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
+				// incoming value was old
+			} else {
+				return weft.InternalServerError(err)
+			}
+		}
+	}
+
 	return &weft.StatusOK
 }
 
@@ -76,78 +103,26 @@ func (a dataCompleteness) delete(r *http.Request) *weft.Result {
 	siteID := v.Get("siteID")
 	typeID := v.Get("typeID")
 
-	if _, err := db.Exec(`DELETE FROM data.completeness where
-				sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
-				AND typePK = (SELECT typePK FROM data.type WHERE typeID = $2)`, siteID, typeID); err != nil {
-		return weft.InternalServerError(err)
-	}
-
-	return &weft.StatusOK
-}
-
-func (a dataCompleteness) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
-	typeID := r.URL.Query().Get("typeID")
-	siteID := r.URL.Query().Get("siteID")
-
+	var txn *sql.Tx
 	var err error
-	var rows *sql.Rows
-	var typePK int
-	var expected int
 
-	if err = dbR.QueryRow(`SELECT typePK, expected FROM data.completeness_type WHERE typeID = $1`,
-		typeID).Scan(&typePK, &expected); err != nil {
-		if err == sql.ErrNoRows {
-			return &weft.NotFound
-		}
+	if txn, err = db.Begin(); err != nil {
 		return weft.InternalServerError(err)
 	}
 
-	expectedf := float32(expected) / 288
-
-	rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
-		 sum(count) FROM data.completeness WHERE
-		sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
-		AND typePK = $2
-		AND time > now() - interval '2 days'
-		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
-		ORDER BY t ASC`,
-		siteID, typePK)
-
-	if err != nil {
-		return weft.InternalServerError(err)
-	}
-
-	defer rows.Close()
-
-	var t time.Time
-	var dcr mtrpb.DataCompletenessResult
-
-	for rows.Next() {
-		var count int
-
-		if err = rows.Scan(&t, &count); err != nil {
+	for _, table := range []string{"data.completeness", "data.completeness_summary", "data.completeness_tag"} {
+		if _, err = txn.Exec(`DELETE FROM `+table+` WHERE
+				sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
+				AND typePK = (SELECT typePK FROM data.completeness_type WHERE typeID = $2)`,
+			siteID, typeID); err != nil {
+			txn.Rollback()
 			return weft.InternalServerError(err)
 		}
-
-		c := float32(count) / expectedf
-		dc := mtrpb.DataCompleteness{TypeID: typeID, SiteID: siteID, Completeness: c, Seconds: t.Unix()}
-		dcr.Result = append(dcr.Result, &dc)
 	}
-	rows.Close()
 
-	var by []byte
-
-	if by, err = proto.Marshal(&dcr); err != nil {
+	if err = txn.Commit(); err != nil {
 		return weft.InternalServerError(err)
 	}
-
-	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }
@@ -215,6 +190,7 @@ func (a dataCompleteness) plot(siteID, typeID, resolution string, b *bytes.Buffe
 		sitePK = $1 AND typePK = $2
 		ORDER BY tag asc`,
 		sitePK, typePK); err != nil {
+
 		return weft.InternalServerError(err)
 	}
 
@@ -275,8 +251,6 @@ func (a dataCompleteness) plot(siteID, typeID, resolution string, b *bytes.Buffe
 		return weft.InternalServerError(err)
 	}
 
-	defer rows.Close()
-
 	var pts []ts.Point
 
 	for rows.Next() {
@@ -289,9 +263,8 @@ func (a dataCompleteness) plot(siteID, typeID, resolution string, b *bytes.Buffe
 		pt.Value = float64(v) / expectedf
 		pts = append(pts, pt)
 	}
-	rows.Close()
 
-	// Add the latest value to the plot - this may be different to the average at minute or hour resolution.
+	// Add the latest value to the plot.
 	var pt ts.Point
 
 	if err = dbR.QueryRow(`SELECT time, count FROM data.completeness WHERE
@@ -299,15 +272,16 @@ func (a dataCompleteness) plot(siteID, typeID, resolution string, b *bytes.Buffe
 			ORDER BY time DESC
 			LIMIT 1`,
 		sitePK, typePK).Scan(&pt.DateTime, &pt.Value); err != nil {
-		return weft.InternalServerError(err)
+		// Note: We keep rendering the plot even there's no data.
+		if err != sql.ErrNoRows {
+			return weft.InternalServerError(err)
+		}
+		pt.Value = pt.Value / expectedf
+
+		pts = append(pts, pt)
+		p.SetLatest(pt, "deepskyblue")
+		p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 	}
-
-	pt.Value = pt.Value / expectedf
-
-	pts = append(pts, pt)
-	p.SetLatest(pt, "deepskyblue")
-
-	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
 	if err = ts.Line.Draw(p, b); err != nil {
 		return weft.InternalServerError(err)
@@ -363,9 +337,10 @@ func (a dataCompleteness) spark(siteID, typeID string, b *bytes.Buffer) *weft.Re
 		pt.Value = float64(v) / expectedf
 		pts = append(pts, pt)
 	}
-	rows.Close()
 
-	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
+	if len(pts) > 0 {
+		p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
+	}
 
 	if err = ts.SparkLine.Draw(p, b); err != nil {
 		return weft.InternalServerError(err)
