@@ -491,7 +491,7 @@ func removeTypeIDPrefix(typeID string) string {
 	return typeID
 }
 
-func completenessStatusString(r *mtrpb.DataCompleteness) string {
+func completenessStatusString(r *mtrpb.DataCompletenessSummary) string {
 	switch {
 	case r.Completeness >= 1.0:
 		return "good"
