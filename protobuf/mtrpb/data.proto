@@ -79,3 +79,36 @@ message DataType {
 message DataTypeResult {
     repeated DataType result = 1;
 }
+
+// DataCompletenessSummary is metrics to let us determine if all the data had arrived.
+// The "completenss" value is derived from:
+//    {count in a period of time (no less than 5 minutes)} / { expected count im a period of time }
+// For example, a site(type) expects 300 counts in 5 minutes (1hz),
+//    but got 270 counts for the latest 5 minutes then its latest completeness will be 0.9 .
+message DataCompletenessSummary {
+    // The siteID for the completeness e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the completeness e.g., gnss.1hz
+    string type_iD  = 2;
+    // Unix time in seconds for the metric value (don't need nanos).
+    int64 seconds = 3;
+    // The completeness for a given period of time
+    float completeness = 4;
+}
+
+message DataCompletenessSummaryResult {
+    repeated DataCompletenessSummary result = 1;
+}
+
+message DataCompletenessTag {
+    // The siteID for the latency e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the latency e.g., gnss.1hz
+    string type_iD  = 2;
+    // The tag for the latency e.g., TAUP
+    string tag = 3;
+}
+
+message DataCompletenessTagResult {
+    repeated DataCompletenessTag result = 1;
+}

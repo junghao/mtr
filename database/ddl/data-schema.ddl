@@ -79,3 +79,37 @@ CREATE TABLE data.latency_tag(
   PRIMARY KEY(sitePK, typePK, tagPK)
 );
 
+-- expected is the expected counts in a 24 hour period.
+CREATE TABLE data.completeness_type (
+  typePK SMALLINT PRIMARY KEY,
+  typeID TEXT NOT NULL UNIQUE,
+  expected INTEGER NOT NULL
+);
+
+INSERT INTO data.completeness_type(typePK, typeID, expected) VALUES(100, 'gnss.1hz', 86400);
+
+CREATE TABLE data.completeness (
+  sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
+  typePK SMALLINT REFERENCES data.completeness_type(typePK) ON DELETE CASCADE NOT NULL,
+  rate_limit BIGINT NOT NULL,
+  time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+  count INTEGER NOT NULL,
+  PRIMARY KEY(sitePK, typePK, rate_limit)
+);
+
+CREATE INDEX ON data.completeness (time);
+
+CREATE TABLE data.completeness_summary (
+  sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
+  typePK SMALLINT REFERENCES data.completeness_type(typePK) ON DELETE CASCADE NOT NULL,
+  time TIMESTAMP(0) WITH TIME ZONE NOT NULL,
+  count INTEGER NOT NULL,
+  PRIMARY KEY(sitePK, typePK)
+);
+
+CREATE TABLE data.completeness_tag(
+  sitePK SMALLINT REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
+  typePK SMALLINT REFERENCES data.completeness_type(typePK) ON DELETE CASCADE NOT NULL,
+  tagPK INTEGER REFERENCES mtr.tag(tagPK) ON DELETE CASCADE NOT NULL,
+  PRIMARY KEY(sitePK, typePK, tagPK)
+);

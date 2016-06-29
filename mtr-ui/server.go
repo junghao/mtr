@@ -46,6 +46,7 @@ func init() {
 	mux.HandleFunc("/data/sites", weft.MakeHandlerPage(dataSitesPageHandler))
 	mux.HandleFunc("/data/metrics", weft.MakeHandlerPage(dataMetricsPageHandler))
 	mux.HandleFunc("/data/plot", weft.MakeHandlerPage(dataPlotPageHandler))
+	mux.HandleFunc("/data/completeness/plot", weft.MakeHandlerPage(dataCompletenessPlotPageHandler))
 	mux.HandleFunc("/map", weft.MakeHandlerPage(mapPageHandler))
 	mux.HandleFunc("/map/", weft.MakeHandlerPage(mapPageHandler))
 	mux.HandleFunc("/search", weft.MakeHandlerPage(searchPageHandler))

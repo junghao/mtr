@@ -70,10 +70,11 @@ func (a *tagSearch) singleProto(r *http.Request, h http.Header, b *bytes.Buffer)
 	c1 := a.fieldMetric()
 	c2 := a.dataLatency()
 	c3 := a.fieldState()
+	c4 := a.dataCompleteness()
 
 	resFinal := &weft.StatusOK
 
-	for res := range merge(c1, c2, c3) {
+	for res := range merge(c1, c2, c3, c4) {
 		if !res.Ok {
 			resFinal = res
 		}
@@ -209,8 +210,59 @@ func (a *tagSearch) dataLatency() <-chan *weft.Result {
 			}
 
 			dls.Seconds = tm.Unix()
-
 			a.tagResult.DataLatency = append(a.tagResult.DataLatency, &dls)
+		}
+
+		out <- &weft.StatusOK
+		return
+	}()
+	return out
+}
+
+func (a *tagSearch) dataCompleteness() <-chan *weft.Result {
+	out := make(chan *weft.Result)
+	go func() {
+		defer close(out)
+		var err error
+		var rows *sql.Rows
+
+		// Returns the last 5 minutes count for all completeness with given tag.
+		// Could be empty if the siteid+typeid has no data in 5 minutes.
+		if rows, err = dbR.Query(
+			`SELECT siteID, typeID, time, count, expected
+	 			  FROM data.completeness_tag
+	 			  JOIN data.completeness_summary USING (sitePK, typePK)
+	 			  JOIN data.site USING (sitePK)
+				  JOIN data.completeness_type USING (typePK)
+			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
+			out <- weft.InternalServerError(err)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+
+			var dls mtrpb.DataCompletenessSummary
+			var expected int
+
+			// data could be null
+			var ts sql.NullString
+			var count sql.NullInt64
+
+			if err = rows.Scan(&dls.SiteID, &dls.TypeID, &ts, &count, &expected); err != nil {
+				out <- weft.InternalServerError(err)
+				return
+			}
+
+			if ts.Valid {
+				if tm, err := time.Parse(ts.String, "2016-06-16 03:59:41+00"); err == nil {
+					dls.Seconds = tm.Unix()
+				}
+			}
+
+			if count.Valid {
+				dls.Completeness = float32(count.Int64) / (float32(expected) / 288)
+			}
+			a.tagResult.DataCompleteness = append(a.tagResult.DataCompleteness, &dls)
 		}
 
 		out <- &weft.StatusOK

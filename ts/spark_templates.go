@@ -37,5 +37,9 @@ const sparkBaseTemplate = `<?xml version="1.0"?>
 `
 const sparkLineTemplate = `
 {{define "data"}}
+{{if .Data}}
 {{range .Data}}<polyline style="stroke: deepskyblue; fill: none; stroke-width: 1.0" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />{{end}}
+{{else}}
+<text x="0" y="0" text-anchor="start" dominant-baseline="hanging" font-size="14px" fill="lightgrey">NO DATA</text>
+{{end}}
 {{end}}`

@@ -22,13 +22,17 @@
     </div>
     {{else if .SiteID}}
         <div class="col-xs-12 col-md-6">
-            <a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}">
+            <a href="{{if .CompletenessInfo}}/data/completeness/plot{{else}}/data/plot{{end}}?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}">
                 <div class="row mtr-callout mtr-callout-{{.Status}}">
                     <div class="col-xs-8 col-md-8">
-                        {{.SiteID}} {{.TypeID}} {{.Status}}
+                        {{.SiteID}} {{.TypeID}} {{.Status}} {{if .CompletenessInfo}} ({{.CompletenessInfo}}) {{end}}
                     </div>
                     <div class="col-xs-4 col-md-4">
+                        {{if .CompletenessInfo}}
+                        <img src="{{$mtrApiUrl}}/data/completeness?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&plot=spark&resolution=five_minutes"/>
+                        {{else}}
                         <img src="{{$mtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&plot=spark&resolution=five_minutes"/>
+                        {{end}}
                     </div>
                 </div>
             </a>

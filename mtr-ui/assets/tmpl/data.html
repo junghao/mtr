@@ -6,6 +6,8 @@
     {{template "panels" .}}
 {{else if eq .Path "/data/plot"}}
     {{template "data_plot" .}}
+{{else if eq .Path "/data/completeness/plot"}}
+    {{template "data_completeness_plot" .}}
 {{else}}
     {{if .Panels}}
         {{template "panels" .}}
