@@ -309,6 +309,8 @@ func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 		return d.delete(r)
 	case "GET":
 		switch r.Header.Get("Accept") {
+		case "text/csv":
+			return d.csv(r, h, b)
 		default:
 			return d.svg(r, h, b)
 		}
