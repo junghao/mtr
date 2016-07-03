@@ -181,6 +181,49 @@ func (a dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	return &weft.StatusOK
 }
 
+func (a dataLatency) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
+		return res
+	}
+
+	v := r.URL.Query()
+
+	// read directly from the DB and write out a CSV formatted output (time, val1, val2, etc.)
+	var err error
+	var rows *sql.Rows
+
+	if rows, err = dbR.Query(`SELECT format('%s,%s,%s,%s', to_char(time, 'YYYY/MM/DD HH24:MI:SS'), mean, fifty, ninety)
+		AS csv FROM data.latency
+		WHERE sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
+		AND typePK = (SELECT typePK FROM data.type WHERE typeID = $2)
+		AND time > now() - interval '40 days'
+		ORDER BY time ASC`,
+		v.Get("siteID"), v.Get("typeID")); err != nil {
+		return weft.InternalServerError(err)
+	}
+	defer rows.Close()
+
+	// CSV headers
+	b.WriteString("time,mean,fifty,ninety\n")
+
+	// CSV data
+	var l string
+	for rows.Next() {
+		err := rows.Scan(&l)
+		if err != nil {
+			return weft.InternalServerError(err)
+		}
+		b.WriteString(l + "\n")
+	}
+	rows.Close()
+
+	h.Set("Content-Type", "text/csv")
+	// allow cross domain requests, lets us use AJAX from mtr-ui.  TODO: use proxy instead
+	//h.Set("Access-Control-Allow-Origin", "*")
+
+	return &weft.StatusOK
+}
+
 /*
 plot draws an svg plot to b.  Assumes f.loadPK has been called first.
 */
