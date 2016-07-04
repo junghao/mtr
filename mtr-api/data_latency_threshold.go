@@ -97,17 +97,32 @@ func (a dataLatencyThreshold) delete(r *http.Request) *weft.Result {
 }
 
 func (a dataLatencyThreshold) get(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"typeID", "siteID"}); !res.Ok {
 		return res
 	}
 
 	var err error
 	var rows *sql.Rows
 
+	v := r.URL.Query()
+	typeID := v.Get("typeID")
+	siteID := v.Get("siteID")
+
+	// if typeID or siteID options not supplied, assume we query all of them.
+	if typeID == "" {
+		typeID = "%"
+	}
+	if siteID == "" {
+		siteID = "%"
+	}
+
+	// TODO: profile the use of LIKE to see if it has a big impact on performance.  Could be a nice generic approach
 	if rows, err = dbR.Query(`SELECT siteID, typeID, lower, upper
-		FROM
-		data.latency_threshold JOIN data.site USING (sitepk)
-		JOIN data.type USING (typepk)`); err != nil {
+		FROM data.latency_threshold
+		JOIN data.site USING (sitepk)
+		JOIN data.type USING (typepk)
+		WHERE siteID LIKE $1
+		AND   typeID LIKE $2`, siteID, typeID); err != nil {
 		return weft.InternalServerError(err)
 	}
 

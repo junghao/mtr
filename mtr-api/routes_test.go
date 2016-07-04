@@ -240,6 +240,8 @@ var routes = wt.Requests{
 
 	// protobuf of all latency thresholds
 	{ID: wt.L(), URL: "/data/latency/threshold", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/data/latency/threshold?typeID=latency.strong&siteID=TAUP", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/data/latency/threshold?typeID=latency.strong&siteID=TAUP&typeID=latency.strong", Accept: "application/x-protobuf"},
 
 	// Delete data.completeness
 	{ID: wt.L(), URL: "/data/completeness?siteID=WGTN&typeID=gnss.1hz&time=2015-05-14T23:40:30Z&count=300", Method: "PUT"},
@@ -1023,6 +1025,38 @@ func TestDataLatencyThreshold(t *testing.T) {
 	}
 
 	d := f.Result[0]
+
+	if d.SiteID != "TAUP" {
+		t.Errorf("expected TAUP got %s", d.SiteID)
+	}
+
+	if d.TypeID != "latency.strong" {
+		t.Errorf("expected latency.strong got %s", d.TypeID)
+	}
+
+	if d.Upper != 15000 {
+		t.Errorf("expected 15000 got %d", d.Upper)
+	}
+
+	if d.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", d.Lower)
+	}
+
+	// test again with siteID and typeID
+	r = wt.Request{ID: wt.L(), URL: "/data/latency/threshold?typeID=latency.strong&siteID=TAUP", Accept: "application/x-protobuf"}
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if len(f.Result) != 1 {
+		t.Errorf("expected 1 result.")
+	}
+
+	d = f.Result[0]
 
 	if d.SiteID != "TAUP" {
 		t.Errorf("expected TAUP got %s", d.SiteID)
