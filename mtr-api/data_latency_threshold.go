@@ -97,17 +97,36 @@ func (a dataLatencyThreshold) delete(r *http.Request) *weft.Result {
 }
 
 func (a dataLatencyThreshold) get(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{}, []string{"typeID", "siteID"}); !res.Ok {
 		return res
 	}
 
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT siteID, typeID, lower, upper
-		FROM
-		data.latency_threshold JOIN data.site USING (sitepk)
-		JOIN data.type USING (typepk)`); err != nil {
+	v := r.URL.Query()
+	typeID := v.Get("typeID")
+	siteID := v.Get("siteID")
+
+	args := []interface{}{}  // empty SQL query args
+	sqlQuery := `SELECT siteID, typeID, lower, upper
+		FROM data.latency_threshold
+		JOIN data.site USING (sitepk)
+		JOIN data.type USING (typepk)`
+
+	// Append optional arguments to sql query string and query args
+	if siteID != "" && typeID != "" {
+		sqlQuery += " WHERE siteID = $1 AND typeID = $2"
+		args = append(args, siteID, typeID)
+	} else if siteID != "" {
+		sqlQuery += " WHERE siteID = $1"
+		args = append(args, siteID)
+	} else if typeID != "" {
+		sqlQuery += " WHERE typeID = $1"
+		args = append(args, typeID)
+	}
+
+	if rows, err = dbR.Query(sqlQuery, args...); err != nil {
 		return weft.InternalServerError(err)
 	}
 
