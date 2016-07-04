@@ -108,21 +108,25 @@ func (a dataLatencyThreshold) get(r *http.Request, h http.Header, b *bytes.Buffe
 	typeID := v.Get("typeID")
 	siteID := v.Get("siteID")
 
-	// if typeID or siteID options not supplied, assume we query all of them.
-	if typeID == "" {
-		typeID = "%"
-	}
-	if siteID == "" {
-		siteID = "%"
-	}
-
-	// TODO: profile the use of LIKE to see if it has a big impact on performance.  Could be a nice generic approach
-	if rows, err = dbR.Query(`SELECT siteID, typeID, lower, upper
+	args := []interface{}{}  // empty SQL query args
+	sqlQuery := `SELECT siteID, typeID, lower, upper
 		FROM data.latency_threshold
 		JOIN data.site USING (sitepk)
-		JOIN data.type USING (typepk)
-		WHERE siteID LIKE $1
-		AND   typeID LIKE $2`, siteID, typeID); err != nil {
+		JOIN data.type USING (typepk)`
+
+	// Append optional arguments to sql query string and query args
+	if siteID != "" && typeID != "" {
+		sqlQuery += " WHERE siteID = $1 AND typeID = $2"
+		args = append(args, siteID, typeID)
+	} else if siteID != "" {
+		sqlQuery += " WHERE siteID = $1"
+		args = append(args, siteID)
+	} else if typeID != "" {
+		sqlQuery += " WHERE typeID = $1"
+		args = append(args, typeID)
+	}
+
+	if rows, err = dbR.Query(sqlQuery, args...); err != nil {
 		return weft.InternalServerError(err)
 	}
 

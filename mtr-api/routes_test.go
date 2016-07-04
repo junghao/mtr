@@ -241,6 +241,7 @@ var routes = wt.Requests{
 	// protobuf of all latency thresholds
 	{ID: wt.L(), URL: "/data/latency/threshold", Accept: "application/x-protobuf"},
 	{ID: wt.L(), URL: "/data/latency/threshold?typeID=latency.strong&siteID=TAUP", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/data/latency/threshold?typeID=latency.strong&typeID=latency.strong", Accept: "application/x-protobuf"},
 	{ID: wt.L(), URL: "/data/latency/threshold?typeID=latency.strong&siteID=TAUP&typeID=latency.strong", Accept: "application/x-protobuf"},
 
 	// Delete data.completeness
