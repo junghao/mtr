@@ -28,6 +28,8 @@ func appMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 	switch r.Method {
 	case "GET":
 		switch r.Header.Get("Accept") {
+		case "text/csv":
+			return a.csv(r, h, b)
 		default:
 			return a.svg(r, h, b)
 		}

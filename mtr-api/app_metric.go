@@ -30,6 +30,97 @@ func (l InstanceMetrics) Len() int           { return len(l) }
 func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].instancePK }
 func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
+func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"sourceID"}); !res.Ok {
+		return res
+	}
+
+	v := r.URL.Query()
+	applicationID := v.Get("applicationID")
+
+	// getting every time series for each typeID, sorting to individual columns below
+	rows, err := dbR.Query(`SELECT time, typeid, count
+			FROM app.counter
+			JOIN app.type USING (typepk)
+			WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+			AND time > now() - interval '40 days'
+			GROUP BY time, typeid, count
+			ORDER BY time ASC`, applicationID)
+
+	if err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	defer rows.Close()
+
+	type dataPoint struct {
+		dateTime time.Time
+		typeID   string
+		count    float64
+	}
+
+	// keep track of all column names to create.
+	colIdxs := make(map[string]int) // a map of the key:key_idx
+	colIdxs["time"] = 0
+	keys := []string{"time"} // an ordered list of keys in colIdxs, all names will be unique
+	values := []dataPoint{}  // a slice of points, ordered by time (as per sql query)
+	rowCount := 0
+
+	// get all column names and store all points, need to traverse all rows
+	var pt dataPoint
+	for rows.Next() {
+		err := rows.Scan(&pt.dateTime, &pt.typeID, &pt.count)
+		if err != nil {
+			return weft.InternalServerError(err)
+		}
+
+		if colIdxs[pt.typeID] == 0 {
+			keys = append(keys, pt.typeID)
+			colIdxs[pt.typeID] = len(keys)
+		}
+
+		values = append(values, pt)
+		rowCount++
+	}
+	rows.Close()
+
+	// CSV headers
+	for i, colName := range keys {
+		b.WriteString(colName)
+
+		if i < len(keys)-1 {
+			b.WriteString(",")
+		}
+	}
+
+	b.WriteString("\n")
+
+	// CSV data
+	for _, val := range values {
+		b.WriteString(val.dateTime.Format(DYGRAPH_TIME_FORMAT + ","))
+
+		for colIdx := 1; colIdx < len(keys); colIdx++ {
+
+			switch val.typeID {
+			case keys[colIdx]:
+				b.WriteString(fmt.Sprintf("%d", int(val.count)))
+			default:
+				b.WriteString("null")
+			}
+
+			if colIdx < len(keys)-1 {
+				b.WriteString(",")
+			}
+		}
+
+		b.WriteString("\n")
+	}
+
+	h.Set("Content-Type", "text/csv")
+
+	return &weft.StatusOK
+}
+
 func (a appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange", "sourceID"}); !res.Ok {
 		return res
