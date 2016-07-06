@@ -62,8 +62,10 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	// keep track of all column names to create.
 	colNames := make(map[string]bool) // a map of the key:true/false to keep a set of keys
 	colNames["time"] = true
-	keys := []string{"time"} // an ordered list of keys in colIdxs, all names will be unique
-	values := []dataPoint{}  // a slice of points, ordered by time (as per sql query)
+	orderedColNames := []string{"time"} // an ordered and unique list of column names
+	// Make a map of maps, ala {time1: {col1: value1, col2: value2, ...}, ... }.  This combines duplicate times with different column values
+	values := make(map[time.Time]map[string]int)
+	times := []time.Time{}
 	rowCount := 0
 
 	// get all column names and store all points, need to traverse all rows
@@ -75,20 +77,26 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 		}
 
 		if !colNames[pt.typeID] {
-			keys = append(keys, pt.typeID)
+			orderedColNames = append(orderedColNames, pt.typeID)
 			colNames[pt.typeID] = true
 		}
 
-		values = append(values, pt)
+		if values[pt.dateTime] == nil {
+			values[pt.dateTime] = map[string]int{pt.typeID: pt.count}
+			times = append(times, pt.dateTime) // already ordered, we're just keeping a unique list
+		} else {
+			values[pt.dateTime][pt.typeID] = pt.count
+		}
+
 		rowCount++
 	}
 	rows.Close()
 
 	// CSV headers
-	for i, colName := range keys {
+	for i, colName := range orderedColNames {
 		b.WriteString(colName)
 
-		if i < len(keys)-1 {
+		if i < len(orderedColNames)-1 {
 			b.WriteString(",")
 		}
 	}
@@ -96,19 +104,14 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	b.WriteString("\n")
 
 	// CSV data
-	for _, val := range values {
-		b.WriteString(val.dateTime.Format(DYGRAPH_TIME_FORMAT + ","))
+	for _, t := range times {
+		b.WriteString(t.Format(DYGRAPH_TIME_FORMAT + ","))
 
-		for colIdx, colName := range keys {
+		for colIdx, colName := range orderedColNames {
 
-			switch val.typeID {
-			case colName:
-				b.WriteString(fmt.Sprintf("%d", val.count))
-			default:
-				b.WriteString("null")
-			}
+			b.WriteString(fmt.Sprintf("%d", values[t][colName]))
 
-			if colIdx < len(keys)-1 {
+			if colIdx < len(orderedColNames)-1 {
 				b.WriteString(",")
 			}
 		}
