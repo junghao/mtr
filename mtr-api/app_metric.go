@@ -56,12 +56,12 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	type dataPoint struct {
 		dateTime time.Time
 		typeID   string
-		count    float64
+		count    int
 	}
 
 	// keep track of all column names to create.
-	colIdxs := make(map[string]int) // a map of the key:key_idx
-	colIdxs["time"] = 0
+	colNames := make(map[string]bool) // a map of the key:true/false to keep a set of keys
+	colNames["time"] = true
 	keys := []string{"time"} // an ordered list of keys in colIdxs, all names will be unique
 	values := []dataPoint{}  // a slice of points, ordered by time (as per sql query)
 	rowCount := 0
@@ -74,9 +74,9 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 			return weft.InternalServerError(err)
 		}
 
-		if colIdxs[pt.typeID] == 0 {
+		if !colNames[pt.typeID] {
 			keys = append(keys, pt.typeID)
-			colIdxs[pt.typeID] = len(keys)
+			colNames[pt.typeID] = true
 		}
 
 		values = append(values, pt)
@@ -99,11 +99,11 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	for _, val := range values {
 		b.WriteString(val.dateTime.Format(DYGRAPH_TIME_FORMAT + ","))
 
-		for colIdx := 1; colIdx < len(keys); colIdx++ {
+		for colIdx, colName := range keys {
 
 			switch val.typeID {
-			case keys[colIdx]:
-				b.WriteString(fmt.Sprintf("%d", int(val.count)))
+			case colName:
+				b.WriteString(fmt.Sprintf("%d", val.count))
 			default:
 				b.WriteString("null")
 			}
