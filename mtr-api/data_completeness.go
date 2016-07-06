@@ -280,8 +280,9 @@ func (a dataCompleteness) plot(siteID, typeID, resolution string, b *bytes.Buffe
 
 		pts = append(pts, pt)
 		p.SetLatest(pt, "deepskyblue")
-		p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 	}
+
+	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
 	if err = ts.Line.Draw(p, b); err != nil {
 		return weft.InternalServerError(err)
