@@ -105,11 +105,17 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 
 	// CSV data
 	for _, t := range times {
-		b.WriteString(t.Format(DYGRAPH_TIME_FORMAT + ","))
-
 		for colIdx, colName := range orderedColNames {
 
-			b.WriteString(fmt.Sprintf("%d", values[t][colName]))
+			if colName == "time" {
+				b.WriteString(t.Format(DYGRAPH_TIME_FORMAT + ","))
+				continue
+			}
+
+			val := values[t][colName]
+			if val != 0 {
+				b.WriteString(fmt.Sprintf("%d", val))
+			}
 
 			if colIdx < len(orderedColNames)-1 {
 				b.WriteString(",")
