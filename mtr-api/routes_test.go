@@ -164,6 +164,7 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", Content: "image/svg+xml"},
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", Status: http.StatusBadRequest, Surrogate: "max-age=86400"},
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&plot=spark", Content: "image/svg+xml"},
+	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute&plot=scatter", Content: "image/svg+xml"},
 
 	// Latest metrics as SVG map
 	//  These only pass with the map180 data in the DB.
@@ -285,12 +286,14 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute"},
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour"},
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&plot=spark"},
+	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute&plot=scatter"},
 
 	// Completeness plots.
 	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=five_minutes"},
 	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=hour"},
 	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=twelve_hours"},
 	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&plot=spark"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=five_minutes&plot=scatter"},
 
 	// Tags
 
