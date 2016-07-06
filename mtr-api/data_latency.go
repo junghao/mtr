@@ -167,7 +167,15 @@ func (a dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		if resolution == "" {
 			resolution = "minute"
 		}
-		if res := a.plot(v.Get("siteID"), v.Get("typeID"), resolution, b); !res.Ok {
+		if res := a.plot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Line, b); !res.Ok {
+			return res
+		}
+	case "scatter":
+		resolution := v.Get("resolution")
+		if resolution == "" {
+			resolution = "minute"
+		}
+		if res := a.plot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Scatter, b); !res.Ok {
 			return res
 		}
 	default:
@@ -227,7 +235,7 @@ func (a dataLatency) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 /*
 plot draws an svg plot to b.  Assumes f.loadPK has been called first.
 */
-func (a dataLatency) plot(siteID, typeID, resolution string, b *bytes.Buffer) *weft.Result {
+func (a dataLatency) plot(siteID, typeID, resolution string, plotter ts.SVGPlot, b *bytes.Buffer) *weft.Result {
 	var err error
 	// we need the sitePK often so read it once.
 	var sitePK int
@@ -388,7 +396,7 @@ func (a dataLatency) plot(siteID, typeID, resolution string, b *bytes.Buffer) *w
 	labels = append(labels, ts.Label{Label: internal.Label(int(internal.Ninety)), Colour: internal.Colour(int(internal.Ninety))})
 	p.SetLabels(labels)
 
-	if err = ts.Line.Draw(p, b); err != nil {
+	if err = plotter.Draw(p, b); err != nil {
 		return weft.InternalServerError(err)
 	}
 

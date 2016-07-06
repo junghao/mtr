@@ -77,6 +77,12 @@ var Line = SVGPlot{
 	height:   210,
 }
 
+var Scatter = SVGPlot{
+	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotBaseTemplate + scatterDotTemplate)),
+	width:    780,
+	height:   210,
+}
+
 var MixedAppMetrics = SVGPlot{
 	template: template.Must(template.New("plot").Funcs(funcMap).Parse(plotAppMetricsTemplate + plotAppMixedTemplate)),
 	width:    640,
@@ -185,6 +191,14 @@ const plotLineTemplate = `
 {{define "data"}}
 {{range .Data}}
 <polyline style="stroke: {{.Series.Colour}}; fill: none; stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round" points="{{range .Pts}}{{.X}},{{.Y}} {{end}}" />
+{{end}}
+{{end}}`
+
+const scatterDotTemplate = `
+{{define "data"}}
+{{range .Data}}
+{{$Colour:=.Series.Colour}}
+{{range .Pts}}<circle cx="{{.X}}" cy="{{.Y}}" r="2" fill="none" stroke="{{$Colour}}"/>{{end}}
 {{end}}
 {{end}}`
 

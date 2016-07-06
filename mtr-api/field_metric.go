@@ -142,7 +142,15 @@ func (f fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		if resolution == "" {
 			resolution = "minute"
 		}
-		if res := f.plot(v.Get("deviceID"), v.Get("typeID"), resolution, b); !res.Ok {
+		if res := f.plot(v.Get("deviceID"), v.Get("typeID"), resolution, ts.Line, b); !res.Ok {
+			return res
+		}
+	case "scatter":
+		resolution := r.URL.Query().Get("resolution")
+		if resolution == "" {
+			resolution = "minute"
+		}
+		if res := f.plot(v.Get("deviceID"), v.Get("typeID"), resolution, ts.Scatter, b); !res.Ok {
 			return res
 		}
 	default:
@@ -160,7 +168,7 @@ func (f fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 plot draws an svg plot to b.
 Valid values for resolution are 'minute', 'five_minutes', 'hour'.
 */
-func (f fieldMetric) plot(deviceID, typeID, resolution string, b *bytes.Buffer) *weft.Result {
+func (f fieldMetric) plot(deviceID, typeID, resolution string, plotter ts.SVGPlot, b *bytes.Buffer) *weft.Result {
 	// we need the devicePK often so read it once.
 	var devicePK int
 	if err := dbR.QueryRow(`SELECT devicePK FROM field.device WHERE deviceID = $1`,
@@ -305,7 +313,7 @@ func (f fieldMetric) plot(deviceID, typeID, resolution string, b *bytes.Buffer) 
 
 	p.AddSeries(ts.Series{Colour: "deepskyblue", Points: pts})
 
-	if err = ts.Line.Draw(p, b); err != nil {
+	if err = plotter.Draw(p, b); err != nil {
 		return weft.InternalServerError(err)
 	}
 
