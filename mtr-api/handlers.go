@@ -81,6 +81,8 @@ func fieldMetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 		return f.delete(r)
 	case "GET":
 		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			return f.proto(r, h, b)
 		default:
 			return f.svg(r, h, b)
 		}
@@ -313,6 +315,8 @@ func dataLatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 		switch r.Header.Get("Accept") {
 		case "text/csv":
 			return d.csv(r, h, b)
+		case "application/x-protobuf":
+			return d.proto(r, h, b)
 		default:
 			return d.svg(r, h, b)
 		}

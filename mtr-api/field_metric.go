@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/mtr/ts"
 	"github.com/GeoNet/weft"
+	"github.com/golang/protobuf/proto"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -164,6 +166,82 @@ func (f fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	return &weft.StatusOK
 }
 
+// proto's query is the same as svg. The difference between them is only output mimetype.
+func (f fieldMetric) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
+		return res
+	}
+
+	v := r.URL.Query()
+	resolution := v.Get("resolution")
+	if resolution == "" {
+		resolution = "minute"
+	}
+
+	deviceID := v.Get("deviceID")
+	typeID := v.Get("typeID")
+	var err error
+
+	var fmr mtrpb.FieldMetricResult
+	fmr.DeviceID = deviceID
+	fmr.TypeID = typeID
+
+	var devicePK int
+	if err = dbR.QueryRow(`SELECT devicePK FROM field.device WHERE deviceID = $1`,
+		deviceID).Scan(&devicePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		return weft.InternalServerError(err)
+	}
+
+	var typePK int
+
+	if err = dbR.QueryRow(`SELECT typePK FROM field.type WHERE typeID = $1`,
+		typeID).Scan(&typePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		return weft.InternalServerError(err)
+	}
+
+	if err := dbR.QueryRow(`SELECT lower,upper FROM field.threshold
+		WHERE devicePK = $1 AND typePK = $2`,
+		devicePK, typePK).Scan(&fmr.Lower, &fmr.Upper); err != nil && err != sql.ErrNoRows {
+		return weft.InternalServerError(err)
+	}
+
+	var rows *sql.Rows
+	rows, err = queryMetricRows(devicePK, typePK, resolution)
+	if err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var fm mtrpb.FieldMetric
+		var t time.Time
+		if err = rows.Scan(&t, &fm.Value); err != nil {
+			return weft.InternalServerError(err)
+		}
+
+		fm.Seconds = t.Unix()
+		fmr.Result = append(fmr.Result, &fm)
+	}
+
+	var by []byte
+
+	if by, err = proto.Marshal(&fmr); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	b.Write(by)
+
+	h.Set("Content-Type", "application/x-protobuf")
+
+	return &weft.StatusOK
+}
+
 /*
 plot draws an svg plot to b.
 Valid values for resolution are 'minute', 'five_minutes', 'hour'.
@@ -246,37 +324,17 @@ func (f fieldMetric) plot(deviceID, typeID, resolution string, plotter ts.SVGPlo
 	case "minute":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
 		p.SetXLabel("12 hours")
-
-		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
-		devicePK = $1 AND typePK = $2
-		AND time > now() - interval '12 hours'
-		GROUP BY date_trunc('`+resolution+`',time)
-		ORDER BY t ASC`,
-			devicePK, typePK)
 	case "five_minutes":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*2), time.Now().UTC())
 		p.SetXLabel("48 hours")
-
-		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
-		 avg(value) FROM field.metric WHERE
-		devicePK = $1 AND typePK = $2
-		AND time > now() - interval '2 days'
-		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
-		ORDER BY t ASC`,
-			devicePK, typePK)
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
-
-		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
-		devicePK = $1 AND typePK = $2
-		AND time > now() - interval '28 days'
-		GROUP BY date_trunc('`+resolution+`',time)
-		ORDER BY t ASC`,
-			devicePK, typePK)
 	default:
 		return weft.BadRequest("invalid resolution")
 	}
+
+	rows, err = queryMetricRows(devicePK, typePK, resolution)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -360,4 +418,40 @@ func (f fieldMetric) spark(deviceID, typeID string, b *bytes.Buffer) *weft.Resul
 	}
 
 	return &weft.StatusOK
+}
+
+func queryMetricRows(devicePK, typePK int, resolution string) (*sql.Rows, error) {
+	var err error
+	var rows *sql.Rows
+
+	switch resolution {
+	case "minute":
+		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
+		devicePK = $1 AND typePK = $2
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('`+resolution+`',time)
+		ORDER BY t ASC`,
+			devicePK, typePK)
+	case "five_minutes":
+		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
+		 avg(value) FROM field.metric WHERE
+		devicePK = $1 AND typePK = $2
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
+		ORDER BY t ASC`,
+			devicePK, typePK)
+	case "hour":
+		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
+		devicePK = $1 AND typePK = $2
+		AND time > now() - interval '28 days'
+		GROUP BY date_trunc('`+resolution+`',time)
+		ORDER BY t ASC`,
+			devicePK, typePK)
+	default:
+		return nil, fmt.Errorf("invalid resolution")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
 }

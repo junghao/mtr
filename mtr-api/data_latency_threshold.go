@@ -108,7 +108,7 @@ func (a dataLatencyThreshold) get(r *http.Request, h http.Header, b *bytes.Buffe
 	typeID := v.Get("typeID")
 	siteID := v.Get("siteID")
 
-	args := []interface{}{}  // empty SQL query args
+	args := []interface{}{} // empty SQL query args
 	sqlQuery := `SELECT siteID, typeID, lower, upper
 		FROM data.latency_threshold
 		JOIN data.site USING (sitepk)
