@@ -35,7 +35,7 @@ var routes = wt.Requests{
 	// add a metric value
 	{ID: wt.L(), URL: "/application/metric?applicationID=test-app&instanceID=test-instance&typeID=1000&value=10000&time=2015-05-14T21:40:30Z", Method: "PUT"},
 
-	// add a counter value
+	// add counter values
 	{ID: wt.L(), URL: "/application/counter?applicationID=test-app&instanceID=test-instance&typeID=200&count=10&time=2015-05-14T21:40:30Z", Method: "PUT"},
 
 	// Add a timer value.

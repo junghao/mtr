@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestCsv(t *testing.T) {
+func TestDataLatencyCsv(t *testing.T) {
 	setup(t)
 	defer teardown()
 

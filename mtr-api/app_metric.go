@@ -31,14 +31,15 @@ func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].ins
 func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
 func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"sourceID"}); !res.Ok {
+	// TODO: sort out options!  Group?
+	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{""}); !res.Ok {
 		return res
 	}
 
 	v := r.URL.Query()
 	applicationID := v.Get("applicationID")
 
-	// getting every time series for each typeID, sorting to individual columns below
+	// getting every time series for each typeID, pivoting to columns below
 	rows, err := dbR.Query(`SELECT time, typeid, count
 			FROM app.counter
 			JOIN app.type USING (typepk)
@@ -46,11 +47,9 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 			AND time > now() - interval '40 days'
 			GROUP BY time, typeid, count
 			ORDER BY time ASC`, applicationID)
-
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
-
 	defer rows.Close()
 
 	type dataPoint struct {
@@ -60,10 +59,10 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	}
 
 	// keep track of all column names to create.
-	colNames := make(map[string]bool) // a map of the key:true/false to keep a set of keys
-	colNames["time"] = true
-	orderedColNames := []string{"time"} // an ordered and unique list of column names
-	// Make a map of maps, ala {time1: {col1: value1, col2: value2, ...}, ... }.  This combines duplicate times with different column values
+	cols := make(map[string]bool) // a map of the key:true/false to keep a set of keys
+	cols["time"] = true
+	orderedCols := []string{"time"} // an ordered and unique list of column names
+	// Make a map of maps like {time1: {col1: value1, col2: value2, ...}, ... }.  This combines duplicate times with different column values
 	values := make(map[time.Time]map[string]int)
 	times := []time.Time{}
 	rowCount := 0
@@ -76,9 +75,9 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 			return weft.InternalServerError(err)
 		}
 
-		if !colNames[pt.typeID] {
-			orderedColNames = append(orderedColNames, pt.typeID)
-			colNames[pt.typeID] = true
+		if !cols[pt.typeID] {
+			orderedCols = append(orderedCols, pt.typeID)
+			cols[pt.typeID] = true
 		}
 
 		if values[pt.dateTime] == nil {
@@ -92,37 +91,38 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	}
 	rows.Close()
 
-	// CSV headers
-	for i, colName := range orderedColNames {
-		b.WriteString(colName)
+	if len(values) > 0 {
 
-		if i < len(orderedColNames)-1 {
-			b.WriteString(",")
-		}
-	}
+		// CSV headers
+		for i, colName := range orderedCols {
+			b.WriteString(colName)
 
-	b.WriteString("\n")
-
-	// CSV data
-	for _, t := range times {
-		for colIdx, colName := range orderedColNames {
-
-			if colName == "time" {
-				b.WriteString(t.Format(DYGRAPH_TIME_FORMAT + ","))
-				continue
-			}
-
-			val := values[t][colName]
-			if val != 0 {
-				b.WriteString(fmt.Sprintf("%d", val))
-			}
-
-			if colIdx < len(orderedColNames)-1 {
+			if i < len(orderedCols)-1 {
 				b.WriteString(",")
 			}
 		}
-
 		b.WriteString("\n")
+
+		// CSV data
+		for _, t := range times {
+
+			b.WriteString(t.Format(DYGRAPH_TIME_FORMAT + ","))
+
+			// 1: because we've already written out the time
+			for colIdx, colName := range orderedCols[1:] {
+
+				val := values[t][colName] // 0 interpreted as value not present
+				if val != 0 {
+					b.WriteString(fmt.Sprintf("%d", val))
+				}
+
+				if colIdx < len(orderedCols)-2 {
+					b.WriteString(",")
+				}
+			}
+
+			b.WriteString("\n")
+		}
 	}
 
 	h.Set("Content-Type", "text/csv")
