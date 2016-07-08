@@ -18,6 +18,13 @@ import (
 //appMetric for get requests.
 type appMetric struct{}
 
+type times []time.Time
+
+// funcs needed to sort a slice of time.Time
+func (t times) Len() int           { return len(t) }
+func (t times) Less(i, j int) bool { return t[i].Before(t[j]) }
+func (t times) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
+
 // InstanceMetric for sorting instances for SVG plots.
 // public for use with sort.
 type InstanceMetric struct {
@@ -31,7 +38,6 @@ func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].ins
 func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
 func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	// TODO: sort out options!  Group?
 	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{""}); !res.Ok {
 		return res
 	}
@@ -39,90 +45,76 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	v := r.URL.Query()
 	applicationID := v.Get("applicationID")
 
-	// getting every time series for each typeID, pivoting to columns below
-	rows, err := dbR.Query(`SELECT time, typeid, count
-			FROM app.counter
-			JOIN app.type USING (typepk)
-			WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
-			AND time > now() - interval '40 days'
-			GROUP BY time, typeid, count
-			ORDER BY time ASC`, applicationID)
-	if err != nil {
-		return weft.InternalServerError(err)
-	}
-	defer rows.Close()
+	// the Plot type holds all the data used to plot svgs, we'll create a CSV from these data
+	var p ts.Plot
 
-	type dataPoint struct {
-		dateTime time.Time
-		typeID   string
-		count    int
+	// TODO: implement all cases for group option
+	switch v.Get("group") {
+	case "counters":
+		if res := a.loadCounters(applicationID, "full", &p); !res.Ok {
+			return res
+		}
+	//case "timers":
+	//case "memory":
+	//case "objects":
+	//case "routines":
+	default:
+		return weft.BadRequest("invalid value for type")
 	}
 
-	// keep track of all column names to create.
-	cols := make(map[string]bool) // a map of the key:true/false to keep a set of keys
-	cols["time"] = true
-	orderedCols := []string{"time"} // an ordered and unique list of column names
-	// Make a map of maps like {time1: {col1: value1, col2: value2, ...}, ... }.  This combines duplicate times with different column values
-	values := make(map[time.Time]map[string]int)
-	times := []time.Time{}
-	rowCount := 0
-
-	// get all column names and store all points, need to traverse all rows
-	var pt dataPoint
-	for rows.Next() {
-		err := rows.Scan(&pt.dateTime, &pt.typeID, &pt.count)
-		if err != nil {
-			return weft.InternalServerError(err)
-		}
-
-		if !cols[pt.typeID] {
-			orderedCols = append(orderedCols, pt.typeID)
-			cols[pt.typeID] = true
-		}
-
-		if values[pt.dateTime] == nil {
-			values[pt.dateTime] = map[string]int{pt.typeID: pt.count}
-			times = append(times, pt.dateTime) // already ordered, we're just keeping a unique list
-		} else {
-			values[pt.dateTime][pt.typeID] = pt.count
-		}
-
-		rowCount++
+	// CSV headers, the first label is always time
+	labels := p.GetLabels()
+	headers := []string{"time"}
+	for _, label := range labels {
+		headers = append(headers, label.Label)
 	}
-	rows.Close()
 
-	if len(values) > 0 {
+	values := make(map[time.Time]map[string]float64)
+	ts := times{} // maintaining an ordered and unique list of times in the map
 
-		// CSV headers
-		for i, colName := range orderedCols {
-			b.WriteString(colName)
+	// add all points to a map to collect duplicate times with different column names
+	allData := p.GetSeries()
+	for i, d := range allData {
+		points := d.Series.Points
+		for _, point := range points {
+			if values[point.DateTime] == nil {
+				ts = append(ts, point.DateTime)
+			}
+			values[point.DateTime] = map[string]float64{labels[i].Label: point.Value}
+		}
+	}
 
-			if i < len(orderedCols)-1 {
+	// CSV headers
+	for i, header := range headers {
+
+		b.WriteString(header)
+
+		if i < len(headers)-1 {
+			b.WriteString(",")
+		}
+	}
+	b.WriteString("\n")
+
+	// CSV data
+	sort.Sort(ts)
+	for _, t := range ts {
+
+		b.WriteString(t.Format(DYGRAPH_TIME_FORMAT + ","))
+
+		// start at index 1: because we've already written out the time
+		for colIdx, colName := range headers[1:] {
+
+			val := values[t][colName] // don't plot values of 0
+			if val != 0.0 {
+				b.WriteString(fmt.Sprintf("%.2f", val))
+			}
+
+			if colIdx < len(headers)-2 {
 				b.WriteString(",")
 			}
 		}
+
 		b.WriteString("\n")
-
-		// CSV data
-		for _, t := range times {
-
-			b.WriteString(t.Format(DYGRAPH_TIME_FORMAT + ","))
-
-			// 1: because we've already written out the time
-			for colIdx, colName := range orderedCols[1:] {
-
-				val := values[t][colName] // 0 interpreted as value not present
-				if val != 0 {
-					b.WriteString(fmt.Sprintf("%d", val))
-				}
-
-				if colIdx < len(orderedCols)-2 {
-					b.WriteString(",")
-				}
-			}
-
-			b.WriteString("\n")
-		}
 	}
 
 	h.Set("Content-Type", "text/csv")
@@ -271,6 +263,14 @@ func (a appMetric) loadCounters(applicationID, resolution string, p *ts.Plot) *w
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time), typePK
 		ORDER BY t ASC`, applicationID)
+	case "full":
+		rows, err = dbR.Query(`SELECT typePK, time, count
+		FROM app.counter
+		JOIN app.type USING (typepk)
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND time > now() - interval '40 days'
+		GROUP BY time, typePK, count
+		ORDER BY time ASC`, applicationID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
@@ -297,7 +297,6 @@ func (a appMetric) loadCounters(applicationID, resolution string, p *ts.Plot) *w
 	var keys []int
 	for k := range pts {
 		keys = append(keys, k)
-
 	}
 
 	sort.Ints(keys)

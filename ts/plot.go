@@ -154,6 +154,10 @@ func (p *Plot) AddSeries(s Series) {
 	p.plt.Data = append(p.plt.Data, data{Series: s})
 }
 
+func (p *Plot) GetSeries() []data {
+	return p.plt.Data
+}
+
 /*
 use to explicitly set the latest value to display on the top right of the plot
 */
@@ -166,6 +170,10 @@ func (p *Plot) SetLatest(pt Point, colour string) {
 func (p *Plot) SetLabels(l Labels) {
 	//sort.Sort(l)
 	p.plt.Labels = l
+}
+
+func (p *Plot) GetLabels() []Label {
+	return p.plt.Labels
 }
 
 func (p *Plot) scaleData() {

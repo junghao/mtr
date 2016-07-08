@@ -56,7 +56,7 @@ func TestAppMetricCsv(t *testing.T) {
 			t.Error(err)
 		}
 
-		expectedVals[ptTime.Format(DYGRAPH_TIME_FORMAT)] = map[string]string{strconv.Itoa(typeIDs[i]): strconv.Itoa(i + 1)}
+		expectedVals[ptTime.Format(DYGRAPH_TIME_FORMAT)] = map[string]string{strconv.Itoa(typeIDs[i]): fmt.Sprintf("%.2f", float64(i+1))}
 		writeTimes[ptTime.Format(DYGRAPH_TIME_FORMAT)] = true
 	}
 
