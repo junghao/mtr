@@ -38,7 +38,7 @@ func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].ins
 func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
 func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{""}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"sourceID"}); !res.Ok {
 		return res
 	}
 
@@ -54,7 +54,20 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 		if res := a.loadCounters(applicationID, "full", &p); !res.Ok {
 			return res
 		}
-	//case "timers":
+	case "timers":
+		sourceID := v.Get("sourceID")
+		if sourceID != "" {
+			// TODO: this isn't done yet, verify output with cmd: curl -H "Accept: text/csv" "http://localhost:8080/app/metric?applicationID=mtr-api&group=timers&sourceID=appMetricHandler.GET"
+			// Also sort out Labels, they still say "max ninety" and such.  Does every point even make sense?
+			if res := a.loadTimersWithSourceID(applicationID, sourceID, "hour", &p); !res.Ok {
+				return res
+			}
+		} else {
+			////TODO: implement full res
+			//if res := a.loadTimers(applicationID, "full", &p); !res.Ok {
+			//	return res
+			//}
+		}
 	//case "memory":
 	//case "objects":
 	//case "routines":
@@ -85,36 +98,30 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	}
 
 	// CSV headers
-	for i, header := range headers {
-
-		b.WriteString(header)
-
-		if i < len(headers)-1 {
-			b.WriteString(",")
-		}
+	if len(values) > 0 {
+		b.WriteString(strings.Join(headers, ",") + "\n")
 	}
-	b.WriteString("\n")
 
 	// CSV data
 	sort.Sort(ts)
 	for _, t := range ts {
 
-		b.WriteString(t.Format(DYGRAPH_TIME_FORMAT + ","))
+		fields := []string{t.Format(DYGRAPH_TIME_FORMAT)}
 
 		// start at index 1: because we've already written out the time
-		for colIdx, colName := range headers[1:] {
+		for _, colName := range headers[1:] {
 
-			val := values[t][colName] // don't plot values of 0
+			val := values[t][colName]
+
+			// don't plot values of 0:
 			if val != 0.0 {
-				b.WriteString(fmt.Sprintf("%.2f", val))
-			}
-
-			if colIdx < len(headers)-2 {
-				b.WriteString(",")
+				fields = append(fields, fmt.Sprintf("%.2f", val))
+			} else {
+				fields = append(fields, "")
 			}
 		}
 
-		b.WriteString("\n")
+		b.WriteString(strings.Join(fields, ",") + "\n")
 	}
 
 	h.Set("Content-Type", "text/csv")
@@ -431,6 +438,13 @@ func (a appMetric) loadTimersWithSourceID(applicationID, sourceID, resolution st
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('hour', time)
 		ORDER BY t ASC`, applicationID, sourceID)
+	case "full":
+		rows, err = dbR.Query(`SELECT time, average, fifty, ninety, count
+		FROM app.timer
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND sourcePK = (SELECT sourcePK from app.source WHERE sourceID = $2)
+		AND time > now() - interval '28 days'
+		ORDER BY time ASC`, applicationID, sourceID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
