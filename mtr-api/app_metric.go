@@ -45,42 +45,52 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	v := r.URL.Query()
 	applicationID := v.Get("applicationID")
 
-	// the Plot type holds all the data used to plot svgs, we'll create a CSV from these data
+	// the Plot type holds all the data used to plot svgs, we'll create a CSV from the labels and point values
 	var p ts.Plot
 
-	// TODO: implement all cases for group option
 	switch v.Get("group") {
 	case "counters":
 		if res := a.loadCounters(applicationID, "full", &p); !res.Ok {
 			return res
 		}
 	case "timers":
+		// "full" resolution for timers is 90th percentile max per minute over fourty days
 		sourceID := v.Get("sourceID")
 		if sourceID != "" {
-			// TODO: this isn't done yet, verify output with cmd: curl -H "Accept: text/csv" "http://localhost:8080/app/metric?applicationID=mtr-api&group=timers&sourceID=appMetricHandler.GET"
-			// Also sort out Labels, they still say "max ninety" and such.  Does every point even make sense?
-			if res := a.loadTimersWithSourceID(applicationID, sourceID, "hour", &p); !res.Ok {
+			if res := a.loadTimersWithSourceID(applicationID, sourceID, "full", &p); !res.Ok {
 				return res
 			}
 		} else {
-			////TODO: implement full res
-			//if res := a.loadTimers(applicationID, "full", &p); !res.Ok {
-			//	return res
-			//}
+			if res := a.loadTimers(applicationID, "full", &p); !res.Ok {
+				return res
+			}
 		}
-	//case "memory":
-	//case "objects":
-	//case "routines":
+	case "memory":
+		if res := a.loadMemory(applicationID, "full", &p); !res.Ok {
+			return res
+		}
+	case "objects":
+		if res := a.loadAppMetrics(applicationID, "full", internal.MemHeapObjects, &p); !res.Ok {
+			return res
+		}
+	case "routines":
+		if res := a.loadAppMetrics(applicationID, "full", internal.Routines, &p); !res.Ok {
+			return res
+		}
 	default:
-		return weft.BadRequest("invalid value for type")
+		return weft.BadRequest("invalid value for group")
 	}
 
 	// CSV headers, the first label is always time
 	labels := p.GetLabels()
-	headers := []string{"time"}
+	var headers []string
 	for _, label := range labels {
 		headers = append(headers, label.Label)
 	}
+
+	// Labels can be in random order so keep a sorted list but with time always at 0
+	sort.Strings(headers)
+	headers = append([]string{"time"}, headers...)
 
 	values := make(map[time.Time]map[string]float64)
 	ts := times{} // maintaining an ordered and unique list of times in the map
@@ -91,9 +101,12 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 		points := d.Series.Points
 		for _, point := range points {
 			if values[point.DateTime] == nil {
+				values[point.DateTime] = map[string]float64{labels[i].Label: point.Value}
 				ts = append(ts, point.DateTime)
+			} else {
+				v := values[point.DateTime]
+				v[labels[i].Label] = point.Value
 			}
-			values[point.DateTime] = map[string]float64{labels[i].Label: point.Value}
 		}
 	}
 
@@ -117,6 +130,7 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 			if val != 0.0 {
 				fields = append(fields, fmt.Sprintf("%.2f", val))
 			} else {
+				// Dygraphs expected an empty CSV field for missing data.
 				fields = append(fields, "")
 			}
 		}
@@ -276,7 +290,6 @@ func (a appMetric) loadCounters(applicationID, resolution string, p *ts.Plot) *w
 		JOIN app.type USING (typepk)
 		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
 		AND time > now() - interval '40 days'
-		GROUP BY time, typePK, count
 		ORDER BY time ASC`, applicationID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
@@ -350,6 +363,12 @@ func (a appMetric) loadTimers(applicationID, resolution string, p *ts.Plot) *wef
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time), sourcePK
 		ORDER BY t ASC`, applicationID)
+	case "full":
+		rows, err = dbR.Query(`SELECT sourcePK, time, ninety, count
+		FROM app.timer
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND time > now() - interval '40 days'
+		ORDER BY time ASC`, applicationID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
@@ -443,7 +462,7 @@ func (a appMetric) loadTimersWithSourceID(applicationID, sourceID, resolution st
 		FROM app.timer
 		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
 		AND sourcePK = (SELECT sourcePK from app.source WHERE sourceID = $2)
-		AND time > now() - interval '28 days'
+		AND time > now() - interval '40 days'
 		ORDER BY time ASC`, applicationID, sourceID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
@@ -515,6 +534,13 @@ func (a appMetric) loadMemory(applicationID, resolution string, p *ts.Plot) *wef
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
 		ORDER BY t ASC`, applicationID)
+	case "full":
+		rows, err = dbR.Query(`SELECT instancePK, typePK, time, value
+		FROM app.metric
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND typePK IN (1000, 1001, 1002)
+		AND time > now() - interval '40 days'
+		ORDER BY time ASC`, applicationID)
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
@@ -599,6 +625,13 @@ func (a appMetric) loadAppMetrics(applicationID, resolution string, typeID inter
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time), typePK, instancePK
 		ORDER BY t ASC`, applicationID, int(typeID))
+	case "full":
+		rows, err = dbR.Query(`SELECT instancePK, typePK, time as t, value
+		FROM app.metric
+		WHERE applicationPK = (SELECT applicationPK from app.application WHERE applicationID = $1)
+		AND typePK = $2
+		AND time > now() - interval '40 days'
+		ORDER BY time ASC`, applicationID, int(typeID))
 	default:
 		return weft.InternalServerError(fmt.Errorf("invalid resolution: %s", resolution))
 	}
