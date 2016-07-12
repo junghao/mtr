@@ -211,7 +211,6 @@ func (f fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	return &weft.StatusOK
 }
 
-
 func (f fieldLatest) geoJSON(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if res := weft.CheckQuery(r, []string{"typeID"}, []string{}); !res.Ok {
 		return res

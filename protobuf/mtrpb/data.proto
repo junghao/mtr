@@ -80,6 +80,32 @@ message DataTypeResult {
     repeated DataType result = 1;
 }
 
+
+// DataLatency represents a series of metric for a site+type.
+message DataLatency {
+    // Unix time in seconds for the metric value (don't need nanos).
+    int64 seconds = 1;
+    // The mean latency
+    float mean = 2;
+    // The fiftieth percentile value.  Might be unknown (0)
+    int32 fifty = 3;
+    // The ninetieth percentile value.  Might be unknown (0)
+    int32 ninety = 4;
+}
+
+message DataLatencyResult {
+    // The siteID for the metric e.g., TAUP
+    string site_iD = 1;
+    // The typeID for the metric e.g., latency.strong
+    string type_iD  = 2;
+    // The upper threshold for the metric to be good.
+    int32 upper = 3;
+    // The lower threshold for the metric to be good.
+    int32 lower = 4;
+
+    repeated DataLatency result = 5;
+}
+
 // DataCompletenessSummary is metrics to let us determine if all the data had arrived.
 // The "completenss" value is derived from:
 //    {count in a period of time (no less than 5 minutes)} / { expected count im a period of time }

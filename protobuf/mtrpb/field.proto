@@ -114,3 +114,27 @@ message FieldStateTag {
 message FieldStateTagResult {
     repeated FieldStateTag result = 1;
 }
+
+message FieldMetric {
+    // Unix time in seconds for the metric value (don't need nanos).
+    int64 seconds = 1;
+    // The value
+    float value = 2;
+}
+
+message FieldMetricResult {
+    // The deviceID for the metric e.g., idu-birchfarm
+    string device_iD = 1;
+    // The typeID for the metric e.g., conn
+    string type_iD  = 2;
+    // Unix time in seconds for the metric value (don't need nanos).
+    int64 seconds = 3;
+    // The value
+    int32 value = 4;
+    // The upper threshold for the metric to be good.
+    int32 upper = 5;
+    // The lower threshold for the metric to be good.
+    int32 lower = 6;
+
+    repeated FieldMetric result = 7;
+}

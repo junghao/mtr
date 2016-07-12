@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/GeoNet/mtr/internal"
+	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/mtr/ts"
 	"github.com/GeoNet/weft"
+	"github.com/golang/protobuf/proto"
 	"github.com/lib/pq"
 	"net/http"
 	"strconv"
@@ -232,9 +234,81 @@ func (a dataLatency) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	return &weft.StatusOK
 }
 
-/*
-plot draws an svg plot to b.  Assumes f.loadPK has been called first.
-*/
+// proto's query is the same as svg. The difference between them is only output mimetype.
+func (a dataLatency) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
+		return res
+	}
+
+	v := r.URL.Query()
+	resolution := v.Get("resolution")
+	if resolution == "" {
+		resolution = "minute"
+	}
+
+	siteID := v.Get("siteID")
+	typeID := v.Get("typeID")
+	var err error
+
+	var sitePK int
+	if err = dbR.QueryRow(`SELECT sitePK FROM data.site WHERE siteID = $1`,
+		siteID).Scan(&sitePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		return weft.InternalServerError(err)
+	}
+
+	var typePK int
+
+	if err = dbR.QueryRow(`SELECT typePK FROM data.type WHERE typeID = $1`,
+		typeID).Scan(&typePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		return weft.InternalServerError(err)
+	}
+
+	var dlr mtrpb.DataLatencyResult
+	dlr.SiteID = siteID
+	dlr.TypeID = typeID
+
+	if err := dbR.QueryRow(`SELECT lower,upper FROM data.latency_threshold
+		WHERE sitePK = $1 AND typePK = $2`,
+		sitePK, typePK).Scan(&dlr.Lower, &dlr.Upper); err != nil && err != sql.ErrNoRows {
+		return weft.InternalServerError(err)
+	}
+
+	rows, err := queryLatencyRows(sitePK, typePK, resolution)
+	if err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var dl mtrpb.DataLatency
+		var t time.Time
+		if err = rows.Scan(&t, &dl.Mean, &dl.Fifty, &dl.Ninety); err != nil {
+			return weft.InternalServerError(err)
+		}
+
+		dl.Seconds = t.Unix()
+		dlr.Result = append(dlr.Result, &dl)
+	}
+
+	var by []byte
+
+	if by, err = proto.Marshal(&dlr); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	b.Write(by)
+
+	h.Set("Content-Type", "application/x-protobuf")
+
+	return &weft.StatusOK
+}
+
 func (a dataLatency) plot(siteID, typeID, resolution string, plotter ts.SVGPlot, b *bytes.Buffer) *weft.Result {
 	var err error
 	// we need the sitePK often so read it once.
@@ -304,41 +378,21 @@ func (a dataLatency) plot(siteID, typeID, resolution string, plotter ts.SVGPlot,
 	case "minute":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
 		p.SetXLabel("12 hours")
-
-		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
-		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '12 hours'
-		GROUP BY date_trunc('`+resolution+`',time)
-		ORDER BY t ASC`,
-			sitePK, typePK)
 	case "five_minutes":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*2), time.Now().UTC())
 		p.SetXLabel("48 hours")
-
-		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
-		 avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
-		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '2 days'
-		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
-		ORDER BY t ASC`,
-			sitePK, typePK)
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
 		p.SetXLabel("4 weeks")
-
-		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
-		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '28 days'
-		GROUP BY date_trunc('`+resolution+`',time)
-		ORDER BY t ASC`,
-			sitePK, typePK)
 	default:
 		return weft.BadRequest("invalid resolution")
 	}
+
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
 
+	rows, err = queryLatencyRows(sitePK, typePK, resolution)
 	defer rows.Close()
 
 	pts := make(map[internal.ID]([]ts.Point))
@@ -446,4 +500,40 @@ func (a dataLatency) spark(siteID, typeID string, b *bytes.Buffer) *weft.Result 
 	}
 
 	return &weft.StatusOK
+}
+
+func queryLatencyRows(sitePK, typePK int, resolution string) (*sql.Rows, error) {
+	var err error
+	var rows *sql.Rows
+	switch resolution {
+	case "minute":
+		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
+		sitePK = $1 AND typePK = $2
+		AND time > now() - interval '12 hours'
+		GROUP BY date_trunc('`+resolution+`',time)
+		ORDER BY t ASC`,
+			sitePK, typePK)
+	case "five_minutes":
+		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
+		 avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
+		sitePK = $1 AND typePK = $2
+		AND time > now() - interval '2 days'
+		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
+		ORDER BY t ASC`,
+			sitePK, typePK)
+	case "hour":
+		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
+		sitePK = $1 AND typePK = $2
+		AND time > now() - interval '28 days'
+		GROUP BY date_trunc('`+resolution+`',time)
+		ORDER BY t ASC`,
+			sitePK, typePK)
+	default:
+		return nil, fmt.Errorf("invalid resolution")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }

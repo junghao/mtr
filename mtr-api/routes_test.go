@@ -165,6 +165,10 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=day", Status: http.StatusBadRequest, Surrogate: "max-age=86400"},
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&plot=spark", Content: "image/svg+xml"},
 	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute&plot=scatter", Content: "image/svg+xml"},
+	// field metric history data
+	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=five_minutes", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=hour", Accept: "application/x-protobuf"},
 
 	// Latest metrics as SVG map
 	//  These only pass with the map180 data in the DB.
@@ -288,6 +292,11 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&plot=spark"},
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute&plot=scatter"},
 
+	// Latency history log
+	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=five_minutes", Accept: "application/x-protobuf"},
+	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", Accept: "application/x-protobuf"},
+
 	// Completeness plots.
 	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=five_minutes"},
 	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=hour"},
@@ -296,7 +305,6 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=five_minutes&plot=scatter"},
 
 	// Tags
-
 	{ID: wt.L(), URL: "/tag/LINZ", Method: "DELETE"},
 
 	// tag must exist before it can be added to a metric
@@ -434,6 +442,50 @@ func TestPlotData(t *testing.T) {
 			t.Error(err)
 		}
 	}
+}
+
+// protobuf of metric history log info.
+func TestFieldMetricHistoryLog(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=minute", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.FieldMetricResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if f.DeviceID != "gps-taupoairport" {
+		t.Errorf("expected gps-taupoairport got %s", f.DeviceID)
+	}
+
+	if f.TypeID != "voltage" {
+		t.Errorf("expected voltage got %s", f.TypeID)
+	}
+
+	if f.Upper != 45000 {
+		t.Errorf("expected 45000 got %d", f.Upper)
+	}
+
+	if f.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", f.Lower)
+	}
+
+	// Not testing number of latency log
 }
 
 // All field metric tags as a protobuf.
@@ -678,6 +730,50 @@ func TestDataLatencySummary(t *testing.T) {
 	if len(f.Result) != 1 {
 		t.Errorf("expected 1 result.")
 	}
+}
+
+// protobuf of latency history log info.
+func TestDataLatencyHistoryLog(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	// Load test data.
+	if err := routes.DoAllStatusOk(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	r := wt.Request{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=minute", Accept: "application/x-protobuf"}
+
+	var b []byte
+	var err error
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	var f mtrpb.DataLatencyResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		t.Error(err)
+	}
+
+	if f.SiteID != "TAUP" {
+		t.Errorf("expected TAUP got %s", f.SiteID)
+	}
+
+	if f.TypeID != "latency.strong" {
+		t.Errorf("expected latency.strong got %s", f.TypeID)
+	}
+
+	if f.Upper != 15000 {
+		t.Errorf("expected 15000 got %d", f.Upper)
+	}
+
+	if f.Lower != 12000 {
+		t.Errorf("expected 12000 got %d", f.Lower)
+	}
+
+	// Not testing number of latency log
 }
 
 // protobuf of latency summary info.
