@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
 	"github.com/GeoNet/mtr/internal"
 	"github.com/GeoNet/mtr/ts"
@@ -49,36 +50,41 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 	v := r.URL.Query()
 	applicationID := v.Get("applicationID")
 
+	resolution := v.Get("resolution")
+	if resolution == "" {
+		resolution = "minute"
+	}
+
 	// the Plot type holds all the data used to plot svgs, we'll create a CSV from the labels and point values
 	var p ts.Plot
 
 	switch v.Get("group") {
 	case "counters":
-		if res := a.loadCounters(applicationID, "full", &p); !res.Ok {
+		if res := a.loadCounters(applicationID, resolution, &p); !res.Ok {
 			return res
 		}
 	case "timers":
 		// "full" resolution for timers is 90th percentile max per minute over fourty days
 		sourceID := v.Get("sourceID")
 		if sourceID != "" {
-			if res := a.loadTimersWithSourceID(applicationID, sourceID, "full", &p); !res.Ok {
+			if res := a.loadTimersWithSourceID(applicationID, sourceID, resolution, &p); !res.Ok {
 				return res
 			}
 		} else {
-			if res := a.loadTimers(applicationID, "full", &p); !res.Ok {
+			if res := a.loadTimers(applicationID, resolution, &p); !res.Ok {
 				return res
 			}
 		}
 	case "memory":
-		if res := a.loadMemory(applicationID, "full", &p); !res.Ok {
+		if res := a.loadMemory(applicationID, resolution, &p); !res.Ok {
 			return res
 		}
 	case "objects":
-		if res := a.loadAppMetrics(applicationID, "full", internal.MemHeapObjects, &p); !res.Ok {
+		if res := a.loadAppMetrics(applicationID, resolution, internal.MemHeapObjects, &p); !res.Ok {
 			return res
 		}
 	case "routines":
-		if res := a.loadAppMetrics(applicationID, "full", internal.Routines, &p); !res.Ok {
+		if res := a.loadAppMetrics(applicationID, resolution, internal.Routines, &p); !res.Ok {
 			return res
 		}
 	default:
@@ -115,23 +121,23 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 	}
 
 	// CSV headers
+	w := csv.NewWriter(b)
 	if len(values) > 0 {
-		b.WriteString(strings.Join(headers, ",") + "\n")
+		w.Write(headers)
 	}
 
 	// CSV data
 	sort.Sort(ts)
 	for _, t := range ts {
 
-		fields := []string{t.Format(DYGRAPH_TIME_FORMAT)}
+		// convert UTC time to local time and print in expected format
+		fields := []string{t.Local().Format(DYGRAPH_TIME_FORMAT)}
 
 		// start at index 1: because we've already written out the time
 		for _, colName := range headers[1:] {
 
-			val := values[t][colName]
-
-			// don't plot values of 0:
-			if val != 0.0 {
+			val, ok := values[t][colName]
+			if ok {
 				fields = append(fields, fmt.Sprintf("%.2f", val))
 			} else {
 				// Dygraphs expected an empty CSV field for missing data.
@@ -139,7 +145,12 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 			}
 		}
 
-		b.WriteString(strings.Join(fields, ",") + "\n")
+		w.Write(fields)
+	}
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return weft.InternalServerError(err)
 	}
 
 	return &weft.StatusOK

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/mtr/ts"
@@ -150,6 +151,74 @@ func fieldMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 			return res
 		}
 	}
+
+	return &weft.StatusOK
+}
+
+func (f fieldMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
+		return res
+	}
+
+	v := r.URL.Query()
+	resolution := v.Get("resolution")
+	if resolution == "" {
+		resolution = "minute"
+	}
+
+	deviceID := v.Get("deviceID")
+	typeID := v.Get("typeID")
+	var err error
+
+	var devicePK int
+	if err = dbR.QueryRow(`SELECT devicePK FROM field.device WHERE deviceID = $1`,
+		deviceID).Scan(&devicePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		fmt.Println("1", err)
+		return weft.InternalServerError(err)
+	}
+
+	var typePK int
+	if err = dbR.QueryRow(`SELECT typePK FROM field.type WHERE typeID = $1`,
+		typeID).Scan(&typePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		fmt.Println("2", err)
+		return weft.InternalServerError(err)
+	}
+
+	var rows *sql.Rows
+	rows, err = queryMetricRows(devicePK, typePK, resolution)
+	if err != nil {
+		fmt.Println("3", err)
+		return weft.InternalServerError(err)
+	}
+
+	w := csv.NewWriter(b)
+	w.Write([]string{"time", "value"})
+
+	defer rows.Close()
+	for rows.Next() {
+		var val float64
+		var t time.Time
+		if err = rows.Scan(&t, &val); err != nil {
+			fmt.Println("4", err)
+			return weft.InternalServerError(err)
+		}
+
+		w.Write([]string{t.Local().Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", val)})
+	}
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		fmt.Println("5", err)
+		return weft.InternalServerError(err)
+	}
+
+	h.Set("Content-Type", "text/csv")
 
 	return &weft.StatusOK
 }
@@ -428,6 +497,14 @@ func queryMetricRows(devicePK, typePK int, resolution string) (*sql.Rows, error)
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
+			devicePK, typePK)
+	case "full":
+		rows, err = dbR.Query(`SELECT time, value
+		FROM field.metric
+		WHERE devicePK = $1
+		AND typePK = $2
+		AND time > now() - interval '40 days'
+		ORDER BY time ASC`,
 			devicePK, typePK)
 	default:
 		return nil, fmt.Errorf("invalid resolution")

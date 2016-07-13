@@ -39,6 +39,10 @@ func compareCsvData(b []byte, expected [][]string, t *testing.T) {
 			continue
 		}
 
+		if len(record) != len(expected[i]) {
+			t.Errorf("length of record %d not equal to expected %d", len(record), len(expected))
+		}
+
 		for f, field := range record {
 			if field != expected[i][f] {
 				t.Errorf("expected '%s' but observed: '%s' (field %d)",
@@ -97,7 +101,7 @@ func TestAppMetricCounterCsv(t *testing.T) {
 		addData(r, t)
 	}
 
-	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=counters", Method: "GET", Accept: "text/csv"}
+	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=counters&resolution=full", Method: "GET", Accept: "text/csv"}
 
 	var b []byte
 	if b, err = r.Do(testServer.URL); err != nil {
@@ -159,7 +163,7 @@ func TestAppMetricTimerCsv(t *testing.T) {
 		addData(r, t)
 	}
 
-	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=timers", Method: "GET", Accept: "text/csv"}
+	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=timers&resolution=full", Method: "GET", Accept: "text/csv"}
 
 	var b []byte
 	var err error
@@ -169,7 +173,7 @@ func TestAppMetricTimerCsv(t *testing.T) {
 	compareCsvData(b, expectedTimerVals, t)
 
 	// do same test with sourceID specified since it uses another SQL query and outputs different results
-	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=timers&sourceID=func-name", Method: "GET", Accept: "text/csv"}
+	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=timers&sourceID=func-name&resolution=full", Method: "GET", Accept: "text/csv"}
 
 	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
@@ -251,7 +255,7 @@ func TestAppMetricMemoryCsv(t *testing.T) {
 		addData(r, t)
 	}
 
-	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=memory", Method: "GET", Accept: "text/csv"}
+	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=memory&resolution=full", Method: "GET", Accept: "text/csv"}
 
 	var err error
 	var b []byte
@@ -313,7 +317,7 @@ func TestAppMetricObjectsCsv(t *testing.T) {
 		addData(r, t)
 	}
 
-	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=objects", Method: "GET", Accept: "text/csv"}
+	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=objects&resolution=full", Method: "GET", Accept: "text/csv"}
 
 	var err error
 	var b []byte
@@ -331,7 +335,7 @@ func TestAppMetricObjectsCsv(t *testing.T) {
 		{objTestData[3].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[3].value)},
 	}
 
-	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=routines", Method: "GET", Accept: "text/csv"}
+	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=routines&resolution=full", Method: "GET", Accept: "text/csv"}
 
 	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)

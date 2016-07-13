@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
 	"github.com/GeoNet/mtr/internal"
 	"github.com/GeoNet/mtr/mtrpb"
@@ -177,34 +178,69 @@ func dataLatencySvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
+	siteID := v.Get("siteID")
+	typeID := v.Get("typeID")
+	resolution := v.Get("resolution")
+	if resolution == "" {
+		resolution = "minute"
+	}
+
 	// read directly from the DB and write out a CSV formatted output (time, val1, val2, etc.)
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT format('%s,%s,%s,%s', to_char(time, 'YYYY/MM/DD HH24:MI:SS'), mean, fifty, ninety)
-		AS csv FROM data.latency
-		WHERE sitePK = (SELECT sitePK FROM data.site WHERE siteID = $1)
-		AND typePK = (SELECT typePK FROM data.type WHERE typeID = $2)
-		AND time > now() - interval '40 days'
-		ORDER BY time ASC`,
-		v.Get("siteID"), v.Get("typeID")); err != nil {
+	var sitePK int
+	if err = dbR.QueryRow(`SELECT sitePK FROM data.site WHERE siteID = $1`,
+		siteID).Scan(&sitePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		fmt.Println(err)
+		return weft.InternalServerError(err)
+	}
+
+	var typePK int
+
+	if err = dbR.QueryRow(`SELECT typePK FROM data.type WHERE typeID = $1`,
+		typeID).Scan(&typePK); err != nil {
+		if err == sql.ErrNoRows {
+			return &weft.NotFound
+		}
+		fmt.Println(err)
+		return weft.InternalServerError(err)
+	}
+
+	rows, err = queryLatencyRows(sitePK, typePK, resolution)
+	if err != nil {
+		fmt.Println(err)
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
 
 	// CSV headers
-	b.WriteString("time,mean,fifty,ninety\n")
+	w := csv.NewWriter(b)
+	w.Write([]string{"time", "mean", "fifty", "ninety"})
 
 	// CSV data
-	var l string
 	for rows.Next() {
-		err := rows.Scan(&l)
+		var dl mtrpb.DataLatency // using a protobuf but just to temporarily hold data
+		var t time.Time
+		err := rows.Scan(&t, &dl.Mean, &dl.Fifty, &dl.Ninety)
 		if err != nil {
+			fmt.Println(err)
 			return weft.InternalServerError(err)
 		}
-		b.WriteString(l + "\n")
+		w.Write([]string{t.Local().Format(DYGRAPH_TIME_FORMAT),
+			fmt.Sprintf("%.2f", float64(dl.Mean)),
+			fmt.Sprintf("%.2f", float64(dl.Fifty)),
+			fmt.Sprintf("%.2f", float64(dl.Ninety))})
 	}
 	rows.Close()
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return weft.InternalServerError(err)
+	}
 
 	return &weft.StatusOK
 }
@@ -496,6 +532,12 @@ func queryLatencyRows(sitePK, typePK int, resolution string) (*sql.Rows, error) 
 		AND time > now() - interval '28 days'
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
+			sitePK, typePK)
+	case "full":
+		rows, err = dbR.Query(`SELECT time, mean, fifty, ninety FROM data.latency WHERE
+		sitePK = $1 AND typePK = $2
+		AND time > now() - interval '28 days'
+		ORDER BY time ASC`,
 			sitePK, typePK)
 	default:
 		return nil, fmt.Errorf("invalid resolution")
