@@ -12,16 +12,7 @@ import (
 	"strconv"
 )
 
-// fieldThreshold - table field.threshold
-// to be considered good metrics must be within the thresholds.
-type fieldThreshold struct {
-}
-
-func (f fieldThreshold) save(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "lower", "upper"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldThresholdPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 	var err error
 
@@ -81,11 +72,7 @@ func (f fieldThreshold) save(r *http.Request) *weft.Result {
 	return weft.InternalServerError(err)
 }
 
-func (f fieldThreshold) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldThresholdDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 
 	v := r.URL.Query()
@@ -100,11 +87,7 @@ func (f fieldThreshold) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (f fieldThreshold) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldThresholdProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -133,8 +116,6 @@ func (f fieldThreshold) proto(r *http.Request, h http.Header, b *bytes.Buffer) *
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

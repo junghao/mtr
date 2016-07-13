@@ -9,15 +9,8 @@ import (
 	"net/http"
 )
 
-type appID struct {
-}
-
 // write a protobuf to b of all applicationid's in app.application
-func (a appID) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func appIdProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -45,8 +38,6 @@ func (a appID) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resu
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

@@ -14,13 +14,7 @@ import (
 	"time"
 )
 
-type dataCompletenessSummary struct{}
-
-func (a dataCompletenessSummary) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
-		return res
-	}
-
+func dataCompletenessSummaryProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	typeID := r.URL.Query().Get("typeID")
 
 	var err error
@@ -80,13 +74,10 @@ func (a dataCompletenessSummary) proto(r *http.Request, h http.Header, b *bytes.
 
 	b.Write(by)
 
-	h.Set("Content-Type", "application/x-protobuf")
-
 	return &weft.StatusOK
 }
 
-// For map
-func (a dataCompletenessSummary) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+func dataCompletenessSummarySvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var rows *sql.Rows
 	var width int
 	var err error
@@ -198,8 +189,6 @@ func (a dataCompletenessSummary) svg(r *http.Request, h http.Header, b *bytes.Bu
 	b.WriteString("</g>")
 
 	b.WriteString("</svg>")
-
-	h.Set("Content-Type", "image/svg+xml")
 
 	return &weft.StatusOK
 }

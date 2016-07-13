@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"github.com/GeoNet/weft"
 	"net/http"
@@ -8,18 +9,10 @@ import (
 	"time"
 )
 
-// applicationCounter - table app.counter
-// things like HTTP requests, messages sent etc.
-type applicationCounter struct{}
-
 // put inserts counters.  application and instance are added
 // to the DB on the fly if required e.g., the first time an
 // application sends a counter from an instance.
-func (a applicationCounter) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "instanceID", "typeID", "time", "count"}, []string{}); !res.Ok {
-		return res
-	}
-
+func applicationCounterPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error

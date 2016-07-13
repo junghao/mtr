@@ -10,15 +10,7 @@ import (
 	"net/http"
 )
 
-// fieldMetricTag - table field.metric_tag
-type fieldMetricTag struct {
-}
-
-func (f fieldMetricTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldMetricTagPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
@@ -50,11 +42,7 @@ func (f fieldMetricTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	return &weft.StatusOK
 }
 
-func (f fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldMetricTagDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	if _, err := db.Exec(`DELETE FROM field.metric_tag
@@ -68,11 +56,7 @@ func (f fieldMetricTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) 
 	return &weft.StatusOK
 }
 
-func (t fieldMetricTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{"deviceID", "typeID"}); !res.Ok {
-		return res
-	}
-
+func fieldMetricTagProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -121,8 +105,6 @@ func (t fieldMetricTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

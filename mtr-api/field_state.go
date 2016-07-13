@@ -11,14 +11,7 @@ import (
 	"time"
 )
 
-type fieldState struct {
-}
-
-func (f fieldState) save(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "time", "value"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldStatePut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	q := r.URL.Query()
 	deviceID := q.Get("deviceID")
 	typeID := q.Get("typeID")
@@ -70,11 +63,7 @@ func (f fieldState) save(r *http.Request) *weft.Result {
 	return weft.InternalServerError(err)
 }
 
-func (f fieldState) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldStateDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	q := r.URL.Query()
 
 	if _, err := db.Exec(`DELETE FROM field.state
@@ -87,11 +76,7 @@ func (f fieldState) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (f fieldState) allProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldStateProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -124,8 +109,6 @@ func (f fieldState) allProto(r *http.Request, h http.Header, b *bytes.Buffer) *w
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

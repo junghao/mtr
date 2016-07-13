@@ -9,14 +9,7 @@ import (
 	"net/http"
 )
 
-type fieldType struct {
-}
-
-func (f fieldType) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldTypeProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -43,8 +36,6 @@ func (f fieldType) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

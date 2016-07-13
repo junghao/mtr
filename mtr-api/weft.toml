@@ -1,0 +1,371 @@
+[[endpoint]]
+uri = "/tag/"
+
+[[endpoint.get]]
+function = "tagProto"
+accept = "application/x-protobuf"
+
+[endpoint.put]
+function = "tagPut"
+
+[endpoint.delete]
+function = "tagDelete"
+
+
+[[endpoint]]
+uri = "/tag"
+
+[[endpoint.get]]
+function = "tagsProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/app"
+
+[[endpoint.get]]
+function = "appIdProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/app/metric"
+
+[[endpoint.get]]
+function = "appMetricSvg"
+accept = "image/svg+xml"
+default = true
+required = ["applicationID", "group"]
+optional = ["resolution", "yrange", "sourceID"]
+
+[[endpoint.get]]
+function = "appMetricCsv"
+accept = "text/csv"
+required = ["applicationID", "group"]
+optional = ["sourceID"]
+
+
+[[endpoint]]
+uri = "/application/metric"
+
+[endpoint.put]
+function = "applicationMetricPut"
+required = ["applicationID", "instanceID", "typeID", "time", "value"]
+
+
+[[endpoint]]
+uri = "/application/counter"
+
+[endpoint.put]
+function = "applicationCounterPut"
+required = ["applicationID", "instanceID", "typeID", "time", "count"]
+
+
+[[endpoint]]
+uri = "/application/timer"
+
+[endpoint.put]
+function = "applicationTimerPut"
+required = ["applicationID", "instanceID", "sourceID", "time", "average", "count", "fifty", "ninety"]
+
+
+[[endpoint]]
+uri = "/field/metric"
+
+[[endpoint.get]]
+function = "fieldMetricProto"
+accept = "application/x-protobuf"
+required = ["deviceID", "typeID"]
+optional = ["resolution"]
+
+[[endpoint.get]]
+function = "fieldMetricSvg"
+accept = "image/svg+xml"
+default = true
+required = ["deviceID", "typeID"]
+optional = ["plot", "resolution"]
+
+[endpoint.put]
+function = "fieldMetricPut"
+required = ["deviceID", "typeID", "time", "value"]
+
+[endpoint.delete]
+function = "fieldMetricDelete"
+required = ["deviceID", "typeID"]
+
+
+[[endpoint]]
+uri = "/field/model"
+
+[endpoint.put]
+function = "fieldModelPut"
+required = ["modelID"]
+
+[endpoint.delete]
+function = "fieldModelDelete"
+required = ["modelID"]
+
+[[endpoint.get]]
+function = "fieldModelProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/field/device"
+
+[endpoint.put]
+function = "fieldDevicePut"
+required = ["deviceID", "modelID", "latitude", "longitude"]
+
+[endpoint.delete]
+function = "fieldDeviceDelete"
+required = ["deviceID"]
+
+[[endpoint.get]]
+function = "fieldDeviceProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/field/type"
+
+[[endpoint.get]]
+function = "fieldTypeProto"
+accept = "application/x-protobuf"
+
+[[endpoint]]
+uri = "/field/metric/summary"
+
+[[endpoint.get]]
+function = "fieldLatestProto"
+accept = "application/x-protobuf"
+optional = ["typeID"]
+
+[[endpoint.get]]
+function = "fieldLatestSvg"
+accept = "image/svg+xml"
+required = ["bbox", "width", "typeID"]
+default = true
+
+[[endpoint.get]]
+function = "fieldLatestGeoJSON"
+accept = "application/vnd.geo+json"
+required = ["typeID"]
+
+
+[[endpoint]]
+uri = "/field/metric/threshold"
+
+[endpoint.put]
+function = "fieldThresholdPut"
+required = ["deviceID", "typeID", "lower", "upper"]
+
+[endpoint.delete]
+function = "fieldThresholdDelete"
+required = ["deviceID", "typeID"]
+
+[[endpoint.get]]
+function = "fieldThresholdProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/field/metric/tag"
+
+[endpoint.put]
+function = "fieldMetricTagPut"
+required = ["deviceID", "typeID", "tag"]
+
+[endpoint.delete]
+function = "fieldMetricTagDelete"
+required = ["deviceID", "typeID", "tag"]
+
+[[endpoint.get]]
+function = "fieldMetricTagProto"
+accept = "application/x-protobuf"
+optional = ["deviceID", "typeID"]
+
+
+[[endpoint]]
+uri = "/field/state"
+
+[endpoint.put]
+function = "fieldStatePut"
+required = ["deviceID", "typeID", "time", "value"]
+
+[endpoint.delete]
+function = "fieldStateDelete"
+required = ["deviceID", "typeID"]
+
+[[endpoint.get]]
+function = "fieldStateProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/field/state/tag"
+
+[endpoint.put]
+function = "fieldStateTagPut"
+required = ["deviceID", "typeID", "tag"]
+
+[endpoint.delete]
+function = "fieldStateTagDelete"
+required = ["deviceID", "typeID", "tag"]
+
+[[endpoint.get]]
+function = "fieldStateTagProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/data/site"
+
+[endpoint.put]
+function = "dataSitePut"
+required = ["siteID", "latitude", "longitude"]
+
+[endpoint.delete]
+function = "dataSiteDelete"
+required = ["siteID"]
+
+[[endpoint.get]]
+function = "dataSiteProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/data/type"
+
+[[endpoint.get]]
+function = "dataTypeProto"
+accept = "application/x-protobuf"
+
+
+[[endpoint]]
+uri = "/data/latency"
+
+[endpoint.put]
+function = "dataLatencyPut"
+required = ["siteID", "typeID", "time", "mean"]
+optional = ["min", "max", "fifty", "ninety"]
+
+[endpoint.delete]
+function = "dataLatencyDelete"
+required = ["siteID", "typeID"]
+
+[[endpoint.get]]
+function = "dataLatencySvg"
+accept = "image/svg+xml"
+required = ["siteID", "typeID"]
+optional = ["plot", "resolution", "yrange"]
+default = true
+
+[[endpoint.get]]
+function = "dataLatencyProto"
+accept = "application/x-protobuf"
+required = ["siteID", "typeID"]
+optional = ["resolution"]
+
+[[endpoint.get]]
+function = "dataLatencyCsv"
+accept = "text/csv"
+required = ["siteID", "typeID"]
+
+
+[[endpoint]]
+uri = "/data/latency/summary"
+
+[[endpoint.get]]
+function = "dataLatencySummarySvg"
+accept = "image/svg+xml"
+required = ["bbox", "width", "typeID"]
+default = true
+
+[[endpoint.get]]
+function = "dataLatencySummaryProto"
+accept = "application/x-protobuf"
+optional = ["typeID"]
+
+
+[[endpoint]]
+uri = "/data/latency/tag"
+
+[endpoint.put]
+function = "dataLatencyTagPut"
+required = ["siteID", "typeID", "tag"]
+
+[endpoint.delete]
+function = "dataLatencyTagDelete"
+required = ["siteID", "typeID", "tag"]
+
+[[endpoint.get]]
+function = "dataLatencyTagProto"
+accept = "application/x-protobuf"
+optional = ["siteID", "typeID"]
+
+
+[[endpoint]]
+uri = "/data/latency/threshold"
+
+[endpoint.put]
+function = "dataLatencyThresholdPut"
+required = ["siteID", "typeID", "lower", "upper"]
+
+[endpoint.delete]
+function = "dataLatencyThresholdDelete"
+required = ["siteID", "typeID"]
+
+[[endpoint.get]]
+function = "dataLatencyThresholdProto"
+accept = "application/x-protobuf"
+optional = ["typeID", "siteID"]
+
+
+[[endpoint]]
+uri = "/data/completeness"
+
+[endpoint.put]
+function = "dataCompletenessPut"
+required = ["siteID", "typeID", "time", "count"]
+
+[endpoint.delete]
+function = "dataCompletenessDelete"
+required = ["siteID", "typeID"]
+
+[[endpoint.get]]
+function = "dataCompletenessSvg"
+accept = "image/svg+xml"
+default = true
+required = ["typeID", "siteID"]
+optional = ["plot", "resolution", "yrange"]
+
+
+[[endpoint]]
+uri = "/data/completeness/summary"
+
+[[endpoint.get]]
+function = "dataCompletenessSummarySvg"
+accept = "image/svg+xml"
+default = true
+
+[[endpoint.get]]
+function = "dataCompletenessSummaryProto"
+accept = "application/x-protobuf"
+optional = ["typeID"]
+
+
+[[endpoint]]
+uri = "/data/completeness/tag"
+
+[endpoint.put]
+function = "dataCompletenessTagPut"
+required = ["siteID", "typeID", "tag"]
+
+[endpoint.delete]
+function = "dataCompletenessTagDelete"
+required = ["siteID", "typeID", "tag"]
+
+[[endpoint.get]]
+function = "dataCompletenessTagProto"
+accept = "application/x-protobuf"

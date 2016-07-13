@@ -21,11 +21,7 @@ var statusTooManyRequests = weft.Result{Ok: false, Code: http.StatusTooManyReque
 type fieldMetric struct {
 }
 
-func (f fieldMetric) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "time", "value"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldMetricPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
@@ -97,11 +93,7 @@ func (f fieldMetric) put(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (f fieldMetric) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldMetricDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	deviceID := v.Get("deviceID")
@@ -131,10 +123,8 @@ func (f fieldMetric) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (f fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"plot", "resolution"}); !res.Ok {
-		return res
-	}
+func fieldMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	f := fieldMetric{}
 
 	v := r.URL.Query()
 
@@ -161,17 +151,11 @@ func (f fieldMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		}
 	}
 
-	h.Set("Content-Type", "image/svg+xml")
-
 	return &weft.StatusOK
 }
 
 // proto's query is the same as svg. The difference between them is only output mimetype.
-func (f fieldMetric) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
-		return res
-	}
-
+func fieldMetricProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 	resolution := v.Get("resolution")
 	if resolution == "" {
@@ -236,8 +220,6 @@ func (f fieldMetric) proto(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

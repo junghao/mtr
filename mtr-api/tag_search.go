@@ -18,11 +18,7 @@ type tagSearch struct {
 	tagResult mtrpb.TagSearchResult
 }
 
-func (a *tagSearch) allProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func tagsProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -50,15 +46,11 @@ func (a *tagSearch) allProto(r *http.Request, h http.Header, b *bytes.Buffer) *w
 
 	b.Write(by)
 
-	h.Set("Content-Type", "application/x-protobuf")
-
 	return &weft.StatusOK
 }
 
-func (a *tagSearch) singleProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
+func tagProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	var a = &tagSearch{}
 
 	a.tag = strings.TrimPrefix(r.URL.Path, "/tag/")
 
@@ -91,8 +83,6 @@ func (a *tagSearch) singleProto(r *http.Request, h http.Header, b *bytes.Buffer)
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

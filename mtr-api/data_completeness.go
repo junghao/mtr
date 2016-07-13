@@ -13,13 +13,7 @@ import (
 	"time"
 )
 
-type dataCompleteness struct{}
-
-func (a dataCompleteness) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "time", "count"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataCompletenessPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
@@ -93,11 +87,7 @@ func (a dataCompleteness) put(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a dataCompleteness) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataCompletenessDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	siteID := v.Get("siteID")
@@ -127,11 +117,7 @@ func (a dataCompleteness) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a dataCompleteness) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"plot", "resolution", "yrange"}); !res.Ok {
-		return res
-	}
-
+func dataCompletenessSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	switch r.URL.Query().Get("plot") {
@@ -140,7 +126,7 @@ func (a dataCompleteness) svg(r *http.Request, h http.Header, b *bytes.Buffer) *
 		if resolution == "" {
 			resolution = "minute"
 		}
-		if res := a.plot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Line, b); !res.Ok {
+		if res := dataCompletenessPlot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Line, b); !res.Ok {
 			return res
 		}
 	case "scatter":
@@ -148,16 +134,14 @@ func (a dataCompleteness) svg(r *http.Request, h http.Header, b *bytes.Buffer) *
 		if resolution == "" {
 			resolution = "minute"
 		}
-		if res := a.plot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Scatter, b); !res.Ok {
+		if res := dataCompletenessPlot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Scatter, b); !res.Ok {
 			return res
 		}
 	default:
-		if res := a.spark(v.Get("siteID"), v.Get("typeID"), b); !res.Ok {
+		if res := dataCompletenessSpark(v.Get("siteID"), v.Get("typeID"), b); !res.Ok {
 			return res
 		}
 	}
-
-	h.Set("Content-Type", "image/svg+xml")
 
 	return &weft.StatusOK
 }
@@ -165,7 +149,7 @@ func (a dataCompleteness) svg(r *http.Request, h http.Header, b *bytes.Buffer) *
 /*
 plot draws an svg plot to b.  Assumes f.loadPK has been called first.
 */
-func (a dataCompleteness) plot(siteID, typeID, resolution string, plotter ts.SVGPlot, b *bytes.Buffer) *weft.Result {
+func dataCompletenessPlot(siteID, typeID, resolution string, plotter ts.SVGPlot, b *bytes.Buffer) *weft.Result {
 	var err error
 	// we need the sitePK often so read it once.
 	var sitePK int
@@ -302,7 +286,7 @@ func (a dataCompleteness) plot(siteID, typeID, resolution string, plotter ts.SVG
 /*
 spark draws an svg spark line to b.  Assumes f.loadPK has been called first.
 */
-func (a dataCompleteness) spark(siteID, typeID string, b *bytes.Buffer) *weft.Result {
+func dataCompletenessSpark(siteID, typeID string, b *bytes.Buffer) *weft.Result {
 	var p ts.Plot
 
 	p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())

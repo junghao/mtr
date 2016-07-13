@@ -10,16 +10,7 @@ import (
 	"net/http"
 )
 
-// This code is virtually identical to field_metric_tag.go.  We might be able to unify these.
-
-type fieldStateTag struct {
-}
-
-func (f fieldStateTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldStateTagPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
@@ -51,11 +42,7 @@ func (f fieldStateTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 	return &weft.StatusOK
 }
 
-func (f fieldStateTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID", "tag"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldStateTagDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	if _, err := db.Exec(`DELETE FROM field.state_tag
@@ -69,11 +56,7 @@ func (f fieldStateTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *
 	return &weft.StatusOK
 }
 
-func (t fieldStateTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldStateTagProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -104,8 +87,6 @@ func (t fieldStateTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

@@ -14,15 +14,8 @@ import (
 	"time"
 )
 
-type dataLatencySummary struct {
-}
-
 // TODO: returns weft.NotFound when query result is empty?
-func (d dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
-		return res
-	}
-
+func dataLatencySummaryProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	typeID := r.URL.Query().Get("typeID")
 
 	var err error
@@ -75,16 +68,10 @@ func (d dataLatencySummary) proto(r *http.Request, h http.Header, b *bytes.Buffe
 
 	b.Write(by)
 
-	h.Set("Content-Type", "application/x-protobuf")
-
 	return &weft.StatusOK
 }
 
-func (d dataLatencySummary) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"bbox", "width", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataLatencySummarySvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var rows *sql.Rows
 	var width int
 	var err error
@@ -199,8 +186,6 @@ func (d dataLatencySummary) svg(r *http.Request, h http.Header, b *bytes.Buffer)
 	b.WriteString("</g>")
 
 	b.WriteString("</svg>")
-
-	h.Set("Content-Type", "image/svg+xml")
 
 	return &weft.StatusOK
 }
