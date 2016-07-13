@@ -24,6 +24,8 @@ type mtrUiPage struct {
 	Tags          []string
 	fieldResult   []*mtrpb.FieldMetricSummary
 	dataResult    []*mtrpb.DataLatencySummary
+	FieldLog      *mtrpb.FieldMetricResult
+	LatencyLog    *mtrpb.DataLatencyResult
 	param         string
 }
 

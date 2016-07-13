@@ -166,6 +166,25 @@
         </ul>
     </div>
 </div>
+{{if .FieldLog}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        {{$upper:=.FieldLog.Upper}}
+        {{$lower:=.FieldLog.Lower}}
+        <h4>Uppeer:{{$upper}}, Lower:{{$lower}}</h4>
+        <table class="history-log">
+            <thead><tr><th>time</th><th>value</th></tr></thead>
+            <tbody>
+            {{range .FieldLog.Result}}
+            <tr style="color:{{fieldColour . $lower $upper}}">
+                <td>{{rfc3339str .Seconds}}</td><td>{{.Value}}</td>
+            </tr>
+            {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}
 {{end}}
 
 {{define "app_plot_res"}}
@@ -205,6 +224,25 @@
         </ul>
     </div>
 </div>
+{{if .LatencyLog}}
+<div class="row">
+    <div class="col-xs-12 col-md-12">
+        {{$upper:=.LatencyLog.Upper}}
+        {{$lower:=.LatencyLog.Lower}}
+        <h4>Uppeer:{{$upper}}, Lower:{{$lower}}</h4>
+        <table class="history-log">
+            <thead><tr><th>time</th><th>mean</th><th>fifty</th><th>ninety</th></tr></thead>
+            <tbody>
+            {{range .LatencyLog.Result}}
+            <tr style="color:{{latencyColour . $lower $upper}}">
+                <td>{{rfc3339str .Seconds}}</td><td>{{.Mean}}</td><td>{{.Fifty}}</td><td>{{.Ninety}}</td>
+            </tr>
+            {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}
 {{end}}
 
 {{define "data_completeness_plot"}}
