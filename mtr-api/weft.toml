@@ -42,7 +42,7 @@ optional = ["resolution", "yrange", "sourceID"]
 function = "appMetricCsv"
 accept = "text/csv"
 required = ["applicationID", "group"]
-optional = ["sourceID"]
+optional = ["sourceID", "resolution"]
 
 
 [[endpoint]]
@@ -84,6 +84,12 @@ accept = "image/svg+xml"
 default = true
 required = ["deviceID", "typeID"]
 optional = ["plot", "resolution"]
+
+[[endpoint.get]]
+function = "fieldMetricCsv"
+accept = "text/csv"
+required = ["deviceID", "typeID"]
+optional = ["resolution"]
 
 [endpoint.put]
 function = "fieldMetricPut"
@@ -271,6 +277,7 @@ optional = ["resolution"]
 function = "dataLatencyCsv"
 accept = "text/csv"
 required = ["siteID", "typeID"]
+optional = ["resolution"]
 
 
 [[endpoint]]

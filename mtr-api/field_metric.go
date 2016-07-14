@@ -155,11 +155,7 @@ func fieldMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	return &weft.StatusOK
 }
 
-func (f fieldMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
-		return res
-	}
-
+func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 	resolution := v.Get("resolution")
 	if resolution == "" {
@@ -176,7 +172,6 @@ func (f fieldMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		if err == sql.ErrNoRows {
 			return &weft.NotFound
 		}
-		fmt.Println("1", err)
 		return weft.InternalServerError(err)
 	}
 
@@ -186,14 +181,12 @@ func (f fieldMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		if err == sql.ErrNoRows {
 			return &weft.NotFound
 		}
-		fmt.Println("2", err)
 		return weft.InternalServerError(err)
 	}
 
 	var rows *sql.Rows
 	rows, err = queryMetricRows(devicePK, typePK, resolution)
 	if err != nil {
-		fmt.Println("3", err)
 		return weft.InternalServerError(err)
 	}
 
@@ -205,7 +198,6 @@ func (f fieldMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		var val float64
 		var t time.Time
 		if err = rows.Scan(&t, &val); err != nil {
-			fmt.Println("4", err)
 			return weft.InternalServerError(err)
 		}
 
@@ -214,11 +206,8 @@ func (f fieldMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 
 	w.Flush()
 	if err := w.Error(); err != nil {
-		fmt.Println("5", err)
 		return weft.InternalServerError(err)
 	}
-
-	h.Set("Content-Type", "text/csv")
 
 	return &weft.StatusOK
 }

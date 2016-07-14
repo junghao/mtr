@@ -32,13 +32,13 @@ func TestFieldMetricCsv(t *testing.T) {
 
 	now := time.Now().UTC()
 	testData := []testPoint{
-		testPoint{time: now, value: 1.0}, // can only use one point due to rate limiting in put method
+		{time: now, value: 1.0}, // can only use one point due to rate limiting in put method
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
 	expectedVals := [][]string{
-		[]string{""}, // header line, ignored in test.  Should be time, value
-		[]string{testData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testData[0].value)},
+		{""}, // header line, ignored in test.  Should be time, value
+		{testData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testData[0].value)},
 	}
 
 	for _, td := range testData {

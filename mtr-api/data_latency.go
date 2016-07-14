@@ -195,7 +195,6 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		if err == sql.ErrNoRows {
 			return &weft.NotFound
 		}
-		fmt.Println(err)
 		return weft.InternalServerError(err)
 	}
 
@@ -206,13 +205,11 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		if err == sql.ErrNoRows {
 			return &weft.NotFound
 		}
-		fmt.Println(err)
 		return weft.InternalServerError(err)
 	}
 
 	rows, err = queryLatencyRows(sitePK, typePK, resolution)
 	if err != nil {
-		fmt.Println(err)
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
@@ -227,7 +224,6 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		var t time.Time
 		err := rows.Scan(&t, &dl.Mean, &dl.Fifty, &dl.Ninety)
 		if err != nil {
-			fmt.Println(err)
 			return weft.InternalServerError(err)
 		}
 		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT),
