@@ -12,15 +12,7 @@ import (
 	"strconv"
 )
 
-// dataSite - table data.site
-// data is recorded at a site which is located at a point.
-type dataSite struct{}
-
-func (a dataSite) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "latitude", "longitude"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataSitePut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	siteID := v.Get("siteID")
@@ -73,11 +65,7 @@ func (a dataSite) put(r *http.Request) *weft.Result {
 	return weft.InternalServerError(err)
 }
 
-func (a dataSite) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataSiteDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if _, err := db.Exec(`DELETE FROM data.site where siteID = $1`, r.URL.Query().Get("siteID")); err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -85,11 +73,7 @@ func (a dataSite) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a dataSite) allProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataSiteProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -115,8 +99,6 @@ func (a dataSite) allProto(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

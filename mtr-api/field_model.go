@@ -10,16 +10,7 @@ import (
 	"net/http"
 )
 
-// fieldModel - table field.model
-// field devices have a model.
-type fieldModel struct {
-}
-
-func (f fieldModel) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"modelID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldModelPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if _, err := db.Exec(`INSERT INTO field.model(modelID) VALUES($1)`, r.URL.Query().Get("modelID")); err != nil {
 		if err, ok := err.(*pq.Error); ok && err.Code == errorUniqueViolation {
 			// ignore unique constraint errors
@@ -31,11 +22,7 @@ func (f fieldModel) put(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (f fieldModel) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"modelID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldModelDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if _, err := db.Exec(`DELETE FROM field.model where modelID = $1`, r.URL.Query().Get("modelID")); err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -43,11 +30,7 @@ func (f fieldModel) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (f fieldModel) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldModelProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -75,8 +58,6 @@ func (f fieldModel) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

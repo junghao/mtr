@@ -1,21 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"github.com/GeoNet/weft"
 	"github.com/lib/pq"
 	"net/http"
 	"strings"
 )
 
-// tag - table mtr.tag
-// tags can be applied metrics, latencies etc.
-type tag struct{}
-
-func (a tag) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func tagPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	tag := strings.TrimPrefix(r.URL.Path, "/tag/")
 
 	if tag == "" {
@@ -33,11 +26,7 @@ func (a tag) put(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a tag) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func tagDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	tag := strings.TrimPrefix(r.URL.Path, "/tag/")
 
 	if tag == "" {

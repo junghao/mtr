@@ -10,14 +10,7 @@ import (
 	"net/http"
 )
 
-type dataCompletenessTag struct {
-}
-
-func (a dataCompletenessTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataCompletenessTagPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
@@ -49,11 +42,7 @@ func (a dataCompletenessTag) put(r *http.Request, h http.Header, b *bytes.Buffer
 	return &weft.StatusOK
 }
 
-func (a dataCompletenessTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataCompletenessTagDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	if _, err := db.Exec(`DELETE FROM data.completeness_tag
@@ -67,11 +56,7 @@ func (a dataCompletenessTag) delete(r *http.Request, h http.Header, b *bytes.Buf
 	return &weft.StatusOK
 }
 
-func (a dataCompletenessTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataCompletenessTagProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -102,8 +87,6 @@ func (a dataCompletenessTag) all(r *http.Request, h http.Header, b *bytes.Buffer
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

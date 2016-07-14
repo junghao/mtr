@@ -74,20 +74,20 @@ func TestAppMetricCounterCsv(t *testing.T) {
 
 	now := time.Now().UTC()
 	testCounterData := []testPoint{
-		testPoint{typeID: http.StatusOK, count: 1.0, time: now},
-		testPoint{typeID: http.StatusBadRequest, count: 2.0, time: now}, // add a different typeID at the same time as previous typeID
-		testPoint{typeID: http.StatusNotFound, count: 1.0, time: now.Add(time.Second)},
-		testPoint{typeID: http.StatusBadRequest, count: 2.0, time: now.Add(time.Second * 2)},
-		testPoint{typeID: http.StatusInternalServerError, count: 3.0, time: now.Add(time.Second * 5)},
+		{typeID: http.StatusOK, count: 1.0, time: now},
+		{typeID: http.StatusBadRequest, count: 2.0, time: now}, // add a different typeID at the same time as previous typeID
+		{typeID: http.StatusNotFound, count: 1.0, time: now.Add(time.Second)},
+		{typeID: http.StatusBadRequest, count: 2.0, time: now.Add(time.Second * 2)},
+		{typeID: http.StatusInternalServerError, count: 3.0, time: now.Add(time.Second * 5)},
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
 	expectedVals := [][]string{
-		[]string{""}, // header line, ignored in test.  Should be time, statusOK, statusBadRequest, StatusNotFound, StatusInternalServerError
-		[]string{testCounterData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testCounterData[0].count), fmt.Sprintf("%.2f", testCounterData[1].count), "", ""},
-		[]string{testCounterData[2].time.Format(DYGRAPH_TIME_FORMAT), "", "", fmt.Sprintf("%.2f", testCounterData[2].count), ""},
-		[]string{testCounterData[3].time.Format(DYGRAPH_TIME_FORMAT), "", fmt.Sprintf("%.2f", testCounterData[3].count), "", ""},
-		[]string{testCounterData[4].time.Format(DYGRAPH_TIME_FORMAT), "", "", "", fmt.Sprintf("%.2f", testCounterData[4].count)},
+		{""}, // header line, ignored in test.  Should be time, statusOK, statusBadRequest, StatusNotFound, StatusInternalServerError
+		{testCounterData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testCounterData[0].count), fmt.Sprintf("%.2f", testCounterData[1].count), "", ""},
+		{testCounterData[2].time.Format(DYGRAPH_TIME_FORMAT), "", "", fmt.Sprintf("%.2f", testCounterData[2].count), ""},
+		{testCounterData[3].time.Format(DYGRAPH_TIME_FORMAT), "", fmt.Sprintf("%.2f", testCounterData[3].count), "", ""},
+		{testCounterData[4].time.Format(DYGRAPH_TIME_FORMAT), "", "", "", fmt.Sprintf("%.2f", testCounterData[4].count)},
 	}
 
 	for _, td := range testCounterData {
@@ -133,22 +133,22 @@ func TestAppMetricTimerCsv(t *testing.T) {
 
 	now := time.Now().UTC()
 	timerTestData := []timerTest{
-		timerTest{appId: "func-name", count: 1, average: 30, fifty: 73, ninety: 81, time: now},
-		timerTest{appId: "func-name2", count: 3, average: 32, fifty: 57, ninety: 59, time: now}, // same time as above but different appId
-		timerTest{appId: "func-name3", count: 6, average: 31, fifty: 76, ninety: 82, time: now},
-		timerTest{appId: "func-name", count: 4, average: 36, fifty: 73, ninety: 78, time: now.Add(time.Second * 2)},
-		timerTest{appId: "func-name", count: 2, average: 33, fifty: 76, ninety: 93, time: now.Add(time.Second * 3)},
-		timerTest{appId: "func-name", count: 9, average: 38, fifty: 73, ninety: 91, time: now.Add(time.Second * 7)},
+		{appId: "func-name", count: 1, average: 30, fifty: 73, ninety: 81, time: now},
+		{appId: "func-name2", count: 3, average: 32, fifty: 57, ninety: 59, time: now}, // same time as above but different appId
+		{appId: "func-name3", count: 6, average: 31, fifty: 76, ninety: 82, time: now},
+		{appId: "func-name", count: 4, average: 36, fifty: 73, ninety: 78, time: now.Add(time.Second * 2)},
+		{appId: "func-name", count: 2, average: 33, fifty: 76, ninety: 93, time: now.Add(time.Second * 3)},
+		{appId: "func-name", count: 9, average: 38, fifty: 73, ninety: 91, time: now.Add(time.Second * 7)},
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
 	expectedTimerVals := [][]string{
-		[]string{""}, // header line, ignored in test.  Should be: time, func-name, func-name2, func-name3.  Only one measurement per metric
-		[]string{timerTestData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", timerTestData[0].ninety),
+		{""}, // header line, ignored in test.  Should be: time, func-name, func-name2, func-name3.  Only one measurement per metric
+		{timerTestData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", timerTestData[0].ninety),
 			fmt.Sprintf("%.2f", timerTestData[1].ninety), fmt.Sprintf("%.2f", timerTestData[2].ninety)},
-		[]string{timerTestData[3].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", timerTestData[3].ninety), "", ""},
-		[]string{timerTestData[4].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", timerTestData[4].ninety), "", ""},
-		[]string{timerTestData[5].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", timerTestData[5].ninety), "", ""},
+		{timerTestData[3].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", timerTestData[3].ninety), "", ""},
+		{timerTestData[4].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", timerTestData[4].ninety), "", ""},
+		{timerTestData[5].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", timerTestData[5].ninety), "", ""},
 	}
 
 	// Add timer values
@@ -176,20 +176,20 @@ func TestAppMetricTimerCsv(t *testing.T) {
 	}
 
 	expectedTimerSrcVals := [][]string{
-		[]string{""}, // header line, ignored in test.  Should be: time, func-name.
-		[]string{timerTestData[0].time.Format(DYGRAPH_TIME_FORMAT),
+		{""}, // header line, ignored in test.  Should be: time, func-name.
+		{timerTestData[0].time.Format(DYGRAPH_TIME_FORMAT),
 			fmt.Sprintf("%.2f", timerTestData[0].average),
 			fmt.Sprintf("%.2f", timerTestData[0].fifty),
 			fmt.Sprintf("%.2f", timerTestData[0].ninety)},
-		[]string{timerTestData[3].time.Format(DYGRAPH_TIME_FORMAT),
+		{timerTestData[3].time.Format(DYGRAPH_TIME_FORMAT),
 			fmt.Sprintf("%.2f", timerTestData[3].average),
 			fmt.Sprintf("%.2f", timerTestData[3].fifty),
 			fmt.Sprintf("%.2f", timerTestData[3].ninety)},
-		[]string{timerTestData[4].time.Format(DYGRAPH_TIME_FORMAT),
+		{timerTestData[4].time.Format(DYGRAPH_TIME_FORMAT),
 			fmt.Sprintf("%.2f", timerTestData[4].average),
 			fmt.Sprintf("%.2f", timerTestData[4].fifty),
 			fmt.Sprintf("%.2f", timerTestData[4].ninety)},
-		[]string{timerTestData[5].time.Format(DYGRAPH_TIME_FORMAT),
+		{timerTestData[5].time.Format(DYGRAPH_TIME_FORMAT),
 			fmt.Sprintf("%.2f", timerTestData[5].average),
 			fmt.Sprintf("%.2f", timerTestData[5].fifty),
 			fmt.Sprintf("%.2f", timerTestData[5].ninety)},
@@ -225,21 +225,21 @@ func TestAppMetricMemoryCsv(t *testing.T) {
 	//applicationID=test-app   instanceID=test-instance    typeID=1000    value=10000    time=2015-05-14T21:40:30Z"
 	now := time.Now().UTC()
 	memTestData := []memoryTest{
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 10, time: now},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 9, time: now.Add(time.Second)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 8, time: now.Add(time.Second * 2)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 7, time: now.Add(time.Second * 3)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 6, time: now.Add(time.Second * 6)},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 10, time: now},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 9, time: now.Add(time.Second)},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 8, time: now.Add(time.Second * 2)},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 7, time: now.Add(time.Second * 3)},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 6, time: now.Add(time.Second * 6)},
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
 	expectedMemVals := [][]string{
-		[]string{""}, // header line, ignored in test.
-		[]string{memTestData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[0].value)},
-		[]string{memTestData[1].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[1].value)},
-		[]string{memTestData[2].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[2].value)},
-		[]string{memTestData[3].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[3].value)},
-		[]string{memTestData[4].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[4].value)},
+		{""}, // header line, ignored in test.
+		{memTestData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[0].value)},
+		{memTestData[1].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[1].value)},
+		{memTestData[2].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[2].value)},
+		{memTestData[3].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[3].value)},
+		{memTestData[4].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", memTestData[4].value)},
 	}
 
 	// Add timer values
@@ -288,20 +288,20 @@ func TestAppMetricObjectsCsv(t *testing.T) {
 	// handling objects and routines in the same test since it's the same method being exercised
 	now := time.Now().UTC()
 	objTestData := []memoryTest{
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapObjects), value: 8, time: now.Add(time.Second)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapObjects), value: 12, time: now.Add(time.Second * 2)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: int(internal.Routines), value: 1, time: now.Add(time.Second * 3)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: int(internal.Routines), value: 3, time: now.Add(time.Second * 4)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemSys), value: 10, time: now.Add(time.Second * 5)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapAlloc), value: 9, time: now.Add(time.Second * 6)},
-		memoryTest{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapSys), value: 7, time: now.Add(time.Second * 7)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapObjects), value: 8, time: now.Add(time.Second)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapObjects), value: 12, time: now.Add(time.Second * 2)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.Routines), value: 1, time: now.Add(time.Second * 3)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.Routines), value: 3, time: now.Add(time.Second * 4)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemSys), value: 10, time: now.Add(time.Second * 5)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapAlloc), value: 9, time: now.Add(time.Second * 6)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapSys), value: 7, time: now.Add(time.Second * 7)},
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
 	expectedObjValues := [][]string{
-		[]string{""}, // header line, ignored in test.
-		[]string{objTestData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[0].value)},
-		[]string{objTestData[1].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[1].value)},
+		{""}, // header line, ignored in test.
+		{objTestData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[0].value)},
+		{objTestData[1].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[1].value)},
 	}
 
 	// Add timer values
@@ -326,9 +326,9 @@ func TestAppMetricObjectsCsv(t *testing.T) {
 	// test again for number of goroutines
 
 	expectedRoutineValues := [][]string{
-		[]string{""}, // header line, ignored in test.
-		[]string{objTestData[2].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[2].value)},
-		[]string{objTestData[3].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[3].value)},
+		{""}, // header line, ignored in test.
+		{objTestData[2].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[2].value)},
+		{objTestData[3].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", objTestData[3].value)},
 	}
 
 	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=routines", Method: "GET", Accept: "text/csv"}

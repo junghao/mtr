@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"github.com/GeoNet/weft"
 	"net/http"
@@ -8,19 +9,10 @@ import (
 	"time"
 )
 
-// applicationTimer app.timer
-// for timing things.
-type applicationTimer struct{}
-
 // put inserts timers.  application and instance are added
 // to the DB on the fly if required e.g., the first time an
 // application sends a timer from an instance.
-func (a applicationTimer) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "instanceID", "sourceID", "time", "average",
-		"count", "fifty", "ninety"}, []string{}); !res.Ok {
-		return res
-	}
-
+func applicationTimerPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error

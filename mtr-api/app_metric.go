@@ -33,14 +33,18 @@ type InstanceMetric struct {
 
 type InstanceMetrics []InstanceMetric
 
-func (l InstanceMetrics) Len() int           { return len(l) }
-func (l InstanceMetrics) Less(i, j int) bool { return l[i].instancePK < l[j].instancePK }
-func (l InstanceMetrics) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
+func (l InstanceMetrics) Len() int {
+	return len(l)
+}
+func (l InstanceMetrics) Less(i, j int) bool {
+	return l[i].instancePK < l[j].instancePK
+}
+func (l InstanceMetrics) Swap(i, j int) {
+	l[i], l[j] = l[j], l[i]
+}
 
-func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"sourceID"}); !res.Ok {
-		return res
-	}
+func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	a := appMetric{}
 
 	v := r.URL.Query()
 	applicationID := v.Get("applicationID")
@@ -138,15 +142,11 @@ func (a appMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 		b.WriteString(strings.Join(fields, ",") + "\n")
 	}
 
-	h.Set("Content-Type", "text/csv")
-
 	return &weft.StatusOK
 }
 
-func (a appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "yrange", "sourceID"}); !res.Ok {
-		return res
-	}
+func appMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	a := appMetric{}
 
 	v := r.URL.Query()
 
@@ -250,8 +250,6 @@ func (a appMetric) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Re
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
-
-	h.Set("Content-Type", "image/svg+xml")
 
 	return &weft.StatusOK
 
@@ -749,6 +747,12 @@ type Pair struct {
 
 type SourceList []Pair
 
-func (p SourceList) Len() int           { return len(p) }
-func (p SourceList) Less(i, j int) bool { return p[i].Value < p[j].Value }
-func (p SourceList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p SourceList) Len() int {
+	return len(p)
+}
+func (p SourceList) Less(i, j int) bool {
+	return p[i].Value < p[j].Value
+}
+func (p SourceList) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}

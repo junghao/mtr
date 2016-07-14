@@ -13,7 +13,15 @@ import (
 	"time"
 )
 
-var mux *http.ServeMux
+// the handler wiring and majority of mux routing is generated from weft.toml
+// it is created with weftgenapi  It is only necessary to run weftgenapi when
+// weft.toml is changed.
+//
+// go install github.com/GeoNet/weft/weftgenapi
+// go generate && gofmt -s -w .
+//
+//go:generate weftgenapi
+
 var db *sql.DB
 var dbR *sql.DB // Database connection with read only credentials
 var wm *map180.Map180
@@ -21,34 +29,8 @@ var userW = os.Getenv("MTR_USER")
 var keyW = os.Getenv("MTR_KEY")
 
 func init() {
-	mux = http.NewServeMux()
 	mux.HandleFunc("/", weft.MakeHandlerAPI(home))
-	mux.HandleFunc("/tag/", weft.MakeHandlerAPI(tagHandler))
-	mux.HandleFunc("/tag", weft.MakeHandlerAPI(tagsHandler))
-	mux.HandleFunc("/field/model", weft.MakeHandlerAPI(fieldModelHandler))
-	mux.HandleFunc("/field/device", weft.MakeHandlerAPI(fieldDeviceHandler))
-	mux.HandleFunc("/field/type", weft.MakeHandlerAPI(fieldTypeHandler))
-	mux.HandleFunc("/field/metric", weft.MakeHandlerAPI(fieldMetricHandler))
-	mux.HandleFunc("/field/metric/summary", weft.MakeHandlerAPI(fieldMetricLatestHandler))
-	mux.HandleFunc("/field/metric/threshold", weft.MakeHandlerAPI(fieldThresholdHandler))
-	mux.HandleFunc("/field/metric/tag", weft.MakeHandlerAPI(fieldMetricTagHandler))
-	mux.HandleFunc("/field/state", weft.MakeHandlerAPI(fieldStateHandler))
-	mux.HandleFunc("/field/state/tag", weft.MakeHandlerAPI(fieldStateTagHandler))
 	mux.HandleFunc("/health", health)
-	mux.HandleFunc("/data/site", weft.MakeHandlerAPI(dataSiteHandler))
-	mux.HandleFunc("/data/type", weft.MakeHandlerAPI(dataTypeHandler))
-	mux.HandleFunc("/data/latency", weft.MakeHandlerAPI(dataLatencyHandler))
-	mux.HandleFunc("/data/latency/summary", weft.MakeHandlerAPI(dataLatencySummaryHandler))
-	mux.HandleFunc("/data/latency/tag", weft.MakeHandlerAPI(dataLatencyTagHandler))
-	mux.HandleFunc("/data/latency/threshold", weft.MakeHandlerAPI(dataLatencyThresholdHandler))
-	mux.HandleFunc("/data/completeness", weft.MakeHandlerAPI(dataCompletenessHandler))
-	mux.HandleFunc("/data/completeness/summary", weft.MakeHandlerAPI(dataCompletenessSummaryHandler))
-	mux.HandleFunc("/data/completeness/tag", weft.MakeHandlerAPI(dataCompletenessTagHandler))
-	mux.HandleFunc("/app", weft.MakeHandlerAPI(appHandler))
-	mux.HandleFunc("/app/metric", weft.MakeHandlerAPI(appMetricHandler))
-	mux.HandleFunc("/application/metric", weft.MakeHandlerAPI(applicationMetricHandler))
-	mux.HandleFunc("/application/counter", weft.MakeHandlerAPI(applicationCounterHandler))
-	mux.HandleFunc("/application/timer", weft.MakeHandlerAPI(applicationTimerHandler))
 }
 
 func main() {

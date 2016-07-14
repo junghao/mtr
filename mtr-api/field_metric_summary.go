@@ -14,9 +14,6 @@ import (
 	"time"
 )
 
-// fieldLatest - for get queries.
-type fieldLatest struct{}
-
 // for SVG maps.
 type point struct {
 	latitude, longitude float64
@@ -24,11 +21,7 @@ type point struct {
 }
 
 // TODO: returns weft.NotFound when query result is empty?
-func (f fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{"typeID"}); !res.Ok {
-		return res
-	}
-
+func fieldLatestProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	typeID := r.URL.Query().Get("typeID")
 
 	var err error
@@ -82,16 +75,10 @@ func (f fieldLatest) proto(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 
 	b.Write(by)
 
-	h.Set("Content-Type", "application/x-protobuf")
-
 	return &weft.StatusOK
 }
 
-func (f fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"bbox", "width", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldLatestSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var rows *sql.Rows
 	var width int
 	var err error
@@ -206,16 +193,10 @@ func (f fieldLatest) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 
 	b.WriteString("</svg>")
 
-	h.Set("Content-Type", "image/svg+xml")
-
 	return &weft.StatusOK
 }
 
-func (f fieldLatest) geoJSON(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldLatestGeoJSON(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var rows *sql.Rows
 	var err error
 
@@ -269,7 +250,6 @@ func (f fieldLatest) geoJSON(r *http.Request, h http.Header, b *bytes.Buffer) *w
 
 	rows.Close()
 	b.WriteString(gj)
-	h.Set("Content-Type", "application/vnd.geo+json")
 
 	return &weft.StatusOK
 }

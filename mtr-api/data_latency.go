@@ -16,14 +16,7 @@ import (
 	"time"
 )
 
-// dataLatency - table data.latency
-type dataLatency struct{}
-
-func (a dataLatency) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "time", "mean"}, []string{"min", "max", "fifty", "ninety"}); !res.Ok {
-		return res
-	}
-
+func dataLatencyPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
@@ -122,11 +115,7 @@ func (a dataLatency) put(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a dataLatency) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataLatencyDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	siteID := v.Get("siteID")
@@ -156,11 +145,7 @@ func (a dataLatency) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"plot", "resolution", "yrange"}); !res.Ok {
-		return res
-	}
-
+func dataLatencySvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	switch r.URL.Query().Get("plot") {
@@ -169,7 +154,7 @@ func (a dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		if resolution == "" {
 			resolution = "minute"
 		}
-		if res := a.plot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Line, b); !res.Ok {
+		if res := dataLatencyPlot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Line, b); !res.Ok {
 			return res
 		}
 	case "scatter":
@@ -177,25 +162,19 @@ func (a dataLatency) svg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		if resolution == "" {
 			resolution = "minute"
 		}
-		if res := a.plot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Scatter, b); !res.Ok {
+		if res := dataLatencyPlot(v.Get("siteID"), v.Get("typeID"), resolution, ts.Scatter, b); !res.Ok {
 			return res
 		}
 	default:
-		if res := a.spark(v.Get("siteID"), v.Get("typeID"), b); !res.Ok {
+		if res := dataLatencySpark(v.Get("siteID"), v.Get("typeID"), b); !res.Ok {
 			return res
 		}
 	}
-
-	h.Set("Content-Type", "image/svg+xml")
 
 	return &weft.StatusOK
 }
 
-func (a dataLatency) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	// read directly from the DB and write out a CSV formatted output (time, val1, val2, etc.)
@@ -227,19 +206,11 @@ func (a dataLatency) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	}
 	rows.Close()
 
-	h.Set("Content-Type", "text/csv")
-	// allow cross domain requests, lets us use AJAX from mtr-ui.  TODO: use proxy instead
-	//h.Set("Access-Control-Allow-Origin", "*")
-
 	return &weft.StatusOK
 }
 
 // proto's query is the same as svg. The difference between them is only output mimetype.
-func (a dataLatency) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
-		return res
-	}
-
+func dataLatencyProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 	resolution := v.Get("resolution")
 	if resolution == "" {
@@ -304,12 +275,10 @@ func (a dataLatency) proto(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 
 	b.Write(by)
 
-	h.Set("Content-Type", "application/x-protobuf")
-
 	return &weft.StatusOK
 }
 
-func (a dataLatency) plot(siteID, typeID, resolution string, plotter ts.SVGPlot, b *bytes.Buffer) *weft.Result {
+func dataLatencyPlot(siteID, typeID, resolution string, plotter ts.SVGPlot, b *bytes.Buffer) *weft.Result {
 	var err error
 	// we need the sitePK often so read it once.
 	var sitePK int
@@ -460,7 +429,7 @@ func (a dataLatency) plot(siteID, typeID, resolution string, plotter ts.SVGPlot,
 /*
 spark draws an svg spark line to b.  Assumes f.loadPK has been called first.
 */
-func (a dataLatency) spark(siteID, typeID string, b *bytes.Buffer) *weft.Result {
+func dataLatencySpark(siteID, typeID string, b *bytes.Buffer) *weft.Result {
 	var p ts.Plot
 
 	p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())

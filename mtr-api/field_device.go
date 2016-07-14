@@ -12,16 +12,7 @@ import (
 	"strconv"
 )
 
-// fieldDevice table field.device
-// a device e.g., a seismic data logger that is located at a point.
-type fieldDevice struct {
-}
-
-func (f fieldDevice) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "modelID", "latitude", "longitude"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldDevicePut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
@@ -77,11 +68,7 @@ func (f fieldDevice) put(r *http.Request) *weft.Result {
 	return weft.InternalServerError(err)
 }
 
-func (f fieldDevice) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldDeviceDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	if _, err := db.Exec(`DELETE FROM field.device where deviceID = $1`, r.URL.Query().Get("deviceID")); err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -89,11 +76,7 @@ func (f fieldDevice) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (f fieldDevice) proto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
-		return res
-	}
-
+func fieldDeviceProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -121,8 +104,6 @@ func (f fieldDevice) proto(r *http.Request, h http.Header, b *bytes.Buffer) *wef
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

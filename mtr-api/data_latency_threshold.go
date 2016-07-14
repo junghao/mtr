@@ -12,14 +12,7 @@ import (
 	"strconv"
 )
 
-// dataLatencyThreshold - table data.latency_threshold
-type dataLatencyThreshold struct{}
-
-func (a dataLatencyThreshold) save(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "lower", "upper"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataLatencyThresholdPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 	var err error
 
@@ -79,11 +72,7 @@ func (a dataLatencyThreshold) save(r *http.Request) *weft.Result {
 	return weft.InternalServerError(err)
 }
 
-func (a dataLatencyThreshold) delete(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataLatencyThresholdDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	if _, err := db.Exec(`DELETE FROM data.latency_threshold
@@ -96,11 +85,7 @@ func (a dataLatencyThreshold) delete(r *http.Request) *weft.Result {
 	return &weft.StatusOK
 }
 
-func (a dataLatencyThreshold) get(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{"typeID", "siteID"}); !res.Ok {
-		return res
-	}
-
+func dataLatencyThresholdProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -148,8 +133,6 @@ func (a dataLatencyThreshold) get(r *http.Request, h http.Header, b *bytes.Buffe
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

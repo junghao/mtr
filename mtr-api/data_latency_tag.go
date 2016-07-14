@@ -10,15 +10,7 @@ import (
 	"net/http"
 )
 
-// dataLatencyTag - table data.latency_tag
-type dataLatencyTag struct {
-}
-
-func (a dataLatencyTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataLatencyTagPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error
@@ -50,11 +42,7 @@ func (a dataLatencyTag) put(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	return &weft.StatusOK
 }
 
-func (a dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID", "tag"}, []string{}); !res.Ok {
-		return res
-	}
-
+func dataLatencyTagDelete(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	if _, err := db.Exec(`DELETE FROM data.latency_tag
@@ -68,11 +56,7 @@ func (a dataLatencyTag) delete(r *http.Request, h http.Header, b *bytes.Buffer) 
 	return &weft.StatusOK
 }
 
-func (a dataLatencyTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{}, []string{"siteID", "typeID"}); !res.Ok {
-		return res
-	}
-
+func dataLatencyTagProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
@@ -118,8 +102,6 @@ func (a dataLatencyTag) all(r *http.Request, h http.Header, b *bytes.Buffer) *we
 	}
 
 	b.Write(by)
-
-	h.Set("Content-Type", "application/x-protobuf")
 
 	return &weft.StatusOK
 }

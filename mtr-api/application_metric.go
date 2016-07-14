@@ -1,24 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"github.com/GeoNet/weft"
 	"net/http"
 	"strconv"
 	"time"
 )
 
-// appMetric - table app.metric
-// things like memory, routines, object count.
-type applicationMetric struct{}
-
 // put inserts metrics.  application and instance are added
 // to the DB on the fly if required e.g., the first time an
 // application sends a metric from an instance.
-func (a applicationMetric) put(r *http.Request) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"applicationID", "instanceID", "typeID", "time", "value"}, []string{}); !res.Ok {
-		return res
-	}
-
+func applicationMetricPut(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	v := r.URL.Query()
 
 	var err error

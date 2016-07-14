@@ -34,14 +34,12 @@ func BenchmarkApplicationMetricCreate(b *testing.B) {
 	q.Add("typeID", strconv.Itoa(1000))
 	q.Add("value", strconv.FormatInt(12000, 10))
 
-	var a applicationMetric
-
 	for n := 0; n < b.N; n++ {
 		t = t.Add(time.Second)
 		q.Set("time", t.Format(time.RFC3339))
 		req.URL.RawQuery = q.Encode()
 
-		if res := a.put(req); !res.Ok {
+		if res := applicationMetricPut(req, http.Header{}, nil); !res.Ok {
 			b.Error(res.Msg)
 		}
 	}
@@ -65,12 +63,11 @@ func BenchmarkFieldMetric(b *testing.B) {
 	q.Add("modelID", "device-model-bench")
 	req.URL.RawQuery = q.Encode()
 
-	var dm fieldModel
-	if res := dm.delete(req); !res.Ok {
+	if res := fieldModelDelete(req, http.Header{}, nil); !res.Ok {
 		b.Fatal(res.Msg)
 	}
 
-	if res := dm.put(req); !res.Ok {
+	if res := fieldModelPut(req, http.Header{}, nil); !res.Ok {
 		b.Fatal(res.Msg)
 	}
 
@@ -85,8 +82,7 @@ func BenchmarkFieldMetric(b *testing.B) {
 	q.Add("longitude", "12")
 	req.URL.RawQuery = q.Encode()
 
-	var d fieldDevice
-	if res := d.put(req); !res.Ok {
+	if res := fieldDevicePut(req, http.Header{}, nil); !res.Ok {
 		b.Fatal(res.Msg)
 	}
 
@@ -103,14 +99,12 @@ func BenchmarkFieldMetric(b *testing.B) {
 
 	t := time.Now().UTC()
 
-	var fm fieldMetric
-
 	for n := 0; n < b.N; n++ {
 		t = t.Add(time.Minute)
 		q.Set("time", t.Format(time.RFC3339))
 		req.URL.RawQuery = q.Encode()
 
-		if res := fm.put(req); !res.Ok {
+		if res := fieldMetricPut(req, http.Header{}, nil); !res.Ok {
 			b.Error(res.Msg)
 		}
 	}
@@ -125,7 +119,7 @@ func BenchmarkFieldMetric(b *testing.B) {
 	q.Add("modelID", "device-model-bench")
 	req.URL.RawQuery = q.Encode()
 
-	if res := dm.delete(req); !res.Ok {
+	if res := fieldModelDelete(req, http.Header{}, nil); !res.Ok {
 		b.Fatal(res.Msg)
 	}
 
