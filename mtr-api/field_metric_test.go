@@ -38,7 +38,7 @@ func TestFieldMetricCsv(t *testing.T) {
 	// the expected CSV data, ignoring the header fields on the first line
 	expectedVals := [][]string{
 		[]string{""}, // header line, ignored in test.  Should be time, value
-		[]string{testData[0].time.Local().Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testData[0].value)},
+		[]string{testData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testData[0].value)},
 	}
 
 	for _, td := range testData {

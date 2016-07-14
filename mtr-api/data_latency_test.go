@@ -37,7 +37,7 @@ func TestDataLatencyCsv(t *testing.T) {
 			ptTime.Format(time.RFC3339), v, v*10, v*11)
 
 		// expected values
-		record := []string{ptTime.Local().Format(DYGRAPH_TIME_FORMAT),
+		record := []string{ptTime.Format(DYGRAPH_TIME_FORMAT),
 			fmt.Sprintf("%.2f", float32(v)),
 			fmt.Sprintf("%.2f", float32(v*10)),
 			fmt.Sprintf("%.2f", float32(v*11)),

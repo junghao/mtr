@@ -130,8 +130,7 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 	sort.Sort(ts)
 	for _, t := range ts {
 
-		// convert UTC time to local time and print in expected format
-		fields := []string{t.Local().Format(DYGRAPH_TIME_FORMAT)}
+		fields := []string{t.Format(DYGRAPH_TIME_FORMAT)}
 
 		// start at index 1: because we've already written out the time
 		for _, colName := range headers[1:] {

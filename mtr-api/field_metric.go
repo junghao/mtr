@@ -209,7 +209,7 @@ func (f fieldMetric) csv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 			return weft.InternalServerError(err)
 		}
 
-		w.Write([]string{t.Local().Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", val)})
+		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", val)})
 	}
 
 	w.Flush()

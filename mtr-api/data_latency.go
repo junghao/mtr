@@ -230,7 +230,7 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 			fmt.Println(err)
 			return weft.InternalServerError(err)
 		}
-		w.Write([]string{t.Local().Format(DYGRAPH_TIME_FORMAT),
+		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT),
 			fmt.Sprintf("%.2f", float64(dl.Mean)),
 			fmt.Sprintf("%.2f", float64(dl.Fifty)),
 			fmt.Sprintf("%.2f", float64(dl.Ninety))})
