@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
@@ -136,6 +135,10 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 
 	if p.Resolution == "" {
 		p.Resolution = "minute"
+	}
+
+	if err := p.getFieldHistoryLog(); err != nil {
+		return weft.InternalServerError(err)
 	}
 
 	if err := fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
@@ -380,7 +383,6 @@ func (p *mtrUiPage) getFieldMetricTags() (err error) {
 
 	var b []byte
 	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -395,6 +397,25 @@ func (p *mtrUiPage) getFieldMetricTags() (err error) {
 	}
 
 	sort.Strings(p.Tags)
+	return
+}
+
+func (p *mtrUiPage) getFieldHistoryLog() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/field/metric"
+	u.RawQuery = "deviceID=" + p.DeviceID + "&typeID=" + p.TypeID + "&resolution=" + p.Resolution
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var f mtrpb.FieldMetricResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
+	p.FieldLog = &f
 	return
 }
 

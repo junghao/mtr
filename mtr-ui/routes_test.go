@@ -23,7 +23,7 @@ var routes = wt.Requests{
 	// data pages
 	{ID: wt.L(), URL: "/data/sites"},
 	{ID: wt.L(), URL: "/data/plot?siteID=AUCK&typeID=latency.gnss.1hz"},
-	{ID: wt.L(), URL: "/data/plot?siteID=CHTI&typeID=latency.gnss.1hz&resolution=minutes"},
+	{ID: wt.L(), URL: "/data/plot?siteID=CHTI&typeID=latency.gnss.1hz&resolution=minute"},
 	{ID: wt.L(), URL: "/data/plot?siteID=CHTI&typeID=latency.gnss.1hz&resolution=five_minutes"},
 	{ID: wt.L(), URL: "/data/plot?siteID=CHTI&typeID=latency.gnss.1hz&resolution=hour"},
 	{ID: wt.L(), URL: "/data/metrics"},
@@ -41,7 +41,7 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/field/devices"},
 	{ID: wt.L(), URL: "/field/devices?modelID=Bay%20City%20VSAT%20IDU"},
 	{ID: wt.L(), URL: "/field/plot?deviceID=baycity-soundstage&typeID=ping"},
-	{ID: wt.L(), URL: "/field/plot?deviceID=baycity-soundstage&typeID=ping&resolution=minutes"},
+	{ID: wt.L(), URL: "/field/plot?deviceID=baycity-soundstage&typeID=ping&resolution=minute"},
 	{ID: wt.L(), URL: "/field/plot?deviceID=baycity-soundstage&typeID=ping&resolution=five_minutes"},
 	{ID: wt.L(), URL: "/field/plot?deviceID=baycity-soundstage&typeID=ping&resolution=hour"},
 	{ID: wt.L(), URL: "/field/metrics?modelID=Bay%20City%20VSAT%20IDU"},
