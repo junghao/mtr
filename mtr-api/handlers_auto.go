@@ -1,6 +1,7 @@
 package main
 
 // This file is auto generated - do not edit.
+// It was created with weftgenapi from github.com/GeoNet/weft/weftgenapi
 
 import (
 	"bytes"
@@ -113,7 +114,7 @@ func appmetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 			h.Set("Content-Type", "image/svg+xml")
 			return appMetricSvg(r, h, b)
 		case "text/csv":
-			if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"sourceID"}); !res.Ok {
+			if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"sourceID", "resolution"}); !res.Ok {
 				return res
 			}
 			h.Set("Content-Type", "text/csv")
@@ -182,6 +183,12 @@ func fieldmetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 			}
 			h.Set("Content-Type", "image/svg+xml")
 			return fieldMetricSvg(r, h, b)
+		case "text/csv":
+			if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
+				return res
+			}
+			h.Set("Content-Type", "text/csv")
+			return fieldMetricCsv(r, h, b)
 		default:
 			if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"plot", "resolution"}); !res.Ok {
 				return res
@@ -487,7 +494,7 @@ func datalatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 			h.Set("Content-Type", "application/x-protobuf")
 			return dataLatencyProto(r, h, b)
 		case "text/csv":
-			if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{}); !res.Ok {
+			if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
 				return res
 			}
 			h.Set("Content-Type", "text/csv")
