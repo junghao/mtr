@@ -147,7 +147,7 @@
                 <form class="navbar-form navbar-right" role="search" method="GET" action="/search" autocomplete="off" onsubmit="return document.getElementById('search_query').value!='';">
                     <div class="form-group">
                         <!--using list=<...> as an html5 typeahead-->
-                        <input type="text" class="form-control" placeholder="Search Tag ID" id="search_query" name="tagQuery" list="tagIDs">
+                        <input type="text" class="form-control" placeholder="Search Tag or Locality" id="search_query" name="tagQuery" list="tagIDs">
                         <input type="hidden" name="page" value="1">
                         {{template "search_tags" .}}
                     </div>

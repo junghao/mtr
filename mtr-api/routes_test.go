@@ -643,8 +643,8 @@ func TestTagAll(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(tr.Result) != 4 {
-		t.Errorf("expected 4 tags got %d", len(tr.Result))
+	if len(tr.Result) != 6 {
+		t.Errorf("expected 6 tags got %d", len(tr.Result))
 	}
 
 	if tr.Result[0].Tag != "DAGG" {

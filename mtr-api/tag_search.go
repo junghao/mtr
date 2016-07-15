@@ -18,11 +18,14 @@ type tagSearch struct {
 	tagResult mtrpb.TagSearchResult
 }
 
+//search tags and place names from devices
 func tagsProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT tag FROM mtr.tag ORDER BY TAG ASC`); err != nil {
+	if rows, err = dbR.Query(`SELECT DISTINCT tag from ((SELECT tag FROM mtr.tag )
+	                          union (SELECT CASE  WHEN strpos(deviceid, '-') = 0 THEN deviceid ELSE split_part(deviceid, '-', 2) END AS tag FROM field.device)
+	                          union (SELECT siteid from data.site as tag)) ts ORDER BY tag ASC`); err != nil {
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
@@ -87,6 +90,7 @@ func tagProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	return &weft.StatusOK
 }
 
+//search metric by tag or the place name part of deviceID
 func (a *tagSearch) fieldMetric() <-chan *weft.Result {
 	out := make(chan *weft.Result)
 	go func() {
@@ -101,7 +105,8 @@ func (a *tagSearch) fieldMetric() <-chan *weft.Result {
 	 			  JOIN field.type USING (typePK)
 	 			  JOIN field.model USING (modelPK)
 	 			  JOIN field.threshold using (devicePK, typePK)
-			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
+			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)
+			          OR deviceID LIKE $2`, a.tag, "%"+a.tag); err != nil {
 			out <- weft.InternalServerError(err)
 			return
 		}
@@ -181,7 +186,8 @@ func (a *tagSearch) dataLatency() <-chan *weft.Result {
 	 			  JOIN data.latency_threshold USING (sitePK, typePK)
 	 			  JOIN data.site USING (sitePK)
 				  JOIN data.type USING (typePK)
-			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)`, a.tag); err != nil {
+			          WHERE tagPK = (SELECT tagPK FROM mtr.tag WHERE tag = $1)
+			          OR siteID = $2`, a.tag, a.tag); err != nil {
 			out <- weft.InternalServerError(err)
 			return
 		}
