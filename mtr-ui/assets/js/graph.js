@@ -4,15 +4,7 @@ function utcToLocal(x) {
 	return Date.parse(x) - msOffset;
 }
 
-function plotData(csvData, graphOptions, thresholds) {
-    var graphElement = document.getElementById('graphdiv');
-    var div = document.createElement('div');
-    div.style.width = '90vw'; // use 90% of the available width (scales with changing width)
-    div.style.display = 'inline-block';
-    div.style.margin = '4px';
-    // appending to parent div lets us plots as many graphs as we like
-    graphElement.appendChild(div);
-
+function plotData(div, csvData, graphOptions, thresholds) {
     //Grey box for thresholds if specified:
     if (thresholds) {
         graphOptions.underlayCallback = function(canvas, area, g) {
@@ -47,6 +39,15 @@ function plotData(csvData, graphOptions, thresholds) {
 }
 
 function showGraph(csvUrl, graphOptions, thresholds) {
+    var graphElement = document.getElementById('graphdiv');
+    var div = document.createElement('div');
+    div.style.width = '90vw'; // use 90% of the available width (scales with changing width)
+    div.style.height = '40vh';
+    div.style.display = 'inline-block';
+    div.style.margin = '4px';
+    // appending to parent div lets us plots as many graphs as we like
+    graphElement.appendChild(div);
+
     var request = new XMLHttpRequest();
     request.open('GET', csvUrl, true);
     request.setRequestHeader ("Accept", "text/csv");
@@ -54,7 +55,7 @@ function showGraph(csvUrl, graphOptions, thresholds) {
     request.onload = function() {
         if (request.status == 200 || request.status == 404) {
             // Success!
-            plotData(request.response, graphOptions, thresholds);
+            plotData(div, request.response, graphOptions, thresholds);
         } else {
             // We reached our target server, but it returned an error
             throw "error loading csv";
