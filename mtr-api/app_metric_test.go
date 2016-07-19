@@ -342,4 +342,11 @@ func TestAppMetricObjectsCsv(t *testing.T) {
 	}
 
 	compareCsvData(b, expectedRoutineValues, t)
+
+	// Also test for no data, should give a 404
+	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=NOT_AN_APP&group=routines&resolution=full", Method: "GET", Accept: "text/csv", Status: http.StatusNotFound}
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
 }

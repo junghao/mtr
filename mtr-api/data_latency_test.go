@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	wt "github.com/GeoNet/weft/wefttest"
+	"net/http"
 	"testing"
 	"time"
 )
@@ -57,4 +58,11 @@ func TestDataLatencyCsv(t *testing.T) {
 	}
 
 	compareCsvData(b, expectedVals, t)
+
+	// test for no data condition
+	r = wt.Request{ID: wt.L(), URL: "/data/latency?siteID=NOT_THERE&typeID=latency.strong&resolution=full", Method: "GET", Accept: "text/csv", Status: http.StatusNotFound}
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
 }

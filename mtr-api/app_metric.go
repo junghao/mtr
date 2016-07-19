@@ -120,11 +120,13 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 		}
 	}
 
+	if len(values) == 0 {
+		return &weft.NotFound
+	}
+
 	// CSV headers
 	w := csv.NewWriter(b)
-	if len(values) > 0 {
-		w.Write(headers)
-	}
+	w.Write(headers)
 
 	// CSV data
 	sort.Sort(ts)
