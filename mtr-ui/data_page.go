@@ -6,6 +6,7 @@ import (
 	"github.com/GeoNet/weft"
 	"github.com/golang/protobuf/proto"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 )
@@ -147,11 +148,10 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	// Set thresholds on plot by drawing a box in dygraph.  Protobuf contains all thresholds, so select ours
 	u := *mtrApiUrl
 	u.Path = "/data/latency/threshold"
-	// TODO: use these params when the API is updated
-	//params := url.Values{}
-	//params.Add("typeID", q.Get("typeID"))
-	//params.Add("siteID", q.Get("siteID"))
-	//u.RawQuery = params.Encode()
+	params := url.Values{}
+	params.Add("typeID", q.Get("typeID"))
+	params.Add("siteID", q.Get("siteID"))
+	u.RawQuery = params.Encode()
 
 	var protoData []byte
 	if protoData, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
@@ -163,19 +163,8 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		return weft.InternalServerError(err)
 	}
 
-	// TODO: use this simpler logic when the API is updated
-	//if f.Result != nil && len(f.Result) >= 1 {
-	//	p.Thresholds = []int32{f.Result[0].Lower, f.Result[0].Upper}
-	//} else {
-	//	p.Thresholds = []int32{0, 0}
-	//}
-	if f.Result != nil {
-		// TODO: modify mtr-api to accept options for typeID and siteID to allow querying of a single item
-		for _, row := range f.Result {
-			if row.SiteID == q.Get("siteID") && row.TypeID == q.Get("typeID") {
-				p.Thresholds = []int32{row.Lower, row.Upper}
-			}
-		}
+	if f.Result != nil && len(f.Result) >= 1 {
+		p.Thresholds = []int32{f.Result[0].Lower, f.Result[0].Upper}
 	} else {
 		p.Thresholds = []int32{0, 0}
 	}

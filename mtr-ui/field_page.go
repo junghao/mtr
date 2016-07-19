@@ -142,6 +142,40 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 		return weft.InternalServerError(err)
 	}
 
+	// Set thresholds on plot by drawing a box in dygraph.  Protobuf contains all thresholds, so select ours
+	u := *mtrApiUrl
+	u.Path = "/field/metric/threshold"
+	// TODO: modify /field/metric/threshold in mtr-api to accept deviceID and typeID
+	//params := url.Values{}
+	//params.Add("deviceID", q.Get("deviceID"))
+	//params.Add("typeID", q.Get("typeID"))
+	//u.RawQuery = params.Encode()
+
+	var err error
+	var protoData []byte
+	if protoData, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	var f mtrpb.FieldMetricThresholdResult
+	if err = proto.Unmarshal(protoData, &f); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	// TODO: use this simpler logic when mtr-api accepts deviceID and typeID
+	////if f.Result != nil && len(f.Result) >= 1 {
+	////      p.Thresholds = []int32{f.Result[0].Lower, f.Result[0].Upper}
+	////} else {
+	////      p.Thresholds = []int32{0, 0}
+	////}
+	if f.Result != nil {
+		for _, row := range f.Result {
+			if row.DeviceID == p.DeviceID && row.TypeID == p.TypeID {
+				p.Thresholds = []int32{row.Lower, row.Upper}
+			}
+		}
+	}
+
 	if err := fieldTemplate.ExecuteTemplate(b, "border", p); err != nil {
 		return weft.InternalServerError(err)
 	}
