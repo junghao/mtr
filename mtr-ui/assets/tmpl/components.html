@@ -158,9 +158,6 @@
         <div id="graphdiv" class="graph">
             <script type="text/javascript">
                 var res = {{urlquery .Resolution}};
-                if (!res) {
-                    res = "minute"
-                }
 
                 var graphOptions = {
                      title: 'Field Metrics (deviceID: {{urlquery .DeviceID}}, typeID: {{urlquery .TypeID}})',
@@ -174,7 +171,8 @@
                      strokeWidth: 2,
                 };
 
-                showGraph("/p/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution="+res,
+                showGraph("/p/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}",
+                            res,
                             graphOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
             </script>
@@ -264,9 +262,6 @@
     <script>
 
         var res = {{urlquery .Resolution}};
-        if (!res) {
-            res = "minute"
-        }
 
         var graphOptions = {
              title: 'Data Latency (siteID: {{urlquery .SiteID}}, typeID: {{urlquery .TypeID}})',
@@ -280,7 +275,8 @@
              strokeWidth: 2,
         };
 
-        showGraph("/p/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution="+res,
+        showGraph("/p/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}",
+                    res,
                     graphOptions,
                     {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
     </script>

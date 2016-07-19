@@ -29,7 +29,7 @@ function plotData(div, csvData, graphOptions, thresholds) {
         graphOptions);
 }
 
-function showGraph(csvUrl, graphOptions, thresholds) {
+function showGraph(csvUrl, res, graphOptions, thresholds) {
     var graphElement = document.getElementById('graphdiv');
     var div = document.createElement('div');
     div.style.width = '90vw'; // use 90% of the available width (scales with changing width)
@@ -38,6 +38,11 @@ function showGraph(csvUrl, graphOptions, thresholds) {
     div.style.margin = '4px';
     // appending to parent div lets us plots as many graphs as we like
     graphElement.appendChild(div);
+
+    if (!res) {
+        res = "minute";
+    }
+    csvUrl += "&resolution=" + res;
 
     var request = new XMLHttpRequest();
     request.open('GET', csvUrl, true);

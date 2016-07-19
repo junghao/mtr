@@ -13,9 +13,6 @@
                 var dateRange = null;
 
                 var res = {{urlquery .Resolution}};
-                if (!res) {
-                    res = "minute"
-                }
 
                 var counterOptions = {
                     title: 'Application - Metric Counters: (application ID: {{urlquery .ApplicationID}})',
@@ -29,7 +26,8 @@
                     strokeWidth: 2,
                     dateWindow: dateRange,
                 };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=counters&resolution="+res,
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=counters",
+                            res,
                             counterOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
@@ -46,7 +44,8 @@
                     strokeWidth: 2,
                     dateWindow: dateRange,
                 };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=timers&resolution="+res,
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=timers",
+                            res,
                             timerOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
@@ -63,7 +62,8 @@
                     strokeWidth: 2,
                     dateWindow: dateRange,
                 };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=memory&resolution="+res,
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=memory",
+                            res,
                             memoryOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
@@ -80,7 +80,8 @@
                     strokeWidth: 2,
                     dateWindow: dateRange,
                 };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=routines&resolution="+res,
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=routines",
+                            res,
                             routineOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
@@ -97,7 +98,8 @@
                     strokeWidth: 0.0, // draw points but not lines connecting them
                     dateWindow: dateRange,
                 };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=objects&resolution="+res,
+                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=objects",
+                            res,
                             objectOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
