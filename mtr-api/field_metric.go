@@ -199,6 +199,7 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	w := csv.NewWriter(b)
 	w.Write([]string{"time", "value"})
 
+	i := 0
 	for rows.Next() {
 		var val float64
 		var t time.Time
@@ -207,6 +208,11 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		}
 
 		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", val)})
+		i++
+	}
+
+	if i == 0 {
+		return &weft.NotFound
 	}
 
 	w.Flush()
