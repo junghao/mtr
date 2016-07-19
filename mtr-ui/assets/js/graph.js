@@ -18,24 +18,15 @@ function plotData(div, csvData, graphOptions, thresholds) {
         }
     }
 
-    // Make the default time plotting in local time
-    if (!graphOptions.xValueParser) {
-        graphOptions.xValueParser = utcToLocal;
-    }
+//    // Make the default time plotting in local time
+//    if (!graphOptions.xValueParser) {
+//        graphOptions.xValueParser = utcToLocal;
+//    }
 
     var g = new Dygraph(
         div,
         csvData,
         graphOptions);
-        // TODO: could use annotations to mark the values of the last sample(s)
-        //var annotations = [];
-        //annotations.push( {
-        //  series: 'mean',
-        //  x: "2016/06/26 23:23:58",
-        //  shortText: 'xyz',
-        //  text: 'Stock Market Crash'
-        //} );
-        //g.setAnnotations(annotations);
 }
 
 function showGraph(csvUrl, graphOptions, thresholds) {
