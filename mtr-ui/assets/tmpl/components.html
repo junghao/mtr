@@ -157,8 +157,6 @@
         {{if .Interactive}}
         <div id="graphdiv" class="graph">
             <script type="text/javascript">
-                var res = {{urlquery .Resolution}};
-
                 var graphOptions = {
                      title: 'Field Metrics (deviceID: {{urlquery .DeviceID}}, typeID: {{urlquery .TypeID}})',
                      //connectSeparatedPoints: true,
@@ -172,7 +170,7 @@
                 };
 
                 showGraph("/p/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}",
-                            res,
+                            {{urlquery .Resolution}},
                             graphOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
             </script>
@@ -260,9 +258,6 @@
     <br>
     <div class="graph col-xs-12 col-md-12" id="graphdiv"></div>
     <script>
-
-        var res = {{urlquery .Resolution}};
-
         var graphOptions = {
              title: 'Data Latency (siteID: {{urlquery .SiteID}}, typeID: {{urlquery .TypeID}})',
              //connectSeparatedPoints: true,
@@ -276,7 +271,7 @@
         };
 
         showGraph("/p/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}",
-                    res,
+                    {{urlquery .Resolution}},
                     graphOptions,
                     {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
     </script>

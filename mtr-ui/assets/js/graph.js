@@ -50,17 +50,28 @@ function showGraph(csvUrl, res, graphOptions, thresholds) {
 
     request.onload = function() {
         if (request.status == 200 || request.status == 404) {
-            // Success!
-            plotData(div, request.response, graphOptions, thresholds);
+            // Success but check for null data
+            var data = request.response;
+            if (!data) {
+                data = "no data\n0";
+                graphOptions.title = "No Data Found";
+            }
+
+            console.log("DEBUG", div, data, graphOptions, thresholds);
+            plotData(div, data, graphOptions, thresholds);
         } else {
             // We reached our target server, but it returned an error
-            throw "error loading csv";
+            //throw "error loading csv";
+            graphOptions.title = "Error fetching data: " + request.statusText;
+            plotData(div, "no data\n0", graphOptions, thresholds);
         }
     };
 
     request.onerror = function() {
         // There was a connection error of some sort
-        throw "error downloading CSV data";
+        //throw "error downloading CSV data";
+        graphOptions.title = "Error fetching data: " + request.statusText;
+        plotData(div, "no data\n0", graphOptions, thresholds);
     };
 
     request.send();

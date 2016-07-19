@@ -7,13 +7,6 @@
         {{if .Interactive}}
         <div id="graphdiv" class="graph">
             <script>
-                var now = new Date();
-                // sets initial zoom window
-                //var dateRange = [ new Date().setDate(now.getDate() - 1), now ];
-                var dateRange = null;
-
-                var res = {{urlquery .Resolution}};
-
                 var counterOptions = {
                     title: 'Application - Metric Counters: (application ID: {{urlquery .ApplicationID}})',
                     //connectSeparatedPoints: true,
@@ -24,10 +17,9 @@
                     rollPeriod: 1,
                     showRoller: true,
                     strokeWidth: 2,
-                    dateWindow: dateRange,
                 };
                 showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=counters",
-                            res,
+                            {{urlquery .Resolution}},
                             counterOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
@@ -42,10 +34,9 @@
                     rollPeriod: 1,
                     showRoller: true,
                     strokeWidth: 2,
-                    dateWindow: dateRange,
                 };
                 showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=timers",
-                            res,
+                            {{urlquery .Resolution}},
                             timerOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
@@ -60,10 +51,9 @@
                     rollPeriod: 1,
                     showRoller: true,
                     strokeWidth: 2,
-                    dateWindow: dateRange,
                 };
                 showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=memory",
-                            res,
+                            {{urlquery .Resolution}},
                             memoryOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
@@ -78,10 +68,9 @@
                     rollPeriod: 1,
                     showRoller: true,
                     strokeWidth: 2,
-                    dateWindow: dateRange,
                 };
                 showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=routines",
-                            res,
+                            {{urlquery .Resolution}},
                             routineOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
@@ -96,10 +85,9 @@
                     rollPeriod: 1,
                     showRoller: true,
                     strokeWidth: 0.0, // draw points but not lines connecting them
-                    dateWindow: dateRange,
                 };
                 showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=objects",
-                            res,
+                            {{urlquery .Resolution}},
                             objectOptions,
                             {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
                 );
