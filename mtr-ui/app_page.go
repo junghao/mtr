@@ -55,7 +55,7 @@ func appPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 func appPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
 	var err error
 
-	if res := weft.CheckQuery(r, []string{"applicationID"}, []string{"resolution"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{"applicationID"}, []string{"resolution", "interactive"}); !res.Ok {
 		return res
 	}
 
@@ -68,7 +68,8 @@ func appPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 	// get the applicationID and resolution params from the URL
 	p.pageParam(r.URL.Query())
 
-	if p.Resolution == "" {
+	// Resolution not required if we're in "interactive" mode otherwise default is minute
+	if p.Resolution == "" && !p.Interactive {
 		p.Resolution = "minute"
 	}
 
