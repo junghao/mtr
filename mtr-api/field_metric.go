@@ -187,12 +187,7 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	var rows *sql.Rows
 	rows, err = queryMetricRows(devicePK, typePK, resolution)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return &weft.NotFound
-		default:
-			return weft.InternalServerError(err)
-		}
+		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
 

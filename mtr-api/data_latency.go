@@ -210,12 +210,7 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 
 	rows, err = queryLatencyRows(sitePK, typePK, resolution)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return &weft.NotFound
-		default:
-			return weft.InternalServerError(err)
-		}
+		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
 
