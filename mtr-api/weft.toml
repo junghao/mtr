@@ -1,44 +1,191 @@
+title = "MTR API"
+repo = "https://github.com/GeoNet/mtr"
+
+[query.applicationID]
+description = "the application identifier - must be unique across all applications."
+type = "string"
+
+[query.group]
+description = "the metric group e.g., timers."
+type = "string"
+
+[query.resolution]
+description = "resolution for the plot e.g., five_minutes"
+type = "string"
+
+[query.yrange]
+description = "yrange for the plot e.g., 0,300"
+type = "string"
+
+[query.sourceID]
+description = "source identifier for the metrics, often the function name."
+type = "string"
+
+[query.instanceID]
+description = "instance identifier for the metrics, often the host or container name."
+type = "string"
+
+[query."application.typeID"]
+id = "typeID"
+description = "the type identifier - must be mtr.internal.ID."
+type = "int"
+
+[query.time]
+description = "RFC3339 formatted time"
+type = "string"
+
+[query."application.value"]
+id = "value"
+description = "the metric value."
+type = "int64"
+
+[query.count]
+description = "the metric count"
+type = "int"
+
+[query.average]
+description = "the average time (ms)."
+type = "int"
+
+[query.max]
+description = "the max time (ms)."
+type = "int"
+
+[query.min]
+description = "the min time (ms)."
+type = "int"
+
+[query.mean]
+description = "the mean time (ms)."
+type = "int"
+
+[query.fifty]
+description = "the fiftieth percentile time (ms)."
+type = "int"
+
+[query.ninety]
+description = "the ninetieth percentile time (ms)."
+type = "int"
+
+[query.modelID]
+description = "the model identifier - used with deviceID."
+type = "string"
+
+[query.deviceID]
+description = "the device identifier."
+type = "string"
+
+[query."field.typeID"]
+id = "typeID"
+description = "the metric type identifier."
+type = "string"
+
+[query.plot]
+description = "the plot style."
+type = "string"
+
+[query."field.value"]
+id = "value"
+description = "the metric value."
+type = "int"
+
+[query.latitude]
+description = "the latitude"
+type = "float64"
+
+[query.longitude]
+description = "the longitude"
+type = "float64"
+
+[query.bbox]
+description = "the bbox for the map"
+type = "string"
+
+[query.width]
+description = "the width for the map"
+type = "int"
+
+[query.upper]
+description = "the upper bound"
+type = "int"
+
+[query.lower]
+description = "the lower bound"
+type = "int"
+
+[query.tag]
+description = "a short tag"
+type = "string"
+
+[query."state.value"]
+id = "value"
+description = "the state."
+type = "bool"
+
+[query.siteID]
+description = "the site identifier."
+type = "string"
+
+
 [[endpoint]]
 uri = "/tag/"
+title = "Tag"
+description = "Tags can be added to metrics."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "tagProto"
 accept = "application/x-protobuf"
+parameter = "tag"
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "tagPut"
+parameter = "tag"
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "tagDelete"
+parameter = "tag"
 
 
 [[endpoint]]
 uri = "/tag"
+title = "Tag"
+description = "find tags."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "tagsProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/app"
+title = "App"
+description = "Find applications."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "appIdProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/app/metric"
+title = "App Metric"
+description = "application metrics."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "appMetricSvg"
 accept = "image/svg+xml"
 default = true
 required = ["applicationID", "group"]
 optional = ["resolution", "yrange", "sourceID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "appMetricCsv"
 accept = "text/csv"
 required = ["applicationID", "group"]
@@ -47,332 +194,429 @@ optional = ["sourceID", "resolution"]
 
 [[endpoint]]
 uri = "/application/metric"
+title = "Application Metric"
+description = "application metrics."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "applicationMetricPut"
-required = ["applicationID", "instanceID", "typeID", "time", "value"]
+required = ["applicationID", "instanceID", "application.typeID", "time", "application.value"]
 
 
 [[endpoint]]
 uri = "/application/counter"
+title = "Application Counter"
+description = "application counters."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "applicationCounterPut"
-required = ["applicationID", "instanceID", "typeID", "time", "count"]
+required = ["applicationID", "instanceID", "application.typeID", "time", "count"]
 
 
 [[endpoint]]
 uri = "/application/timer"
+title = "Application Timer"
+description = "application timers."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "applicationTimerPut"
 required = ["applicationID", "instanceID", "sourceID", "time", "average", "count", "fifty", "ninety"]
 
 
 [[endpoint]]
 uri = "/field/metric"
+title = "Field Metric"
+description = "field metrics."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldMetricProto"
 accept = "application/x-protobuf"
-required = ["deviceID", "typeID"]
+required = ["deviceID", "field.typeID"]
 optional = ["resolution"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldMetricSvg"
 accept = "image/svg+xml"
 default = true
-required = ["deviceID", "typeID"]
+required = ["deviceID", "field.typeID"]
 optional = ["plot", "resolution"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldMetricCsv"
 accept = "text/csv"
-required = ["deviceID", "typeID"]
+required = ["deviceID", "field.typeID"]
 optional = ["resolution"]
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "fieldMetricPut"
-required = ["deviceID", "typeID", "time", "value"]
+required = ["deviceID", "field.typeID", "time", "field.value"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "fieldMetricDelete"
-required = ["deviceID", "typeID"]
+required = ["deviceID", "field.typeID"]
 
 
 [[endpoint]]
 uri = "/field/model"
+title = "Field Model"
+description = "models for field devices."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "fieldModelPut"
 required = ["modelID"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "fieldModelDelete"
 required = ["modelID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldModelProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/field/device"
+title = "Field Device"
+description = "field devices."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "fieldDevicePut"
 required = ["deviceID", "modelID", "latitude", "longitude"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "fieldDeviceDelete"
 required = ["deviceID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldDeviceProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/field/type"
+title = "Field Type"
+description = "field metric types."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldTypeProto"
 accept = "application/x-protobuf"
 
 [[endpoint]]
 uri = "/field/metric/summary"
+title = "Field Metric Summary"
+description = "Field metric summaries."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldLatestProto"
 accept = "application/x-protobuf"
-optional = ["typeID"]
+optional = ["field.typeID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldLatestSvg"
 accept = "image/svg+xml"
-required = ["bbox", "width", "typeID"]
+required = ["bbox", "width", "field.typeID"]
 default = true
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldLatestGeoJSON"
 accept = "application/vnd.geo+json"
-required = ["typeID"]
+required = ["field.typeID"]
 
 
 [[endpoint]]
 uri = "/field/metric/threshold"
+title = "Field Metric Threshold"
+description = "thresholds for field metrics."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "fieldThresholdPut"
-required = ["deviceID", "typeID", "lower", "upper"]
+required = ["deviceID", "field.typeID", "lower", "upper"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "fieldThresholdDelete"
-required = ["deviceID", "typeID"]
+required = ["deviceID", "field.typeID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldThresholdProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/field/metric/tag"
+title = "Field Metric Tag"
+description = "tags for field metrics."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "fieldMetricTagPut"
-required = ["deviceID", "typeID", "tag"]
+required = ["deviceID", "field.typeID", "tag"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "fieldMetricTagDelete"
-required = ["deviceID", "typeID", "tag"]
+required = ["deviceID", "field.typeID", "tag"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldMetricTagProto"
 accept = "application/x-protobuf"
-optional = ["deviceID", "typeID"]
+optional = ["deviceID", "field.typeID"]
 
 
 [[endpoint]]
 uri = "/field/state"
+title = "Field State"
+description = "state for field devices."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "fieldStatePut"
-required = ["deviceID", "typeID", "time", "value"]
+required = ["deviceID", "field.typeID", "time", "state.value"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "fieldStateDelete"
-required = ["deviceID", "typeID"]
+required = ["deviceID", "field.typeID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldStateProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/field/state/tag"
+title = "Field State Tag"
+description = "tags can be added to field state."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "fieldStateTagPut"
-required = ["deviceID", "typeID", "tag"]
+required = ["deviceID", "field.typeID", "tag"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "fieldStateTagDelete"
-required = ["deviceID", "typeID", "tag"]
+required = ["deviceID", "field.typeID", "tag"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "fieldStateTagProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/data/site"
+title = "Data Site"
+description = "sites for data."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "dataSitePut"
 required = ["siteID", "latitude", "longitude"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "dataSiteDelete"
 required = ["siteID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataSiteProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/data/type"
+title = "Data Type"
+description = "types for data."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataTypeProto"
 accept = "application/x-protobuf"
 
 
 [[endpoint]]
 uri = "/data/latency"
+title = "Data Latency"
+description = "latency for data."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "dataLatencyPut"
-required = ["siteID", "typeID", "time", "mean"]
+required = ["siteID", "field.typeID", "time", "mean"]
 optional = ["min", "max", "fifty", "ninety"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "dataLatencyDelete"
-required = ["siteID", "typeID"]
+required = ["siteID", "field.typeID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataLatencySvg"
 accept = "image/svg+xml"
-required = ["siteID", "typeID"]
+required = ["siteID", "field.typeID"]
 optional = ["plot", "resolution", "yrange"]
 default = true
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataLatencyProto"
 accept = "application/x-protobuf"
-required = ["siteID", "typeID"]
+required = ["siteID", "field.typeID"]
 optional = ["resolution"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataLatencyCsv"
 accept = "text/csv"
-required = ["siteID", "typeID"]
+required = ["siteID", "field.typeID"]
 optional = ["resolution"]
 
 
 [[endpoint]]
 uri = "/data/latency/summary"
+title = "Data Latency Summary"
+description = "summary for data latency."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataLatencySummarySvg"
 accept = "image/svg+xml"
-required = ["bbox", "width", "typeID"]
+required = ["bbox", "width", "field.typeID"]
 default = true
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataLatencySummaryProto"
 accept = "application/x-protobuf"
-optional = ["typeID"]
+optional = ["field.typeID"]
 
 
 [[endpoint]]
 uri = "/data/latency/tag"
+title = "Data Latency Tag"
+description = "tag data latency metrics."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "dataLatencyTagPut"
-required = ["siteID", "typeID", "tag"]
+required = ["siteID", "field.typeID", "tag"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "dataLatencyTagDelete"
-required = ["siteID", "typeID", "tag"]
+required = ["siteID", "field.typeID", "tag"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataLatencyTagProto"
 accept = "application/x-protobuf"
-optional = ["siteID", "typeID"]
+optional = ["siteID", "field.typeID"]
 
 
 [[endpoint]]
 uri = "/data/latency/threshold"
+title = "Data Latency Threshold"
+description = "set thresholds on data latency."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "dataLatencyThresholdPut"
-required = ["siteID", "typeID", "lower", "upper"]
+required = ["siteID", "field.typeID", "lower", "upper"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "dataLatencyThresholdDelete"
-required = ["siteID", "typeID"]
+required = ["siteID", "field.typeID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataLatencyThresholdProto"
 accept = "application/x-protobuf"
-optional = ["typeID", "siteID"]
+optional = ["field.typeID", "siteID"]
 
 
 [[endpoint]]
 uri = "/data/completeness"
+title = "Data Completeness"
+description = "completeness for data."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "dataCompletenessPut"
-required = ["siteID", "typeID", "time", "count"]
+required = ["siteID", "field.typeID", "time", "count"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "dataCompletenessDelete"
-required = ["siteID", "typeID"]
+required = ["siteID", "field.typeID"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataCompletenessSvg"
 accept = "image/svg+xml"
 default = true
-required = ["typeID", "siteID"]
+required = ["field.typeID", "siteID"]
 optional = ["plot", "resolution", "yrange"]
 
 
 [[endpoint]]
 uri = "/data/completeness/summary"
+title = "Data Completeness Summary"
+description = "summary of data completeness."
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataCompletenessSummarySvg"
 accept = "image/svg+xml"
 default = true
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataCompletenessSummaryProto"
 accept = "application/x-protobuf"
-optional = ["typeID"]
+optional = ["field.typeID"]
 
 
 [[endpoint]]
 uri = "/data/completeness/tag"
+title = "Data Completeness Tag"
+description = "tag data completeness metrics."
 
-[endpoint.put]
+[[endpoint.request]]
+method = "PUT"
 function = "dataCompletenessTagPut"
-required = ["siteID", "typeID", "tag"]
+required = ["siteID", "field.typeID", "tag"]
 
-[endpoint.delete]
+[[endpoint.request]]
+method = "DELETE"
 function = "dataCompletenessTagDelete"
-required = ["siteID", "typeID", "tag"]
+required = ["siteID", "field.typeID", "tag"]
 
-[[endpoint.get]]
+[[endpoint.request]]
+method = "GET"
 function = "dataCompletenessTagProto"
 accept = "application/x-protobuf"
