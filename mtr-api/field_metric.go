@@ -189,12 +189,16 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
+	defer rows.Close()
 
 	w := csv.NewWriter(b)
-	w.Write([]string{"time", "value"})
-
-	defer rows.Close()
+	i := 0
 	for rows.Next() {
+
+		if i == 0 {
+			w.Write([]string{"time", "value"})
+		}
+
 		var val float64
 		var t time.Time
 		if err = rows.Scan(&t, &val); err != nil {
@@ -202,6 +206,7 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		}
 
 		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", val)})
+		i++
 	}
 
 	w.Flush()

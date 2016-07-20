@@ -120,18 +120,22 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 		}
 	}
 
-	// CSV headers
-	w := csv.NewWriter(b)
-	if len(values) > 0 {
-		w.Write(headers)
+	if len(values) == 0 {
+		return &weft.StatusOK
 	}
 
-	// CSV data
+	w := csv.NewWriter(b)
 	sort.Sort(ts)
-	for _, t := range ts {
+	for i, t := range ts {
+
+		// CSV headers
+		if i == 0 {
+			w.Write(headers)
+		}
 
 		fields := []string{t.Format(DYGRAPH_TIME_FORMAT)}
 
+		// CSV data
 		// start at index 1: because we've already written out the time
 		for _, colName := range headers[1:] {
 
@@ -606,6 +610,26 @@ func (a appMetric) loadAppMetrics(applicationID, resolution string, typeID inter
 	var err error
 
 	var rows *sql.Rows
+
+	rows, err = dbR.Query(`SELECT COUNT(*)
+		FROM app.type, app.application
+		WHERE applicationID = $1
+		AND typePK = $2`, applicationID, int(typeID))
+	defer rows.Close()
+
+	var nRows int
+	for rows.Next() {
+		if err = rows.Scan(&nRows); err != nil {
+			return weft.InternalServerError(err)
+		}
+	}
+
+	// missing applicationID or typePK should return a 404 while no data can be 200.  See GeoNet/mtr#214
+	if nRows == 0 {
+		return &weft.NotFound
+	}
+
+	rows.Close()
 
 	switch resolution {
 	case "minute":

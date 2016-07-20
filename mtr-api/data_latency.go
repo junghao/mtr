@@ -214,12 +214,16 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	}
 	defer rows.Close()
 
-	// CSV headers
 	w := csv.NewWriter(b)
-	w.Write([]string{"time", "mean", "fifty", "ninety"})
-
-	// CSV data
+	i := 0
 	for rows.Next() {
+
+		// CSV headers
+		if i == 0 {
+			w.Write([]string{"time", "mean", "fifty", "ninety"})
+		}
+
+		// CSV data
 		var dl mtrpb.DataLatency // using a protobuf but just to temporarily hold data
 		var t time.Time
 		err := rows.Scan(&t, &dl.Mean, &dl.Fifty, &dl.Ninety)
@@ -230,6 +234,7 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 			fmt.Sprintf("%.2f", float64(dl.Mean)),
 			fmt.Sprintf("%.2f", float64(dl.Fifty)),
 			fmt.Sprintf("%.2f", float64(dl.Ninety))})
+		i++
 	}
 	rows.Close()
 
