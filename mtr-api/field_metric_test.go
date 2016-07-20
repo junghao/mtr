@@ -57,7 +57,7 @@ func TestFieldMetricCsv(t *testing.T) {
 	}
 	compareCsvData(b, expectedVals, t)
 
-	// no data
+	// test for invalid deviceID
 	r = wt.Request{ID: wt.L(), URL: "/field/metric?deviceID=NOT_THERE&typeID=voltage&resolution=full", Method: "GET", Accept: "text/csv", Status: http.StatusNotFound}
 	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)

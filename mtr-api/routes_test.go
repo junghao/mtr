@@ -41,6 +41,12 @@ var routes = wt.Requests{
 	// Add a timer value.
 	{ID: wt.L(), URL: "/application/timer?applicationID=test-app&instanceID=test-instance&sourceID=func-name&count=10&average=12&fifty=13&ninety=14&time=2015-05-14T21:40:30Z", Method: "PUT"},
 
+	// add an object value
+	{ID: wt.L(), URL: "/application/metric?applicationID=test-app&instanceID=test-instance&typeID=1003&value=3400&time=2015-05-14T21:40:35Z", Method: "PUT"},
+
+	// add a routine value
+	{ID: wt.L(), URL: "/application/metric?applicationID=test-app&instanceID=test-instance&typeID=1100&value=1234&time=2015-05-14T21:40:40Z", Method: "PUT"},
+
 	// a list of all application IDs
 	{ID: wt.L(), URL: "/app", Accept: "application/x-protobuf"},
 
