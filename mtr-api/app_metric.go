@@ -612,9 +612,7 @@ func (a appMetric) loadAppMetrics(applicationID, resolution string, typeID inter
 	var rows *sql.Rows
 
 	rows, err = dbR.Query(`SELECT COUNT(*)
-		FROM app.metric
-		JOIN app.application
-		USING (applicationPK)
+		FROM app.type, app.application
 		WHERE applicationID = $1
 		AND typePK = $2`, applicationID, int(typeID))
 	defer rows.Close()
