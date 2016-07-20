@@ -1,0 +1,2008 @@
+
+	
+	<html>
+	<head>
+	<meta charset="utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<title></title>
+	<link rel="stylesheet" href="https://static.geonet.org.nz/bootstrap/3.3.6/css/bootstrap.min.css">
+	<style>
+	body { padding-top: 60px; }
+	a.anchor { 
+		display: block; position: relative; top: -60px; visibility: hidden; 
+	}
+
+	.panel-height {
+		height: 150px; 
+		overflow-y: scroll;
+	}
+
+	.footer {
+		margin-top: 20px;
+		padding: 20px 0 20px;
+		border-top: 1px solid #e5e5e5;
+	}
+
+	.footer p {
+		text-align: center;
+	}
+
+	#logo{position:relative;}
+	#logo li{margin:0;padding:0;list-style:none;position:absolute;top:0;}
+	#logo li a span
+	{
+		position: absolute;
+		left: -10000px;
+	}
+
+	#gns li, #gns a
+	{
+		float: left;
+		display:block;
+		height: 90px;
+		width: 54px;
+	}
+
+	#gns{left:-20px;height:90px;width:54px;}
+	#gns{background:url('http://static.geonet.org.nz/geonet-2.0.2/images/logos.png') -0px -0px;}
+
+	#eqc li, #eqc a
+	{
+		display:block;
+		height: 61px;
+		width: 132px;
+	}
+
+	#eqc{right:0px;height:79px;width:132px;}
+	#eqc{background:url('http://static.geonet.org.nz/geonet-2.0.2/images/logos.png') -0px -312px;}
+
+	#ccby li, #ccby a
+	{
+		display:block;
+		height: 15px;
+		width: 80px;
+	}
+	#ccby{left:15px;height:15px;width:80px; }
+	#ccby{background:url('http://static.geonet.org.nz/geonet-2.0.2/images/logos.png') -0px -100px;}
+
+	#geonet{
+		background:url('http://static.geonet.org.nz/geonet-2.0.2/images/logos.png') 0px -249px; 
+		width:137px; 
+		height:53px;
+		display:block;
+	}
+	</style>
+	</head>
+	<body>
+	<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container">
+	<div class="navbar-header">
+	<a class="navbar-brand" href="http://geonet.org.nz">GeoNet</a>
+	</div>
+	</div>
+	</div>
+
+	<div class="container-fluid">
+	
+	<div class="alert alert-danger" role="alert">So you found this API just laying around on the internet and that's cool.
+	If you're seeing this message then we still view this as experimental or beta so if you use this thing you found
+	then please be aware that we may change it or take it away without warning.  If you have some feed back on the 
+	API functionality then please write your comment on a box of New Zealand craft IPA and mail it to us.  
+	Multiple submissions welcome.</div>
+	
+	
+
+	<h1 class="page-header">MTR API</h1>
+	<p class="lead">Welcome to the MTR API.</p>
+
+	<p>The GeoNet project makes all its data and images freely available.
+	Please ensure you have read and understood our 
+	<a href="http://info.geonet.org.nz/x/BYIW">Data Policy</a> and <a href="http://info.geonet.org.nz/x/EIIW">Disclaimer</a> 
+	before using any of these services.</p>
+
+	
+
+	<h3 class="page-header">Endpoints</h3>
+
+	<p>The following endpoints are available:</p>
+	<ul>
+	
+	<li><a href="#app">App</a> - Find applications.</li>
+	
+	<li><a href="#appmetric">App Metric</a> - application metrics.</li>
+	
+	<li><a href="#applicationcounter">Application Counter</a> - application counters.</li>
+	
+	<li><a href="#applicationmetric">Application Metric</a> - application metrics.</li>
+	
+	<li><a href="#applicationtimer">Application Timer</a> - application timers.</li>
+	
+	<li><a href="#datacompleteness">Data Completeness</a> - completeness for data.</li>
+	
+	<li><a href="#datacompletenesssummary">Data Completeness Summary</a> - summary of data completeness.</li>
+	
+	<li><a href="#datacompletenesstag">Data Completeness Tag</a> - tag data completeness metrics.</li>
+	
+	<li><a href="#datalatency">Data Latency</a> - latency for data.</li>
+	
+	<li><a href="#datalatencysummary">Data Latency Summary</a> - summary for data latency.</li>
+	
+	<li><a href="#datalatencytag">Data Latency Tag</a> - tag data latency metrics.</li>
+	
+	<li><a href="#datalatencythreshold">Data Latency Threshold</a> - set thresholds on data latency.</li>
+	
+	<li><a href="#datasite">Data Site</a> - sites for data.</li>
+	
+	<li><a href="#datatype">Data Type</a> - types for data.</li>
+	
+	<li><a href="#fielddevice">Field Device</a> - field devices.</li>
+	
+	<li><a href="#fieldmetric">Field Metric</a> - field metrics.</li>
+	
+	<li><a href="#fieldmetricsummary">Field Metric Summary</a> - Field metric summaries.</li>
+	
+	<li><a href="#fieldmetrictag">Field Metric Tag</a> - tags for field metrics.</li>
+	
+	<li><a href="#fieldmetricthreshold">Field Metric Threshold</a> - thresholds for field metrics.</li>
+	
+	<li><a href="#fieldmodel">Field Model</a> - models for field devices.</li>
+	
+	<li><a href="#fieldstate">Field State</a> - state for field devices.</li>
+	
+	<li><a href="#fieldstatetag">Field State Tag</a> - tags can be added to field state.</li>
+	
+	<li><a href="#fieldtype">Field Type</a> - field metric types.</li>
+	
+	<li><a href="#tag">Tag</a> - find tags.</li>
+	
+	<li><a href="#tag">Tag</a> - Tags can be added to metrics.</li>
+	
+	</ul>
+
+	<p>All requests should be made over HTTPS.</p>
+
+	<h3 class="page-header">Versioning</h3>
+
+	<p>API queries may be versioned via the Accept header.
+	Please specify the <code>Accept</code> header for your request exactly as specified for the endpoint query you are using.</p>
+
+	<p>If you don't specify an Accept header with a version then your request will be routed to the current highest API version of the query
+	or the default route.</p>
+	
+	<h3 class="page-header">Compression</h3>
+
+	<p>The response for a query can be compressed.  If your client can handle a compressed response then the
+	reduced download size is a great benifit.  Gzip compression is supported.  You can request a compressed response
+	by including <code>gzip</code> in your <code>Accept-Encoding</code> header.</p>
+
+	<h3 class="page-header">Bugs</h3>
+
+	<p>The code that provide these services is available at <a href="https://github.com/GeoNet/mtr">https://github.com/GeoNet/mtr</a>  If you believe
+	you have found a bug please raise an issue or pull request there. 
+	Alternatively <a href="http://info.geonet.org.nz/x/JYAO">contact us</a> detailing the issue.</p>
+
+	
+	<a id="app" class="anchor"></a>
+	<h3 class="page-header">App</h3>
+	<p class="lead">Find applications.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/app</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	
+	<a id="appmetric" class="anchor"></a>
+	<h3 class="page-header">App Metric</h3>
+	<p class="lead">application metrics.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/app/metric</dd>
+	<dt>Accept</dt><dd>image/svg&#43;xml</dd>
+	<dt>Default</dt><dd>default for GET with unmatched Accept.</dd>
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>applicationID</dt><dd>[string] the application identifier - must be unique across all applications.</dd><dt>group</dt><dd>[string] the metric group e.g., timers.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd><dt>sourceID</dt><dd>[string] source identifier for the metrics, often the function name.</dd><dt>yrange</dt><dd>[string] yrange for the plot e.g., 0,300</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/app/metric</dd>
+	<dt>Accept</dt><dd>text/csv</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>applicationID</dt><dd>[string] the application identifier - must be unique across all applications.</dd><dt>group</dt><dd>[string] the metric group e.g., timers.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd><dt>sourceID</dt><dd>[string] source identifier for the metrics, often the function name.</dd></dl>
+	
+
+	
+
+	
+	
+	<a id="applicationcounter" class="anchor"></a>
+	<h3 class="page-header">Application Counter</h3>
+	<p class="lead">application counters.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/application/counter</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>applicationID</dt><dd>[string] the application identifier - must be unique across all applications.</dd><dt>count</dt><dd>[int] the metric count</dd><dt>instanceID</dt><dd>[string] instance identifier for the metrics, often the host or container name.</dd><dt>time</dt><dd>[string] RFC3339 formatted time</dd><dt>typeID</dt><dd>[int] the type identifier - must be mtr.internal.ID.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="applicationmetric" class="anchor"></a>
+	<h3 class="page-header">Application Metric</h3>
+	<p class="lead">application metrics.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/application/metric</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>applicationID</dt><dd>[string] the application identifier - must be unique across all applications.</dd><dt>instanceID</dt><dd>[string] instance identifier for the metrics, often the host or container name.</dd><dt>time</dt><dd>[string] RFC3339 formatted time</dd><dt>typeID</dt><dd>[int] the type identifier - must be mtr.internal.ID.</dd><dt>value</dt><dd>[int64] the metric value.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="applicationtimer" class="anchor"></a>
+	<h3 class="page-header">Application Timer</h3>
+	<p class="lead">application timers.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/application/timer</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>applicationID</dt><dd>[string] the application identifier - must be unique across all applications.</dd><dt>average</dt><dd>[int] the average time (ms).</dd><dt>count</dt><dd>[int] the metric count</dd><dt>fifty</dt><dd>[int] the fiftieth percentile time (ms).</dd><dt>instanceID</dt><dd>[string] instance identifier for the metrics, often the host or container name.</dd><dt>ninety</dt><dd>[int] the ninetieth percentile time (ms).</dd><dt>sourceID</dt><dd>[string] source identifier for the metrics, often the function name.</dd><dt>time</dt><dd>[string] RFC3339 formatted time</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="datacompleteness" class="anchor"></a>
+	<h3 class="page-header">Data Completeness</h3>
+	<p class="lead">completeness for data.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/completeness</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/completeness</dd>
+	<dt>Accept</dt><dd>image/svg&#43;xml</dd>
+	<dt>Default</dt><dd>default for GET with unmatched Accept.</dd>
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>plot</dt><dd>[string] the plot style.</dd><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd><dt>yrange</dt><dd>[string] yrange for the plot e.g., 0,300</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/completeness</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>count</dt><dd>[int] the metric count</dd><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>time</dt><dd>[string] RFC3339 formatted time</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="datacompletenesssummary" class="anchor"></a>
+	<h3 class="page-header">Data Completeness Summary</h3>
+	<p class="lead">summary of data completeness.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/completeness/summary</dd>
+	<dt>Accept</dt><dd>image/svg&#43;xml</dd>
+	<dt>Default</dt><dd>default for GET with unmatched Accept.</dd>
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/completeness/summary</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+	
+	<a id="datacompletenesstag" class="anchor"></a>
+	<h3 class="page-header">Data Completeness Tag</h3>
+	<p class="lead">tag data completeness metrics.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/completeness/tag</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>tag</dt><dd>[string] a short tag</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/completeness/tag</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/completeness/tag</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>tag</dt><dd>[string] a short tag</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="datalatency" class="anchor"></a>
+	<h3 class="page-header">Data Latency</h3>
+	<p class="lead">latency for data.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency</dd>
+	<dt>Accept</dt><dd>image/svg&#43;xml</dd>
+	<dt>Default</dt><dd>default for GET with unmatched Accept.</dd>
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>plot</dt><dd>[string] the plot style.</dd><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd><dt>yrange</dt><dd>[string] yrange for the plot e.g., 0,300</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency</dd>
+	<dt>Accept</dt><dd>text/csv</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>mean</dt><dd>[int] the mean time (ms).</dd><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>time</dt><dd>[string] RFC3339 formatted time</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>fifty</dt><dd>[int] the fiftieth percentile time (ms).</dd><dt>max</dt><dd>[int] the max time (ms).</dd><dt>min</dt><dd>[int] the min time (ms).</dd><dt>ninety</dt><dd>[int] the ninetieth percentile time (ms).</dd></dl>
+	
+
+	
+
+	
+	
+	<a id="datalatencysummary" class="anchor"></a>
+	<h3 class="page-header">Data Latency Summary</h3>
+	<p class="lead">summary for data latency.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency/summary</dd>
+	<dt>Accept</dt><dd>image/svg&#43;xml</dd>
+	<dt>Default</dt><dd>default for GET with unmatched Accept.</dd>
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>bbox</dt><dd>[string] the bbox for the map</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd><dt>width</dt><dd>[int] the width for the map</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency/summary</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+	
+	<a id="datalatencytag" class="anchor"></a>
+	<h3 class="page-header">Data Latency Tag</h3>
+	<p class="lead">tag data latency metrics.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency/tag</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>tag</dt><dd>[string] a short tag</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency/tag</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency/tag</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>tag</dt><dd>[string] a short tag</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="datalatencythreshold" class="anchor"></a>
+	<h3 class="page-header">Data Latency Threshold</h3>
+	<p class="lead">set thresholds on data latency.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency/threshold</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency/threshold</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/latency/threshold</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>lower</dt><dd>[int] the lower bound</dd><dt>siteID</dt><dd>[string] the site identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd><dt>upper</dt><dd>[int] the upper bound</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="datasite" class="anchor"></a>
+	<h3 class="page-header">Data Site</h3>
+	<p class="lead">sites for data.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/site</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>siteID</dt><dd>[string] the site identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/site</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/site</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>latitude</dt><dd>[float64] the latitude</dd><dt>longitude</dt><dd>[float64] the longitude</dd><dt>siteID</dt><dd>[string] the site identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="datatype" class="anchor"></a>
+	<h3 class="page-header">Data Type</h3>
+	<p class="lead">types for data.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/data/type</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	
+	<a id="fielddevice" class="anchor"></a>
+	<h3 class="page-header">Field Device</h3>
+	<p class="lead">field devices.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/device</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/device</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/device</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>latitude</dt><dd>[float64] the latitude</dd><dt>longitude</dt><dd>[float64] the longitude</dd><dt>modelID</dt><dd>[string] the model identifier - used with deviceID.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="fieldmetric" class="anchor"></a>
+	<h3 class="page-header">Field Metric</h3>
+	<p class="lead">field metrics.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric</dd>
+	<dt>Accept</dt><dd>image/svg&#43;xml</dd>
+	<dt>Default</dt><dd>default for GET with unmatched Accept.</dd>
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>plot</dt><dd>[string] the plot style.</dd><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric</dd>
+	<dt>Accept</dt><dd>text/csv</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>resolution</dt><dd>[string] resolution for the plot e.g., five_minutes</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>time</dt><dd>[string] RFC3339 formatted time</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd><dt>value</dt><dd>[int] the metric value.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="fieldmetricsummary" class="anchor"></a>
+	<h3 class="page-header">Field Metric Summary</h3>
+	<p class="lead">Field metric summaries.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/summary</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/summary</dd>
+	<dt>Accept</dt><dd>image/svg&#43;xml</dd>
+	<dt>Default</dt><dd>default for GET with unmatched Accept.</dd>
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>bbox</dt><dd>[string] the bbox for the map</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd><dt>width</dt><dd>[int] the width for the map</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/summary</dd>
+	<dt>Accept</dt><dd>application/vnd.geo&#43;json</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="fieldmetrictag" class="anchor"></a>
+	<h3 class="page-header">Field Metric Tag</h3>
+	<p class="lead">tags for field metrics.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/tag</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>tag</dt><dd>[string] a short tag</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/tag</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+	<h4>Optional Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/tag</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>tag</dt><dd>[string] a short tag</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="fieldmetricthreshold" class="anchor"></a>
+	<h3 class="page-header">Field Metric Threshold</h3>
+	<p class="lead">thresholds for field metrics.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/threshold</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/threshold</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/metric/threshold</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>lower</dt><dd>[int] the lower bound</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd><dt>upper</dt><dd>[int] the upper bound</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="fieldmodel" class="anchor"></a>
+	<h3 class="page-header">Field Model</h3>
+	<p class="lead">models for field devices.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/model</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>modelID</dt><dd>[string] the model identifier - used with deviceID.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/model</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/model</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>modelID</dt><dd>[string] the model identifier - used with deviceID.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="fieldstate" class="anchor"></a>
+	<h3 class="page-header">Field State</h3>
+	<p class="lead">state for field devices.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/state</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/state</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/state</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>time</dt><dd>[string] RFC3339 formatted time</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd><dt>value</dt><dd>[bool] the state.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="fieldstatetag" class="anchor"></a>
+	<h3 class="page-header">Field State Tag</h3>
+	<p class="lead">tags can be added to field state.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/state/tag</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>tag</dt><dd>[string] a short tag</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/state/tag</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/state/tag</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+	<h4>Required Query Parameters:</h4>
+	<dl class="dl-horizontal"><dt>deviceID</dt><dd>[string] the device identifier.</dd><dt>tag</dt><dd>[string] a short tag</dd><dt>typeID</dt><dd>[string] the metric type identifier.</dd></dl>
+	
+
+	
+
+	
+
+	
+	
+	<a id="fieldtype" class="anchor"></a>
+	<h3 class="page-header">Field Type</h3>
+	<p class="lead">field metric types.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/field/type</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	
+	<a id="tag" class="anchor"></a>
+	<h3 class="page-header">Tag</h3>
+	<p class="lead">find tags.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/tag</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	
+	<a id="tag" class="anchor"></a>
+	<h3 class="page-header">Tag</h3>
+	<p class="lead">Tags can be added to metrics.</p>
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: DELETE</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/tag/(tag)</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+	<h4>URI Parameter:</h4>
+	<dl class="dl-horizontal"><dt>tag</dt><dd>[string] a short tag</dd></dl>
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: GET</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/tag/(tag)</dd>
+	<dt>Accept</dt><dd>application/x-protobuf</dd>
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+	<h4>URI Parameter:</h4>
+	<dl class="dl-horizontal"><dt>tag</dt><dd>[string] a short tag</dd></dl>
+	
+
+	
+
+	
+
+	
+
+	
+	<div class="panel panel-primary">
+	<div class="panel-heading">Method: PUT</div>
+	<div class="panel-body">
+
+	<dl class="dl-horizontal">
+	<dt>URI</dt><dd>/tag/(tag)</dd>
+	
+	
+	</dl>
+	</div>
+	</div>
+	<p></p>
+	
+
+	
+	<h4>URI Parameter:</h4>
+	<dl class="dl-horizontal"><dt>tag</dt><dd>[string] a short tag</dd></dl>
+	
+
+	
+
+	
+
+	
+
+	
+	
+
+	
+	<div id="footer" class="footer">
+	<div class="row">
+	<div class="col-sm-3 hidden-xs">
+	<ul id="logo">
+	<li id="geonet"><a target="_blank" href="http://www.geonet.org.nz"><span>GeoNet</span></a></li>
+	</ul>            
+	</div>
+
+	<div class="col-sm-6">
+	<p>GeoNet is a collaboration between the <a target="_blank" href="http://www.eqc.govt.nz">Earthquake Commission</a> and <a target="_blank" href="http://www.gns.cri.nz/">GNS Science</a>.</p>
+	<p><a target="_blank" href="http://info.geonet.org.nz/x/loYh">about</a> | <a target="_blank" href="http://info.geonet.org.nz/x/JYAO">contact</a> | <a target="_blank" href="http://info.geonet.org.nz/x/RYAo">privacy</a> | <a target="_blank" href="http://info.geonet.org.nz/x/EIIW">disclaimer</a> </p>
+	<p>GeoNet content is copyright <a target="_blank" href="http://www.gns.cri.nz/">GNS Science</a> and is licensed under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by/3.0/nz/">Creative Commons Attribution 3.0 New Zealand License</a></p>
+	</div>
+
+	<div  class="col-sm-2 hidden-xs">
+	<ul id="logo">
+	<li id="eqc"><a target="_blank" href="http://www.eqc.govt.nz" ><span>EQC</span></a></li>
+	</ul>
+	</div>
+	<div  class="col-sm-1 hidden-xs">
+	<ul id="logo">
+	<li id="gns"><a target="_blank" href="http://www.gns.cri.nz"><span>GNS Science</span></a></li>
+	</ul>  
+	</div>
+	</div>
+
+	<div class="row">
+	<div class="col-sm-1 col-sm-offset-5 hidden-xs">
+	<ul id="logo">
+	<li id="ccby"><a href="http://creativecommons.org/licenses/by/3.0/nz/" ><span>CC-BY</span></a></li>
+	</ul>
+	</div>
+	</div>
+
+	</div>
+	</div>
+	</body>
+	</html>
+	
+	
