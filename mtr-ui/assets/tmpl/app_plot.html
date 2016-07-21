@@ -33,7 +33,7 @@
                     pointSize: 2,
                     rollPeriod: 1,
                     showRoller: true,
-                    strokeWidth: 2,
+                    strokeWidth: 0.0, // draw points but not lines connecting them
                 };
                 showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=timers",
                             {{urlquery .Resolution}},
@@ -84,7 +84,7 @@
                     pointSize: 2,
                     rollPeriod: 1,
                     showRoller: true,
-                    strokeWidth: 0.0, // draw points but not lines connecting them
+                    strokeWidth: 2,
                 };
                 showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=objects",
                             {{urlquery .Resolution}},
