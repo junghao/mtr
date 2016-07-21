@@ -22,6 +22,7 @@ func init() {
 	mux.HandleFunc("/data/completeness", weft.MakeHandlerAPI(datacompletenessHandler))
 	mux.HandleFunc("/data/completeness/summary", weft.MakeHandlerAPI(datacompletenesssummaryHandler))
 	mux.HandleFunc("/data/completeness/tag", weft.MakeHandlerAPI(datacompletenesstagHandler))
+	mux.HandleFunc("/data/completeness/type", weft.MakeHandlerAPI(datacompletenesstypeHandler))
 	mux.HandleFunc("/data/latency", weft.MakeHandlerAPI(datalatencyHandler))
 	mux.HandleFunc("/data/latency/summary", weft.MakeHandlerAPI(datalatencysummaryHandler))
 	mux.HandleFunc("/data/latency/tag", weft.MakeHandlerAPI(datalatencytagHandler))
@@ -173,7 +174,7 @@ func datacompletenesssummaryHandler(r *http.Request, h http.Header, b *bytes.Buf
 	case "GET":
 		switch r.Header.Get("Accept") {
 		case "image/svg+xml":
-			if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+			if res := weft.CheckQuery(r, []string{"bbox", "typeID", "width"}, []string{}); !res.Ok {
 				return res
 			}
 			h.Set("Content-Type", "image/svg+xml")
@@ -185,7 +186,7 @@ func datacompletenesssummaryHandler(r *http.Request, h http.Header, b *bytes.Buf
 			h.Set("Content-Type", "application/x-protobuf")
 			return dataCompletenessSummaryProto(r, h, b)
 		default:
-			if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+			if res := weft.CheckQuery(r, []string{"bbox", "typeID", "width"}, []string{}); !res.Ok {
 				return res
 			}
 			h.Set("Content-Type", "image/svg+xml")
@@ -219,6 +220,24 @@ func datacompletenesstagHandler(r *http.Request, h http.Header, b *bytes.Buffer)
 			return res
 		}
 		return dataCompletenessTagDelete(r, h, b)
+	default:
+		return &weft.MethodNotAllowed
+	}
+}
+
+func datacompletenesstypeHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
+	switch r.Method {
+	case "GET":
+		switch r.Header.Get("Accept") {
+		case "application/x-protobuf":
+			if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+				return res
+			}
+			h.Set("Content-Type", "application/x-protobuf")
+			return dataCompletenessTypeProto(r, h, b)
+		default:
+			return &weft.NotAcceptable
+		}
 	default:
 		return &weft.MethodNotAllowed
 	}

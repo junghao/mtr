@@ -582,6 +582,15 @@ default = true
 required = ["field.typeID", "siteID"]
 optional = ["plot", "resolution", "yrange"]
 
+[[endpoint]]
+uri = "/data/completeness/type"
+title = "Data Completeness Type"
+description = "types for data completeness."
+
+[[endpoint.request]]
+method = "GET"
+function = "dataCompletenessTypeProto"
+accept = "application/x-protobuf"
 
 [[endpoint]]
 uri = "/data/completeness/summary"
@@ -593,6 +602,7 @@ method = "GET"
 function = "dataCompletenessSummarySvg"
 accept = "image/svg+xml"
 default = true
+required = ["bbox", "width", "field.typeID"]
 
 [[endpoint.request]]
 method = "GET"
