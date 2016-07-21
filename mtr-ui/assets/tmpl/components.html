@@ -178,6 +178,26 @@
         </div>
         {{else}}
         <img src="{{.MtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/>
+
+        {{if .FieldLog}}
+        <div class="row">
+            <div class="col-xs-12 col-md-12">
+                {{$upper:=.FieldLog.Upper}}
+                {{$lower:=.FieldLog.Lower}}
+                <h4>Upper:{{$upper}}, Lower:{{$lower}}</h4>
+                <table class="history-log">
+                    <thead><tr><th>time</th><th>value</th></tr></thead>
+                    <tbody>
+                    {{range .FieldLog.Result}}
+                    <tr style="color:{{fieldColour . $lower $upper}}">
+                        <td>{{rfc3339str .Seconds}}</td><td>{{.Value}}</td>
+                    </tr>
+                    {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {{end}}
         {{end}}
     </div>
 </div>
@@ -198,25 +218,7 @@
         </ul>
     </div>
 </div>
-{{if .FieldLog}}
-<div class="row">
-    <div class="col-xs-12 col-md-12">
-        {{$upper:=.FieldLog.Upper}}
-        {{$lower:=.FieldLog.Lower}}
-        <h4>Upper:{{$upper}}, Lower:{{$lower}}</h4>
-        <table class="history-log">
-            <thead><tr><th>time</th><th>value</th></tr></thead>
-            <tbody>
-            {{range .FieldLog.Result}}
-            <tr style="color:{{fieldColour . $lower $upper}}">
-                <td>{{rfc3339str .Seconds}}</td><td>{{.Value}}</td>
-            </tr>
-            {{end}}
-            </tbody>
-        </table>
-    </div>
-</div>
-{{end}}
+
 {{end}}
 
 {{define "app_plot_res"}}
@@ -259,6 +261,7 @@
     <br>
     <div class="graph col-xs-12 col-md-12" id="graphdiv"></div>
     <script>
+        var csvUrl = "/p/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}";
         var graphOptions = {
              title: 'Data Latency (siteID: {{urlquery .SiteID}}, typeID: {{urlquery .TypeID}})',
              //connectSeparatedPoints: true,
@@ -269,17 +272,38 @@
              rollPeriod: 1, // the number of points "rolled" or averaged into one, can modify interactively
              showRoller: true,
              strokeWidth: 2,
+             //drawCallback: function(me, initial) { progressiveLoader(me, initial, csvUrl) },
         };
 
-        showGraph("/p/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}",
-                    {{urlquery .Resolution}},
-                    graphOptions,
-                    {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
+        showGraph(csvUrl,
+                {{urlquery .Resolution}},
+                graphOptions,
+                {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
     </script>
 
     {{else}}
 
     <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/></div>
+
+    {{if .LatencyLog}}
+    <div class="row">
+        <div class="col-xs-12 col-md-12">
+            {{$upper:=.LatencyLog.Upper}}
+            {{$lower:=.LatencyLog.Lower}}
+            <h4>Upper:{{$upper}}, Lower:{{$lower}}</h4>
+            <table class="history-log">
+                <thead><tr><th>time</th><th>mean</th><th>fifty</th><th>ninety</th></tr></thead>
+                <tbody>
+                {{range .LatencyLog.Result}}
+                <tr style="color:{{latencyColour . $lower $upper}}">
+                    <td>{{rfc3339str .Seconds}}</td><td>{{.Mean}}</td><td>{{.Fifty}}</td><td>{{.Ninety}}</td>
+                </tr>
+                {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{end}}
 
     {{end}}
 
@@ -302,25 +326,6 @@
     </div>
 </div>
 
-{{if .LatencyLog}}
-<div class="row">
-    <div class="col-xs-12 col-md-12">
-        {{$upper:=.LatencyLog.Upper}}
-        {{$lower:=.LatencyLog.Lower}}
-        <h4>Upper:{{$upper}}, Lower:{{$lower}}</h4>
-        <table class="history-log">
-            <thead><tr><th>time</th><th>mean</th><th>fifty</th><th>ninety</th></tr></thead>
-            <tbody>
-            {{range .LatencyLog.Result}}
-            <tr style="color:{{latencyColour . $lower $upper}}">
-                <td>{{rfc3339str .Seconds}}</td><td>{{.Mean}}</td><td>{{.Fifty}}</td><td>{{.Ninety}}</td>
-            </tr>
-            {{end}}
-            </tbody>
-        </table>
-    </div>
-</div>
-{{end}}
 {{end}}
 
 {{define "data_completeness_plot"}}

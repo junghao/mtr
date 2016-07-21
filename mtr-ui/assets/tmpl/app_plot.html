@@ -7,90 +7,94 @@
         {{if .Interactive}}
         <div id="graphdiv" class="graph">
             <script>
-                var counterOptions = {
-                    title: 'Application - Metric Counters: (application ID: {{urlquery .ApplicationID}})',
-                    //connectSeparatedPoints: true,
-                    xlabel: 'Date (UTC)',
-                    ylabel: 'Count',
-                    drawPoints: true,
-                    pointSize: 2,
-                    rollPeriod: 1,
-                    showRoller: true,
-                    strokeWidth: 2,
-                };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=counters",
-                            {{urlquery .Resolution}},
-                            counterOptions,
-                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
-                );
+                $(document).ready(function () {
+                    "use strict";
 
-                var timerOptions = {
-                    title: 'Application - Metric Timers: (application ID: {{urlquery .ApplicationID}})',
-                    //connectSeparatedPoints: true,
-                    xlabel: 'Date (UTC)',
-                    ylabel: 'Time (ms)',
-                    drawPoints: true,
-                    pointSize: 2,
-                    rollPeriod: 1,
-                    showRoller: true,
-                    strokeWidth: 0.0, // draw points but not lines connecting them
-                };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=timers",
-                            {{urlquery .Resolution}},
-                            timerOptions,
-                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
-                );
+                    var counterOptions = {
+                        title: 'Application Metric Counters: (app ID: {{urlquery .ApplicationID}})',
+                        //connectSeparatedPoints: true,
+                        xlabel: 'Date (UTC)',
+                        ylabel: 'Count',
+                        drawPoints: true,
+                        pointSize: 2,
+                        rollPeriod: 1,
+                        showRoller: true,
+                        //strokeWidth: 2,
+                    };
+                    showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=counters",
+                                {{urlquery .Resolution}},
+                                counterOptions,
+                                {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                    );
 
-                var memoryOptions = {
-                    title: 'Application - Metric Memory: (application ID: {{urlquery .ApplicationID}})',
-                    //connectSeparatedPoints: true,
-                    xlabel: 'Date (UTC)',
-                    ylabel: 'Bytes',
-                    drawPoints: true,
-                    pointSize: 2,
-                    rollPeriod: 1,
-                    showRoller: true,
-                    strokeWidth: 2,
-                };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=memory",
-                            {{urlquery .Resolution}},
-                            memoryOptions,
-                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
-                );
+                    var timerOptions = {
+                        title: 'Application Metric Timers: (app ID: {{urlquery .ApplicationID}})',
+                        //connectSeparatedPoints: true,
+                        xlabel: 'Date (UTC)',
+                        ylabel: 'Time (ms)',
+                        drawPoints: true,
+                        pointSize: 2,
+                        rollPeriod: 1,
+                        showRoller: true,
+                        strokeWidth: 0.0, // Plot points instead of lines, same as the SVGs
+                    };
+                    showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=timers",
+                                {{urlquery .Resolution}},
+                                timerOptions,
+                                {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                    );
 
-                var routineOptions = {
-                    title: 'Application - Metric Routines: (application ID: {{urlquery .ApplicationID}})',
-                    //connectSeparatedPoints: true,
-                    xlabel: 'Date (UTC)',
-                    ylabel: 'Count',
-                    drawPoints: true,
-                    pointSize: 2,
-                    rollPeriod: 1,
-                    showRoller: true,
-                    strokeWidth: 2,
-                };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=routines",
-                            {{urlquery .Resolution}},
-                            routineOptions,
-                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
-                );
+                    var memoryOptions = {
+                        title: 'Application Metric Memory: (app ID: {{urlquery .ApplicationID}})',
+                        //connectSeparatedPoints: true,
+                        xlabel: 'Date (UTC)',
+                        ylabel: 'Bytes',
+                        drawPoints: true,
+                        pointSize: 2,
+                        rollPeriod: 1,
+                        showRoller: true,
+                        //strokeWidth: 2,
+                    };
+                    showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=memory",
+                                {{urlquery .Resolution}},
+                                memoryOptions,
+                                {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                    );
 
-                var objectOptions = {
-                    title: 'Application - Metric Memory Heap Objects: (application ID: {{urlquery .ApplicationID}})',
-                    //connectSeparatedPoints: true,
-                    xlabel: 'Date (UTC)',
-                    ylabel: 'Count',
-                    drawPoints: true,
-                    pointSize: 2,
-                    rollPeriod: 1,
-                    showRoller: true,
-                    strokeWidth: 2,
-                };
-                showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=objects",
-                            {{urlquery .Resolution}},
-                            objectOptions,
-                            {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
-                );
+                    var routineOptions = {
+                        title: 'Application Metric Routines: (app ID: {{urlquery .ApplicationID}})',
+                        //connectSeparatedPoints: true,
+                        xlabel: 'Date (UTC)',
+                        ylabel: 'Count',
+                        drawPoints: true,
+                        pointSize: 2,
+                        rollPeriod: 1,
+                        showRoller: true,
+                        //strokeWidth: 2,
+                    };
+                    showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=routines",
+                                {{urlquery .Resolution}},
+                                routineOptions,
+                                {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                    );
+
+                    var objectOptions = {
+                        title: 'Application Metric Memory Heap Objects: (app ID: {{urlquery .ApplicationID}})',
+                        //connectSeparatedPoints: true,
+                        xlabel: 'Date (UTC)',
+                        ylabel: 'Count',
+                        drawPoints: true,
+                        pointSize: 2,
+                        rollPeriod: 1,
+                        showRoller: true,
+                        //strokeWidth: 2,
+                    };
+                    showGraph("/p/app/metric?applicationID={{urlquery .ApplicationID}}&group=objects",
+                                {{urlquery .Resolution}},
+                                objectOptions,
+                                {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}}
+                    );
+                });
 
             </script>
         </div>
