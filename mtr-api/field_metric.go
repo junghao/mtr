@@ -176,8 +176,9 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	}
 
 	var typePK int
-	if err = dbR.QueryRow(`SELECT typePK FROM field.type WHERE typeID = $1`,
-		typeID).Scan(&typePK); err != nil {
+	var scale float64
+	if err = dbR.QueryRow(`SELECT typePK, scale FROM field.type WHERE typeID = $1`,
+		typeID).Scan(&typePK, &scale); err != nil {
 		if err == sql.ErrNoRows {
 			return &weft.NotFound
 		}
@@ -205,7 +206,7 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 			return weft.InternalServerError(err)
 		}
 
-		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", val)})
+		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", val*scale)})
 		i++
 	}
 
