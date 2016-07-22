@@ -69,7 +69,7 @@ func (p *mapPage) populateTypes() (err error) {
 	//3. dataCompleteness types
 	u.Path = "/data/completeness/type"
 	dataCompletenessMap := mapDef{ApiUrl: p.MtrApiUrl + "/data/completeness/summary?bbox=NewZealand&width=800"}
-	//use same function for dataType as they all return mtrpb.DataTypeResult
+	//use same function for dataType as they both return mtrpb.DataTypeResult
 	if dataCompletenessMap.TypeIDs, err = getAllDataTypes(u.String()); err != nil {
 		return err
 	}
