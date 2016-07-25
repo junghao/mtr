@@ -13,6 +13,7 @@ type mapPage struct {
 	ActiveTab   string
 	MtrApiUrl   string
 	TypeID      string
+	MapApiUrl   string
 	Interactive bool
 }
 
@@ -33,13 +34,36 @@ func mapPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		return weft.InternalServerError(err)
 	}
 
+	if err = p.populateTypes(); err != nil {
+		return weft.InternalServerError(err)
+	}
+
 	s := strings.TrimPrefix(r.URL.Path, "/map")
-	switch s {
-	case "", "/":
-		p.TypeID = "voltage"
-	case "/voltage", "/conn", "/ping":
-		p.TypeID = strings.TrimPrefix(s, "/")
-	default:
+
+	typeExist := false
+	if ArrayContains(s, []string{"", "/"}) {
+		p.TypeID = ""
+		typeExist = true
+		for _, mapdef := range p.Border.MapList {
+			if len(mapdef.TypeIDs) > 0 {
+				p.TypeID = mapdef.TypeIDs[0]
+				p.MapApiUrl = mapdef.ApiUrl
+				break
+			}
+		}
+	} else {
+		s1 := strings.TrimPrefix(s, "/")
+		for _, mapdef := range p.Border.MapList {
+			if ArrayContains(s1, mapdef.TypeIDs) {
+				p.TypeID = s1
+				p.MapApiUrl = mapdef.ApiUrl
+				typeExist = true
+				break
+			}
+		}
+	}
+
+	if !typeExist {
 		return weft.InternalServerError(fmt.Errorf("Unknown map type"))
 	}
 
@@ -48,4 +72,13 @@ func mapPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	}
 
 	return &weft.StatusOK
+}
+
+func ArrayContains(v string, a []string) bool {
+	for _, i := range a {
+		if i == v {
+			return true
+		}
+	}
+	return false
 }

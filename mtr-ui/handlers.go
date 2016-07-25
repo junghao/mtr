@@ -18,6 +18,12 @@ type page struct {
 type border struct {
 	Title   string
 	TagList []string
+	MapList []mapDef
+}
+
+type mapDef struct {
+	TypeIDs []string
+	ApiUrl  string
 }
 
 var userW, keyW string
@@ -35,6 +41,39 @@ func (p *page) populateTags() (err error) {
 	if p.Border.TagList, err = getAllTagIDs(u.String()); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// get types for map, incl. fieldType, dataType, dataCompletenessType...
+func (p *mapPage) populateTypes() (err error) {
+	u := *mtrApiUrl
+	//1. field types
+	u.Path = "/field/type"
+	fieldMap := mapDef{ApiUrl: p.MtrApiUrl + "/field/metric/summary?bbox=NewZealand&width=800"}
+
+	if fieldMap.TypeIDs, err = getAllFieldTypes(u.String()); err != nil {
+		return err
+	}
+	p.Border.MapList = append(p.Border.MapList, fieldMap)
+
+	//2. data types
+	u.Path = "/data/type"
+	dataMap := mapDef{ApiUrl: p.MtrApiUrl + "/data/latency/summary?bbox=NewZealand&width=800"}
+
+	if dataMap.TypeIDs, err = getAllDataTypes(u.String()); err != nil {
+		return err
+	}
+	p.Border.MapList = append(p.Border.MapList, dataMap)
+
+	//3. dataCompleteness types
+	u.Path = "/data/completeness/type"
+	dataCompletenessMap := mapDef{ApiUrl: p.MtrApiUrl + "/data/completeness/summary?bbox=NewZealand&width=800"}
+	//use same function for dataType as they both return mtrpb.DataTypeResult
+	if dataCompletenessMap.TypeIDs, err = getAllDataTypes(u.String()); err != nil {
+		return err
+	}
+	p.Border.MapList = append(p.Border.MapList, dataCompletenessMap)
 
 	return nil
 }
@@ -94,4 +133,48 @@ func getAllTagIDs(urlString string) (tagIDs []string, err error) {
 	}
 
 	return tagIDs, nil
+}
+
+// fetch all field "typeIDs"s from the mtr-api and return an unordered slice of strings and err
+func getAllFieldTypes(urlString string) (typeIDs []string, err error) {
+	b, err := getBytes(urlString, "application/x-protobuf")
+	if err != nil {
+		return nil, err
+	}
+
+	var ftr mtrpb.FieldTypeResult
+
+	if err = proto.Unmarshal(b, &ftr); err != nil {
+		return nil, err
+	}
+
+	if ftr.Result != nil {
+		for _, value := range ftr.Result {
+			typeIDs = append(typeIDs, value.TypeID)
+		}
+	}
+
+	return typeIDs, nil
+}
+
+// fetch all data "typeIDs"s from the mtr-api and return an unordered slice of strings and err
+func getAllDataTypes(urlString string) (typeIDs []string, err error) {
+	b, err := getBytes(urlString, "application/x-protobuf")
+	if err != nil {
+		return nil, err
+	}
+
+	var dtr mtrpb.DataTypeResult
+
+	if err = proto.Unmarshal(b, &dtr); err != nil {
+		return nil, err
+	}
+
+	if dtr.Result != nil {
+		for _, value := range dtr.Result {
+			typeIDs = append(typeIDs, value.TypeID)
+		}
+	}
+
+	return typeIDs, nil
 }

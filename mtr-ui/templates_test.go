@@ -24,7 +24,9 @@ func TestTemplates(t *testing.T) {
 	if err := dataTemplate.ExecuteTemplate(&b, "border", p); err != nil {
 		t.Error(err)
 	}
-	if err := mapTemplate.ExecuteTemplate(&b, "border", p); err != nil {
+
+	var mp mapPage
+	if err := mapTemplate.ExecuteTemplate(&b, "border", mp); err != nil {
 		t.Error(err)
 	}
 
