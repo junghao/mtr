@@ -34,8 +34,8 @@ func init() {
 		log.Fatal(err)
 	}
 
-	// Add a proxy handler for CSV from mtr-api.geonet.org.nz
-	// proxies requests like http://localhost:8081/p/data/latency?siteID=GISB&typeID=latency.gnss.1hz
+	// Add a proxy handler for CSV & GeoJSON from mtr-api.geonet.org.nz
+	// proxies requests like ./p/data/latency?siteID=GISB&typeID=latency.gnss.1hz
 	// with Accept="text/csv".  Avoids cross origin errors.
 	apiDirector := func(r *http.Request) {
 		r.Host = mtrApiUrl.Host
@@ -62,6 +62,10 @@ func init() {
 	mux.HandleFunc("/data/completeness/plot", weft.MakeHandlerPage(dataCompletenessPlotPageHandler))
 	mux.HandleFunc("/map", weft.MakeHandlerPage(mapPageHandler))
 	mux.HandleFunc("/map/", weft.MakeHandlerPage(mapPageHandler))
+	mux.HandleFunc("/map1", weft.MakeHandlerPage(mapPageHandler))
+	mux.HandleFunc("/map1/", weft.MakeHandlerPage(mapPageHandler))
+	mux.HandleFunc("/interactive_map", weft.MakeHandlerPage(interactiveMapPageHandler))
+	mux.HandleFunc("/interactive_map/", weft.MakeHandlerPage(interactiveMapPageHandler))
 	mux.HandleFunc("/search", weft.MakeHandlerPage(searchPageHandler))
 	mux.HandleFunc("/tag", weft.MakeHandlerPage(tagPageHandler))
 	mux.HandleFunc("/tag/", weft.MakeHandlerPage(tagPageHandler))
