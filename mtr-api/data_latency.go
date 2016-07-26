@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"github.com/GeoNet/mtr/internal"
 	"github.com/GeoNet/mtr/mtrpb"
@@ -185,8 +186,13 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		resolution = "minute"
 	}
 
-	// read directly from the DB and write out a CSV formatted output (time, val1, val2, etc.)
+	var timeRange []time.Time
 	var err error
+	if timeRange, err = parseTimeRange(v); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	// read directly from the DB and write out a CSV formatted output (time, val1, val2, etc.)
 	var rows *sql.Rows
 
 	var sitePK int
@@ -208,7 +214,7 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		return weft.InternalServerError(err)
 	}
 
-	rows, err = queryLatencyRows(sitePK, typePK, resolution)
+	rows, err = queryLatencyRows(sitePK, typePK, resolution, timeRange)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -287,7 +293,7 @@ func dataLatencyProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 		return weft.InternalServerError(err)
 	}
 
-	rows, err := queryLatencyRows(sitePK, typePK, resolution)
+	rows, err := queryLatencyRows(sitePK, typePK, resolution, nil)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -398,7 +404,7 @@ func dataLatencyPlot(siteID, typeID, resolution string, plotter ts.SVGPlot, b *b
 		return weft.InternalServerError(err)
 	}
 
-	rows, err = queryLatencyRows(sitePK, typePK, resolution)
+	rows, err = queryLatencyRows(sitePK, typePK, resolution, nil)
 	defer rows.Close()
 
 	pts := make(map[internal.ID]([]ts.Point))
@@ -508,40 +514,47 @@ func dataLatencySpark(siteID, typeID string, b *bytes.Buffer) *weft.Result {
 	return &weft.StatusOK
 }
 
-func queryLatencyRows(sitePK, typePK int, resolution string) (*sql.Rows, error) {
+func queryLatencyRows(sitePK, typePK int, resolution string, timeRange []time.Time) (*sql.Rows, error) {
 	var err error
 	var rows *sql.Rows
+
+	if timeRange == nil {
+		if timeRange, err = getTimeRange(resolution); err != nil {
+			weft.InternalServerError(err)
+		}
+	}
+
 	switch resolution {
 	case "minute":
 		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '12 hours'
+		AND time >= $3 AND time <= $4
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
-			sitePK, typePK)
+			sitePK, typePK, timeRange[0], timeRange[1])
 	case "five_minutes":
 		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
 		 avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '2 days'
+		AND time >= $3 AND time <= $4
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
 		ORDER BY t ASC`,
-			sitePK, typePK)
+			sitePK, typePK, timeRange[0], timeRange[1])
 	case "hour":
 		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(mean), max(fifty), max(ninety) FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '28 days'
+		AND time >= $3 AND time <= $4
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
-			sitePK, typePK)
+			sitePK, typePK, timeRange[0], timeRange[1])
 	case "full":
 		rows, err = dbR.Query(`SELECT time, mean, fifty, ninety FROM data.latency WHERE
 		sitePK = $1 AND typePK = $2
-		AND time > now() - interval '28 days'
+		AND time >= $3 AND time <= $4
 		ORDER BY time ASC`,
-			sitePK, typePK)
+			sitePK, typePK, timeRange[0], timeRange[1])
 	default:
-		return nil, fmt.Errorf("invalid resolution")
+		return nil, errors.New("invalid resolution")
 	}
 	if err != nil {
 		return nil, err

@@ -84,7 +84,7 @@ func appmetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 			h.Set("Content-Type", "image/svg+xml")
 			return appMetricSvg(r, h, b)
 		case "text/csv":
-			if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"resolution", "sourceID"}); !res.Ok {
+			if res := weft.CheckQuery(r, []string{"applicationID", "group"}, []string{"endDate", "resolution", "sourceID", "startDate"}); !res.Ok {
 				return res
 			}
 			h.Set("Content-Type", "text/csv")
@@ -260,7 +260,7 @@ func datalatencyHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 			h.Set("Content-Type", "application/x-protobuf")
 			return dataLatencyProto(r, h, b)
 		case "text/csv":
-			if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
+			if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"endDate", "resolution", "startDate"}); !res.Ok {
 				return res
 			}
 			h.Set("Content-Type", "text/csv")
@@ -462,7 +462,7 @@ func fieldmetricHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 			h.Set("Content-Type", "image/svg+xml")
 			return fieldMetricSvg(r, h, b)
 		case "text/csv":
-			if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
+			if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"endDate", "resolution", "startDate"}); !res.Ok {
 				return res
 			}
 			h.Set("Content-Type", "text/csv")
