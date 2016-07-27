@@ -40,7 +40,7 @@ func compareCsvData(b []byte, expected [][]string, t *testing.T) {
 	}
 
 	if len(observed) != len(expected) {
-		t.Errorf("%s Number of lines in observed differs from expected %d %d", l, len(observed), len(expected))
+		t.Errorf("%s Number of lines in observed: %d differs from expected: %d", l, len(observed), len(expected))
 	}
 
 	for i, record := range observed {
@@ -85,13 +85,14 @@ func TestAppMetricCounterCsv(t *testing.T) {
 
 	// Testing the "counter" group
 
-	t0 := time.Now().UTC().Add(time.Second * -50)
+	utcNow := time.Now().UTC().Truncate(time.Second)
+	t0 := utcNow.Add(time.Second * -10)
 	testCounterData := []testPoint{
 		{typeID: http.StatusOK, count: 1.0, time: t0},
 		{typeID: http.StatusBadRequest, count: 2.0, time: t0}, // add a different typeID at the same time as previous typeID
-		{typeID: http.StatusNotFound, count: 1.0, time: t0.Add(time.Second)},
-		{typeID: http.StatusBadRequest, count: 2.0, time: t0.Add(time.Second * 2)},
-		{typeID: http.StatusInternalServerError, count: 3.0, time: t0.Add(time.Second * 5)},
+		{typeID: http.StatusNotFound, count: 1.0, time: t0.Add(time.Second * 2)},
+		{typeID: http.StatusBadRequest, count: 2.0, time: t0.Add(time.Second * 4)},
+		{typeID: http.StatusInternalServerError, count: 3.0, time: t0.Add(time.Second * 6)},
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
@@ -124,9 +125,9 @@ func TestAppMetricCounterCsv(t *testing.T) {
 		{testCounterData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testCounterData[0].count), fmt.Sprintf("%.2f", testCounterData[1].count)},
 	}
 
-	// time window so we only get the points at t0
+	// time window so we only get the points at t0.  RFC3339 has second precision.
 	start := t0.Add(time.Second * -1).Format(time.RFC3339)
-	end := t0.Add(time.Millisecond * 5).Format(time.RFC3339)
+	end := t0.Add(time.Second).Format(time.RFC3339)
 	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=counters&resolution=full&startDate=" + start + "&endDate=" + end, Method: "GET", Accept: "text/csv"}
 
 	if b, err = r.Do(testServer.URL); err != nil {
@@ -160,14 +161,15 @@ func TestAppMetricTimerCsv(t *testing.T) {
 		time    time.Time
 	}
 
-	t0 := time.Now().Add(time.Second * -100).UTC()
+	utcNow := time.Now().UTC().Truncate(time.Second)
+	t0 := utcNow.Add(time.Second * -10)
 	timerTestData := []timerTest{
 		{appId: "func-name", count: 1, average: 30, fifty: 73, ninety: 81, time: t0},
 		{appId: "func-name2", count: 3, average: 32, fifty: 57, ninety: 59, time: t0}, // same time as above but different appId
 		{appId: "func-name3", count: 6, average: 31, fifty: 76, ninety: 82, time: t0},
 		{appId: "func-name", count: 4, average: 36, fifty: 73, ninety: 78, time: t0.Add(time.Second * 2)},
-		{appId: "func-name", count: 2, average: 33, fifty: 76, ninety: 93, time: t0.Add(time.Second * 3)},
-		{appId: "func-name", count: 9, average: 38, fifty: 73, ninety: 91, time: t0.Add(time.Second * 7)},
+		{appId: "func-name", count: 2, average: 33, fifty: 76, ninety: 93, time: t0.Add(time.Second * 4)},
+		{appId: "func-name", count: 9, average: 38, fifty: 73, ninety: 91, time: t0.Add(time.Second * 6)},
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
@@ -198,8 +200,8 @@ func TestAppMetricTimerCsv(t *testing.T) {
 	compareCsvData(b, expectedTimerVals, t)
 
 	// same test with time range
-	start := timerTestData[3].time.Add(time.Millisecond * -100).Format(time.RFC3339)
-	end := timerTestData[3].time.Add(time.Millisecond * 100).Format(time.RFC3339)
+	start := timerTestData[3].time.Add(time.Second * -1).Format(time.RFC3339)
+	end := timerTestData[3].time.Add(time.Second).Format(time.RFC3339)
 	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=timers&resolution=full&startDate=" + start + "&endDate=" + end, Method: "GET", Accept: "text/csv"}
 
 	expectedTimerSubset := [][]string{
@@ -283,15 +285,14 @@ func TestAppMetricMemoryCsv(t *testing.T) {
 		time              time.Time
 	}
 
-	//"/application/metric?applicationID=test-app&instanceID=test-instance&typeID=1000&value=10000&time=2015-05-14T21:40:30Z"
-	//applicationID=test-app   instanceID=test-instance    typeID=1000    value=10000    time=2015-05-14T21:40:30Z"
-	t0 := time.Now().Add(time.Second * -10).UTC()
+	utcNow := time.Now().UTC().Truncate(time.Second)
+	t0 := utcNow.Add(time.Second * -10)
 	memTestData := []memoryTest{
 		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 10, time: t0},
-		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 9, time: t0.Add(time.Second)},
-		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 8, time: t0.Add(time.Second * 2)},
-		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 7, time: t0.Add(time.Second * 3)},
-		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 6, time: t0.Add(time.Second * 6)},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 9, time: t0.Add(time.Second * 2)},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 8, time: t0.Add(time.Second * 4)},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 7, time: t0.Add(time.Second * 6)},
+		{appId: "test-app", instanceId: "test-instance", typeId: 1000, value: 6, time: t0.Add(time.Second * 8)},
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
@@ -324,8 +325,8 @@ func TestAppMetricMemoryCsv(t *testing.T) {
 	compareCsvData(b, expectedMemVals, t)
 
 	// test with time range
-	start := memTestData[3].time.Add(time.Millisecond * -100).UTC().Format(time.RFC3339)
-	end := memTestData[3].time.Add(time.Millisecond * 100).UTC().Format(time.RFC3339)
+	start := memTestData[3].time.Add(time.Second * -1).UTC().Format(time.RFC3339)
+	end := memTestData[3].time.Add(time.Second).UTC().Format(time.RFC3339)
 	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=memory&resolution=full&startDate=" + start + "&endDate=" + end, Method: "GET", Accept: "text/csv"}
 
 	if b, err = r.Do(testServer.URL); err != nil {
@@ -364,15 +365,16 @@ func TestAppMetricObjectsCsv(t *testing.T) {
 	}
 
 	// handling objects and routines in the same test since it's the same method being exercised
-	t0 := time.Now().Add(time.Second * -10).UTC()
+	utcNow := time.Now().UTC().Truncate(time.Second)
+	t0 := utcNow.Add(time.Second * -10)
 	objTestData := []objectTest{
 		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapObjects), value: 8, time: t0.Add(time.Second)},
 		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapObjects), value: 12, time: t0.Add(time.Second * 2)},
 		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.Routines), value: 1, time: t0.Add(time.Second * 3)},
-		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.Routines), value: 3, time: t0.Add(time.Second * 4)},
-		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemSys), value: 10, time: t0.Add(time.Second * 5)},
-		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapAlloc), value: 9, time: t0.Add(time.Second * 6)},
-		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapSys), value: 7, time: t0.Add(time.Second * 7)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.Routines), value: 3, time: t0.Add(time.Second * 6)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemSys), value: 10, time: t0.Add(time.Second * 7)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapAlloc), value: 9, time: t0.Add(time.Second * 8)},
+		{appId: "test-app", instanceId: "test-instance", typeId: int(internal.MemHeapSys), value: 7, time: t0.Add(time.Second * 9)},
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
@@ -425,8 +427,8 @@ func TestAppMetricObjectsCsv(t *testing.T) {
 	}
 
 	// Test again with time range
-	start := objTestData[3].time.Add(time.Millisecond * -100).UTC().Format(time.RFC3339)
-	end := objTestData[3].time.Add(time.Millisecond * 100).UTC().Format(time.RFC3339)
+	start := objTestData[3].time.Add(time.Second * -1).UTC().Format(time.RFC3339)
+	end := objTestData[3].time.Add(time.Second).UTC().Format(time.RFC3339)
 	r = wt.Request{ID: wt.L(), URL: "/app/metric?applicationID=test-app&group=routines&resolution=full&startDate=" + start + "&endDate=" + end, Method: "GET", Accept: "text/csv"}
 
 	if b, err = r.Do(testServer.URL); err != nil {

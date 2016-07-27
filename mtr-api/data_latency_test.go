@@ -29,7 +29,8 @@ func TestDataLatencyCsv(t *testing.T) {
 		mean, fifty, ninety float32
 	}
 
-	t0 := time.Now().Add(time.Second * -75).UTC()
+	utcNow := time.Now().UTC().Truncate(time.Second)
+	t0 := utcNow.Add(time.Second * -10)
 	latencyTestData := []latencyTest{
 		{time: t0, mean: 20, fifty: 30, ninety: 40},
 		// Can only have one value due to rate_limit.
@@ -71,8 +72,8 @@ func TestDataLatencyCsv(t *testing.T) {
 	}
 
 	// Test with a time range
-	start := latencyTestData[0].time.Add(time.Millisecond * -100).UTC().Format(time.RFC3339)
-	end := latencyTestData[0].time.Add(time.Millisecond * 100).UTC().Format(time.RFC3339)
+	start := latencyTestData[0].time.Add(time.Second * -1).UTC().Format(time.RFC3339)
+	end := latencyTestData[0].time.Add(time.Second).UTC().Format(time.RFC3339)
 	r = wt.Request{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=full&startDate=" + start + "&endDate=" + end, Method: "GET", Accept: "text/csv"}
 
 	if b, err = r.Do(testServer.URL); err != nil {
