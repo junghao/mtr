@@ -1,0 +1,101 @@
+{{define "body"}}
+
+{{template "top_nav_tabs" .}}
+{{$typeID:=.TypeID}}
+{{$mapUrl:=.MtrApiUrl}}
+
+<div class="row" style="margin-top:20px;">
+    <div class="col-xs-12 col-md-12">
+        <ul class="nav nav-pills">
+            {{ range $mapdf := .Border.MapList }}
+            {{ range $typeid := $mapdf.TypeIDs }}
+            <li role="presentation" {{if eq $typeID $typeid}} class="active"{{end}}><a href="/interactive_map/{{$typeid}}">{{$typeid}}</a></li>
+            {{end}} {{end}}
+        </ul>
+    </div>
+</div>
+<div class="row" style="margin-top:20px;">
+    <div class="col-xs-12 col-md-12">
+        <div id="map" style="width: 100%; height: 800px"></div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+
+        var map = L.map('map').setView([-41, 174], 6);
+
+        var goodMarkerOptions = {
+            radius: 8,
+            fillColor: "#4daf4a",
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        };
+        var badMarkerOptions = {
+            radius: 8,
+            fillColor: "#e41a1c",
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        };
+        var lateMarkerOptions = {
+            radius: 8,
+            fillColor: "#984ea3",
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        };
+
+
+		L.tileLayer('https://static.geonet.org.nz/osm/1/tiles/{z}/{x}/{y}.png', {
+			maxZoom: 18,
+			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, '
+		}).addTo(map);
+
+        $.ajax ({
+            url: "../p/field/metric/summary?typeID={{.TypeID}}",
+            type: "GET",
+            headers : {
+                'Accept' : 'application/vnd.geo+json'
+            },
+            success: function  (data) {
+
+
+                var threeHoursAgo = Date.now() - (3*60*60*1000);
+
+                L.geoJson(data, {
+                    pointToLayer: function (feature, latlng) {
+
+                    var time = Date.parse(feature.properties.time);
+
+                    if(time < threeHoursAgo)  {
+                        return L.circleMarker(latlng, lateMarkerOptions);
+                    }
+                    else if(feature.properties.value > feature.properties.lower && feature.properties.value < feature.properties.upper)  {
+                        return L.circleMarker(latlng, goodMarkerOptions);
+                    }
+                    else {
+                        return L.circleMarker(latlng, badMarkerOptions);
+                    }
+                    },
+                    onEachFeature: function (feature, layer) {
+                        layer.bindPopup("<div>Value: "
+                        + feature.properties.value + "</div><div>Lower: "
+                        + feature.properties.lower + "</div><div>Upper: "
+                        + feature.properties.upper + "</div><div>Time: "
+                        + feature.properties.time + "</div>");
+                    }
+                }).addTo(map);
+            }
+        });
+        }
+    );
+
+
+</script>
+{{end}}
