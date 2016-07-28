@@ -281,7 +281,7 @@ func (a appMetric) loadCounters(applicationID, resolution string, timeRange []ti
 	var rows *sql.Rows
 
 	if timeRange == nil {
-		if timeRange, err = getTimeRange(resolution); err != nil {
+		if timeRange, err = defaultTimeRange(resolution); err != nil {
 			weft.InternalServerError(err)
 		}
 	}
@@ -365,7 +365,7 @@ func (a appMetric) loadTimers(applicationID, resolution string, timeRange []time
 	var rows *sql.Rows
 
 	if timeRange == nil {
-		if timeRange, err = getTimeRange(resolution); err != nil {
+		if timeRange, err = defaultTimeRange(resolution); err != nil {
 			weft.InternalServerError(err)
 		}
 	}
@@ -462,7 +462,7 @@ func (a appMetric) loadTimersWithSourceID(applicationID, sourceID, resolution st
 	var rows *sql.Rows
 
 	if timeRange == nil {
-		if timeRange, err = getTimeRange(resolution); err != nil {
+		if timeRange, err = defaultTimeRange(resolution); err != nil {
 			weft.InternalServerError(err)
 		}
 	}
@@ -546,7 +546,7 @@ func (a appMetric) loadMemory(applicationID, resolution string, timeRange []time
 	var rows *sql.Rows
 
 	if timeRange == nil {
-		if timeRange, err = getTimeRange(resolution); err != nil {
+		if timeRange, err = defaultTimeRange(resolution); err != nil {
 			weft.InternalServerError(err)
 		}
 	}
@@ -662,7 +662,7 @@ func (a appMetric) loadAppMetrics(applicationID, resolution string, typeID inter
 	}
 
 	if timeRange == nil {
-		if timeRange, err = getTimeRange(resolution); err != nil {
+		if timeRange, err = defaultTimeRange(resolution); err != nil {
 			weft.InternalServerError(err)
 		}
 	}
@@ -772,40 +772,69 @@ func (a appMetric) loadAppMetrics(applicationID, resolution string, typeID inter
 // Returns a slice of two time.Time values if startDate and endDate are specified as params
 func parseTimeRange(v url.Values) (timeRange []time.Time, err error) {
 
-	// if either of startDate/endDate isn't specified then don't parse
 	t0String := v.Get("startDate")
 	t1String := v.Get("endDate")
-	if t0String == "" || t1String == "" {
-		return nil, nil
-	}
-
+	res := v.Get("resolution")
 	var t0, t1 time.Time
-	if t0, err = time.Parse(time.RFC3339, t0String); err != nil {
-		return nil, err
+	var tDiff time.Duration
+
+	if t0String != "" {
+		if t0, err = time.Parse(time.RFC3339, t0String); err != nil {
+			return nil, err
+		}
 	}
 
-	if t1, err = time.Parse(time.RFC3339, t1String); err != nil {
-		return nil, err
+	if t1String != "" {
+		if t1, err = time.Parse(time.RFC3339, t1String); err != nil {
+			return nil, err
+		}
 	}
+
+	if tDiff, err = defaultTimeDelta(res); err != nil {
+		return timeRange, err
+	}
+
+	if t0String == "" && t1String == "" {
+		// both values not supplied, assume we'll use defaults
+		return nil, nil
+	} else if t0String != "" && t1String == "" {
+		// only startDate supplied, set endDate
+		t1 = time.Now().UTC()
+	} else if t0String == "" && t1String != "" {
+		// only endDate supplied, set startDate
+		t0 = t1.Add(tDiff * -1)
+	} // else both dates must be non zero length string and dates already parsed
 
 	return []time.Time{t0, t1}, nil
 }
 
-func getTimeRange(resolution string) (timeRange []time.Time, err error) {
+func defaultTimeDelta(resolution string) (time.Duration, error) {
 	switch resolution {
 	case "minute":
-		timeRange = []time.Time{time.Now().UTC().Add(time.Hour * -12), time.Now().UTC()}
+		return time.Hour * 12, nil
 	case "five_minutes":
-		timeRange = []time.Time{time.Now().UTC().Add(time.Hour * -24 * 2), time.Now().UTC()}
+		return time.Hour * 24 * 2, nil
 	case "hour":
-		timeRange = []time.Time{time.Now().UTC().Add(time.Hour * -24 * 28), time.Now().UTC()}
+		return time.Hour * 24 * 28, nil
 	case "full":
-		timeRange = []time.Time{time.Now().UTC().Add(time.Hour * -24 * 40), time.Now().UTC()}
+		return time.Hour * 24 * 40, nil
+	case "":
+		return time.Hour * 12, nil // same as minute
 	default:
-		return nil, fmt.Errorf("invalid resolution: %s", resolution)
+		return time.Hour, fmt.Errorf("invalid resolution: %s", resolution)
+	}
+}
+
+func defaultTimeRange(resolution string) ([]time.Time, error) {
+	var tDiff time.Duration
+	var err error
+	if tDiff, err = defaultTimeDelta(resolution); err != nil {
+		return nil, err
 	}
 
-	return timeRange, nil
+	t1 := time.Now().UTC()
+	t0 := t1.Add(tDiff * -1)
+	return []time.Time{t0, t1}, nil
 }
 
 /*

@@ -519,7 +519,7 @@ func queryLatencyRows(sitePK, typePK int, resolution string, timeRange []time.Ti
 	var rows *sql.Rows
 
 	if timeRange == nil {
-		if timeRange, err = getTimeRange(resolution); err != nil {
+		if timeRange, err = defaultTimeRange(resolution); err != nil {
 			weft.InternalServerError(err)
 		}
 	}
