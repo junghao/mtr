@@ -23,7 +23,9 @@
 <script type="text/javascript">
     $(document).ready(function() {
 
-        var map = L.map('map').setView([-41, 174], 6);
+        var map = L.map('map', {
+            worldCopyJump: 'true'
+        }).setView([-41, 174], 6);
 
         var goodMarkerOptions = {
             radius: 8,
@@ -68,7 +70,7 @@
 
                 var threeHoursAgo = Date.now() - (3*60*60*1000);
 
-                L.geoJson(data, {
+                layer = new L.GeoJSON1(data, {  //geoJson, GeoJSON1
                     pointToLayer: function (feature, latlng) {
 
                     var time = Date.parse(feature.properties.time);
@@ -84,13 +86,21 @@
                     }
                     },
                     onEachFeature: function (feature, layer) {
-                        layer.bindPopup("<div>Value: "
-                        + feature.properties.value + "</div><div>Lower: "
-                        + feature.properties.lower + "</div><div>Upper: "
-                        + feature.properties.upper + "</div><div>Time: "
-                        + feature.properties.time + "</div>");
+                        var dateObj = new Date(feature.properties.time);
+                        layer.bindPopup(
+                          "<div><span class='att'>TypeID:</span><span class='val'>" + feature.properties.typeid + "</span></div>"
+                        + "<div><span class='att'>DeviceID:</span><span class='val'>" + feature.properties.deviceid + "</span></div>"
+                        + "<div><span class='att'>Time:</span><span class='val'>" + dateObj.toUTCString() + "</span></div>"
+                        + "<div><span class='att'>Value:</span><span class='val'>" + feature.properties.value + " (Threshold - lower: " + feature.properties.lower + ", upper: " + feature.properties.upper + ")</span></div>"
+                        + "<div><span class='att'><a href='../field/plot?deviceID=" + feature.properties.deviceid + "&typeID=" + feature.properties.typeid + "' target='_blank'>Chart</span></div>"
+                        );
                     }
                 }).addTo(map);
+
+                layer.checkFeatureLocation();
+                map.on('moveend', function(e){
+                    layer.checkFeatureLocation(e);
+                })
             }
         });
         }

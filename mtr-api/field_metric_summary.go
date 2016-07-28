@@ -213,7 +213,7 @@ func fieldLatestGeoJSON(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 	}
 
 	if rows, err = dbR.Query(`
-		WITH p as (SELECT geom, time, value, lower, upper
+		WITH p as (SELECT geom, time, value, lower, upper, deviceid, typeid
 		FROM field.metric_summary
 		JOIN field.device using (devicePK)
 		JOIN field.threshold using (devicePK, typePK)
@@ -230,7 +230,9 @@ func fieldLatestGeoJSON(r *http.Request, h http.Header, b *bytes.Buffer) *weft.R
 						"time",
 						value,
 						lower,
-						upper
+						upper,
+						deviceid,
+						typeid
 						) as l
 					)
 				) as properties FROM p
