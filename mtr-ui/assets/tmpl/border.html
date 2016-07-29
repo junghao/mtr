@@ -141,6 +141,12 @@
 		.history-log td {
 		    padding-right:5px;
 		}
+
+		.att{
+		    font-weight: bold;
+		    display: inline-block;
+		    width: 5em;
+		}
 	</style>
 
     <script src="//static.geonet.org.nz/jquery/js/jquery-1.11.3.min.js"></script>
@@ -209,6 +215,7 @@
     </div>
     <script src="//static.geonet.org.nz/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <script src="//static.geonet.org.nz/leaflet/0.7.7/leaflet.js"></script>
+    <script src="/js/leaflet-patch180.js"></script>
     <script type="text/javascript">
         $(document).keypress(function(e) {
             if(!$('#search_query').is(':focus')) {
