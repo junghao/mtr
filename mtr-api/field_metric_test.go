@@ -31,9 +31,10 @@ func TestFieldMetricCsv(t *testing.T) {
 
 	// Testing the "counter" group
 
-	now := time.Now().UTC()
+	utcNow := time.Now().UTC().Truncate(time.Second)
+	t0 := utcNow.Add(time.Second * -10)
 	testData := []testPoint{
-		{time: now, value: 10000.0}, // can only use one point due to rate limiting in put method
+		{time: t0, value: 10000.0}, // can only use one point due to rate limiting in put method
 	}
 
 	// the expected CSV data, ignoring the header fields on the first line
@@ -63,4 +64,19 @@ func TestFieldMetricCsv(t *testing.T) {
 	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
+
+	// test with a time range, only one point so not much we can do
+	start := testData[0].time.Add(time.Second * -1).UTC().Format(time.RFC3339)
+	end := testData[0].time.Add(time.Second).UTC().Format(time.RFC3339)
+	r = wt.Request{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&resolution=full&startDate=" + start + "&endDate=" + end, Method: "GET", Accept: "text/csv"}
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	expectedSubset := [][]string{
+		{""}, // header line, ignored in test.  Should be time, value
+		{testData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testData[0].value*scale)},
+	}
+	compareCsvData(b, expectedSubset, t)
 }

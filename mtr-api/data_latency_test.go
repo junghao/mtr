@@ -24,30 +24,36 @@ func TestDataLatencyCsv(t *testing.T) {
 	}
 	var err error
 
-	expectedVals := [][]string{}
-	expectedVals = append(expectedVals, []string{""}) // header line, not checked
+	type latencyTest struct {
+		time                time.Time
+		mean, fifty, ninety float32
+	}
 
-	// Load some latency metrics, don't need many
-	now := time.Now().UTC()
-	v := 140
-	for i := -100; i < 0; i += 1 {
-		v += i
+	utcNow := time.Now().UTC().Truncate(time.Second)
+	t0 := utcNow.Add(time.Second * -10)
+	latencyTestData := []latencyTest{
+		{time: t0, mean: 20, fifty: 30, ninety: 40},
+		// Can only have one value due to rate_limit.
+		// TODO: make the rate_limit value configurable so we can test properly
+		//{time: t0.Add(time.Second), mean: 21, fifty:31, ninety: 41},
+		//{time: t0.Add(time.Second * 2), mean: 22, fifty:32, ninety: 42},
+		//{time: t0.Add(time.Second * 3), mean: 23, fifty:33, ninety: 43},
+	}
 
-		ptTime := now.Add(time.Duration(i) * time.Minute)
+	expectedVals := [][]string{
+		{""}, // header line, ignored in test.
+		{latencyTestData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", latencyTestData[0].mean), fmt.Sprintf("%.2f", latencyTestData[0].fifty), fmt.Sprintf("%.2f", latencyTestData[0].ninety)},
+		//{latencyTestData[1].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", latencyTestData[1].mean), fmt.Sprintf("%.2f", latencyTestData[1].fifty), fmt.Sprintf("%.2f", latencyTestData[1].ninety)},
+		//{latencyTestData[2].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", latencyTestData[2].mean), fmt.Sprintf("%.2f", latencyTestData[2].fifty), fmt.Sprintf("%.2f", latencyTestData[2].ninety)},
+		//{latencyTestData[3].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", latencyTestData[3].mean), fmt.Sprintf("%.2f", latencyTestData[3].fifty), fmt.Sprintf("%.2f", latencyTestData[3].ninety)},
+	}
+
+	// Add metrics
+	for _, lt := range latencyTestData {
 		r.URL = fmt.Sprintf("/data/latency?siteID=TAUP&typeID=latency.strong&time=%s&mean=%d&fifty=%d&ninety=%d",
-			ptTime.Format(time.RFC3339), v, v*10, v*11)
+			lt.time.Format(time.RFC3339), int(lt.mean), int(lt.fifty), int(lt.ninety))
 
-		// expected values
-		record := []string{ptTime.Format(DYGRAPH_TIME_FORMAT),
-			fmt.Sprintf("%.2f", float32(v)),
-			fmt.Sprintf("%.2f", float32(v*10)),
-			fmt.Sprintf("%.2f", float32(v*11)),
-		}
-		expectedVals = append(expectedVals, record)
-
-		if _, err = r.Do(testServer.URL); err != nil {
-			t.Error(err)
-		}
+		addData(r, t)
 	}
 
 	r = wt.Request{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=full", Method: "GET", Accept: "text/csv"}
@@ -56,7 +62,6 @@ func TestDataLatencyCsv(t *testing.T) {
 	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
-
 	compareCsvData(b, expectedVals, t)
 
 	// test for invalid siteID condition
@@ -65,4 +70,15 @@ func TestDataLatencyCsv(t *testing.T) {
 	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
 	}
+
+	// Test with a time range
+	start := latencyTestData[0].time.Add(time.Second * -1).UTC().Format(time.RFC3339)
+	end := latencyTestData[0].time.Add(time.Second).UTC().Format(time.RFC3339)
+	r = wt.Request{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=full&startDate=" + start + "&endDate=" + end, Method: "GET", Accept: "text/csv"}
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	compareCsvData(b, expectedVals, t)
 }

@@ -34,6 +34,14 @@ type = "int"
 description = "RFC3339 formatted time"
 type = "string"
 
+[query.startDate]
+description = "RFC3339 formatted date for the start date of a range window"
+type = "string"
+
+[query.endDate]
+description = "RFC3339 formatted date for the end date of a range window"
+type = "string"
+
 [query."application.value"]
 id = "value"
 description = "the metric value."
@@ -189,7 +197,7 @@ method = "GET"
 function = "appMetricCsv"
 accept = "text/csv"
 required = ["applicationID", "group"]
-optional = ["sourceID", "resolution"]
+optional = ["sourceID", "resolution", "startDate", "endDate"]
 
 
 [[endpoint]]
@@ -250,7 +258,7 @@ method = "GET"
 function = "fieldMetricCsv"
 accept = "text/csv"
 required = ["deviceID", "field.typeID"]
-optional = ["resolution"]
+optional = ["resolution", "startDate", "endDate"]
 
 [[endpoint.request]]
 method = "PUT"
@@ -493,7 +501,7 @@ method = "GET"
 function = "dataLatencyCsv"
 accept = "text/csv"
 required = ["siteID", "field.typeID"]
-optional = ["resolution"]
+optional = ["resolution", "startDate", "endDate"]
 
 
 [[endpoint]]

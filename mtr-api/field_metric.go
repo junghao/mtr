@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"github.com/GeoNet/mtr/mtrpb"
 	"github.com/GeoNet/mtr/ts"
@@ -166,6 +167,11 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	typeID := v.Get("typeID")
 	var err error
 
+	var timeRange []time.Time
+	if timeRange, err = parseTimeRange(v); err != nil {
+		return weft.InternalServerError(err)
+	}
+
 	var devicePK int
 	if err = dbR.QueryRow(`SELECT devicePK FROM field.device WHERE deviceID = $1`,
 		deviceID).Scan(&devicePK); err != nil {
@@ -186,7 +192,7 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	}
 
 	var rows *sql.Rows
-	rows, err = queryMetricRows(devicePK, typePK, resolution)
+	rows, err = queryMetricRows(devicePK, typePK, resolution, timeRange)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -259,8 +265,13 @@ func fieldMetricProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 		return weft.InternalServerError(err)
 	}
 
+	var timeRange []time.Time
+	if timeRange, err = parseTimeRange(v); err != nil {
+		return weft.InternalServerError(err)
+	}
+
 	var rows *sql.Rows
-	rows, err = queryMetricRows(devicePK, typePK, resolution)
+	rows, err = queryMetricRows(devicePK, typePK, resolution, timeRange)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -380,7 +391,12 @@ func (f fieldMetric) plot(deviceID, typeID, resolution string, plotter ts.SVGPlo
 		return weft.BadRequest("invalid resolution")
 	}
 
-	rows, err = queryMetricRows(devicePK, typePK, resolution)
+	var timeRange []time.Time
+	if timeRange, err = defaultTimeRange(resolution); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	rows, err = queryMetricRows(devicePK, typePK, resolution, timeRange)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -466,7 +482,7 @@ func (f fieldMetric) spark(deviceID, typeID string, b *bytes.Buffer) *weft.Resul
 	return &weft.StatusOK
 }
 
-func queryMetricRows(devicePK, typePK int, resolution string) (*sql.Rows, error) {
+func queryMetricRows(devicePK, typePK int, resolution string, timeRange []time.Time) (*sql.Rows, error) {
 	var err error
 	var rows *sql.Rows
 
@@ -474,35 +490,35 @@ func queryMetricRows(devicePK, typePK int, resolution string) (*sql.Rows, error)
 	case "minute":
 		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
 		devicePK = $1 AND typePK = $2
-		AND time > now() - interval '12 hours'
+		AND time >= $3 AND time <= $4
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
-			devicePK, typePK)
+			devicePK, typePK, timeRange[0], timeRange[1])
 	case "five_minutes":
 		rows, err = dbR.Query(`SELECT date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min' as t,
 		 avg(value) FROM field.metric WHERE
 		devicePK = $1 AND typePK = $2
-		AND time > now() - interval '2 days'
+		AND time >= $3 AND time <= $4
 		GROUP BY date_trunc('hour', time) + extract(minute from time)::int / 5 * interval '5 min'
 		ORDER BY t ASC`,
-			devicePK, typePK)
+			devicePK, typePK, timeRange[0], timeRange[1])
 	case "hour":
 		rows, err = dbR.Query(`SELECT date_trunc('`+resolution+`',time) as t, avg(value) FROM field.metric WHERE
 		devicePK = $1 AND typePK = $2
-		AND time > now() - interval '28 days'
+		AND time >= $3 AND time <= $4
 		GROUP BY date_trunc('`+resolution+`',time)
 		ORDER BY t ASC`,
-			devicePK, typePK)
+			devicePK, typePK, timeRange[0], timeRange[1])
 	case "full":
 		rows, err = dbR.Query(`SELECT time, value
 		FROM field.metric
 		WHERE devicePK = $1
 		AND typePK = $2
-		AND time > now() - interval '40 days'
+		AND time >= $3 AND time <= $4
 		ORDER BY time ASC`,
-			devicePK, typePK)
+			devicePK, typePK, timeRange[0], timeRange[1])
 	default:
-		return nil, fmt.Errorf("invalid resolution")
+		return nil, errors.New("invalid resolution")
 	}
 	if err != nil {
 		return nil, err
