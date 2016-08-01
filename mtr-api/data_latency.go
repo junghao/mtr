@@ -293,7 +293,12 @@ func dataLatencyProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 		return weft.InternalServerError(err)
 	}
 
-	rows, err := queryLatencyRows(sitePK, typePK, resolution, nil)
+	var timeRange []time.Time
+	if timeRange, err = defaultTimeRange(resolution); err != nil {
+		weft.InternalServerError(err)
+	}
+
+	rows, err := queryLatencyRows(sitePK, typePK, resolution, timeRange)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -404,7 +409,12 @@ func dataLatencyPlot(siteID, typeID, resolution string, plotter ts.SVGPlot, b *b
 		return weft.InternalServerError(err)
 	}
 
-	rows, err = queryLatencyRows(sitePK, typePK, resolution, nil)
+	var timeRange []time.Time
+	if timeRange, err = defaultTimeRange(resolution); err != nil {
+		weft.InternalServerError(err)
+	}
+
+	rows, err = queryLatencyRows(sitePK, typePK, resolution, timeRange)
 	defer rows.Close()
 
 	pts := make(map[internal.ID]([]ts.Point))
@@ -517,12 +527,6 @@ func dataLatencySpark(siteID, typeID string, b *bytes.Buffer) *weft.Result {
 func queryLatencyRows(sitePK, typePK int, resolution string, timeRange []time.Time) (*sql.Rows, error) {
 	var err error
 	var rows *sql.Rows
-
-	if timeRange == nil {
-		if timeRange, err = defaultTimeRange(resolution); err != nil {
-			weft.InternalServerError(err)
-		}
-	}
 
 	switch resolution {
 	case "minute":

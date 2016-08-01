@@ -215,9 +215,14 @@ func appMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 	resTitle = strings.Replace(resTitle, "_", " ", -1)
 	resTitle = strings.Title(resTitle)
 
+	var timeRange []time.Time
+	if timeRange, err = parseTimeRange(v); err != nil {
+		return weft.InternalServerError(err)
+	}
+
 	switch v.Get("group") {
 	case "counters":
-		if res := a.loadCounters(applicationID, resolution, nil, &p); !res.Ok {
+		if res := a.loadCounters(applicationID, resolution, timeRange, &p); !res.Ok {
 			return res
 		}
 
@@ -226,14 +231,14 @@ func appMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 	case "timers":
 		sourceID := v.Get("sourceID")
 		if sourceID != "" {
-			if res := a.loadTimersWithSourceID(applicationID, sourceID, resolution, nil, &p); !res.Ok {
+			if res := a.loadTimersWithSourceID(applicationID, sourceID, resolution, timeRange, &p); !res.Ok {
 				return res
 			}
 
 			p.SetTitle(fmt.Sprintf("Application: %s, Source: %s, Metric: Timers - 90th Percentile (ms) per %s",
 				applicationID, sourceID, resTitle))
 		} else {
-			if res := a.loadTimers(applicationID, resolution, nil, &p); !res.Ok {
+			if res := a.loadTimers(applicationID, resolution, timeRange, &p); !res.Ok {
 				return res
 			}
 
@@ -242,7 +247,7 @@ func appMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 		}
 		err = ts.ScatterAppTimers.Draw(p, b)
 	case "memory":
-		if res := a.loadMemory(applicationID, resolution, nil, &p); !res.Ok {
+		if res := a.loadMemory(applicationID, resolution, timeRange, &p); !res.Ok {
 			return res
 		}
 
@@ -250,7 +255,7 @@ func appMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 			applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	case "objects":
-		if res := a.loadAppMetrics(applicationID, resolution, internal.MemHeapObjects, nil, &p); !res.Ok {
+		if res := a.loadAppMetrics(applicationID, resolution, internal.MemHeapObjects, timeRange, &p); !res.Ok {
 			return res
 		}
 
@@ -258,7 +263,7 @@ func appMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 			applicationID, resTitle))
 		err = ts.LineAppMetrics.Draw(p, b)
 	case "routines":
-		if res := a.loadAppMetrics(applicationID, resolution, internal.Routines, nil, &p); !res.Ok {
+		if res := a.loadAppMetrics(applicationID, resolution, internal.Routines, timeRange, &p); !res.Ok {
 			return res
 		}
 		p.SetTitle(fmt.Sprintf("Application: %s, Metric: Routines (n) - Average per %s",
@@ -279,12 +284,6 @@ func appMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 func (a appMetric) loadCounters(applicationID, resolution string, timeRange []time.Time, p *ts.Plot) *weft.Result {
 	var err error
 	var rows *sql.Rows
-
-	if timeRange == nil {
-		if timeRange, err = defaultTimeRange(resolution); err != nil {
-			weft.InternalServerError(err)
-		}
-	}
 
 	switch resolution {
 	case "minute":
@@ -363,12 +362,6 @@ func (a appMetric) loadTimers(applicationID, resolution string, timeRange []time
 	var err error
 
 	var rows *sql.Rows
-
-	if timeRange == nil {
-		if timeRange, err = defaultTimeRange(resolution); err != nil {
-			weft.InternalServerError(err)
-		}
-	}
 
 	switch resolution {
 	case "minute":
@@ -461,12 +454,6 @@ func (a appMetric) loadTimersWithSourceID(applicationID, sourceID, resolution st
 
 	var rows *sql.Rows
 
-	if timeRange == nil {
-		if timeRange, err = defaultTimeRange(resolution); err != nil {
-			weft.InternalServerError(err)
-		}
-	}
-
 	switch resolution {
 	case "minute":
 		rows, err = dbR.Query(`SELECT date_trunc('minute',time) as t, avg(average), max(fifty), max(ninety), sum(count)
@@ -544,12 +531,6 @@ func (a appMetric) loadMemory(applicationID, resolution string, timeRange []time
 	var err error
 
 	var rows *sql.Rows
-
-	if timeRange == nil {
-		if timeRange, err = defaultTimeRange(resolution); err != nil {
-			weft.InternalServerError(err)
-		}
-	}
 
 	switch resolution {
 	case "minute":
@@ -661,12 +642,6 @@ func (a appMetric) loadAppMetrics(applicationID, resolution string, typeID inter
 		return &weft.NotFound
 	}
 
-	if timeRange == nil {
-		if timeRange, err = defaultTimeRange(resolution); err != nil {
-			weft.InternalServerError(err)
-		}
-	}
-
 	rows.Close()
 
 	switch resolution {
@@ -771,39 +746,30 @@ func (a appMetric) loadAppMetrics(applicationID, resolution string, typeID inter
 
 // Returns a slice of two time.Time values if startDate and endDate are specified as params
 func parseTimeRange(v url.Values) (timeRange []time.Time, err error) {
-
-	t0String := v.Get("startDate")
-	t1String := v.Get("endDate")
 	res := v.Get("resolution")
 	var t0, t1 time.Time
 	var tDiff time.Duration
 
+	if tDiff, err = defaultTimeDelta(res); err != nil {
+		return timeRange, err
+	}
+
+	t1 = time.Now().UTC()
+	t0 = t1.Add(tDiff * -1)
+
+	t0String := v.Get("startDate")
 	if t0String != "" {
 		if t0, err = time.Parse(time.RFC3339, t0String); err != nil {
 			return nil, err
 		}
 	}
 
+	t1String := v.Get("endDate")
 	if t1String != "" {
 		if t1, err = time.Parse(time.RFC3339, t1String); err != nil {
 			return nil, err
 		}
 	}
-
-	if tDiff, err = defaultTimeDelta(res); err != nil {
-		return timeRange, err
-	}
-
-	if t0String == "" && t1String == "" {
-		// both values not supplied, assume we'll use defaults
-		return nil, nil
-	} else if t0String != "" && t1String == "" {
-		// only startDate supplied, set endDate
-		t1 = time.Now().UTC()
-	} else if t0String == "" && t1String != "" {
-		// only endDate supplied, set startDate
-		t0 = t1.Add(tDiff * -1)
-	} // else both dates must be non zero length string and dates already parsed
 
 	return []time.Time{t0, t1}, nil
 }

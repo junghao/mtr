@@ -445,36 +445,37 @@ func TestAppMetricObjectsCsv(t *testing.T) {
 }
 
 func TestParseTimeRange(t *testing.T) {
-	// both params are unspecified
+	// both time params and resolution are unspecified, should return default times
 	var tr []time.Time
 	var err error
-	if tr, err = parseTimeRange(url.Values{"startDate": nil, "endDate": nil}); err != nil {
+	if tr, err = parseTimeRange(url.Values{}); err != nil {
 		t.Error(err)
 	}
 
-	if tr != nil {
-		t.Error("timeRange was not nil")
+	expectedT0 := time.Now().Add(time.Hour * -12).UTC().Truncate(time.Second) // 12 hours behind is the default
+	expectedT1 := time.Now().UTC().Truncate(time.Second)
+	if tr[0].Sub(expectedT0) > time.Second || tr[1].Sub(expectedT1) > time.Second {
+		t.Errorf("timeRange time values incorrect, expected: %s-%s but observed %s-%s", expectedT0, expectedT1, tr[0], tr[1])
 	}
 
+	// Test a valid time range
 	t0 := time.Now().Add(time.Second * -10).UTC().Truncate(time.Second)
 	t1 := time.Now().Add(time.Second * -5).UTC().Truncate(time.Second)
-
-	// Test a valid time range
 	if tr, err = parseTimeRange(url.Values{"startDate": {t0.Format(time.RFC3339)}, "endDate": {t1.Format(time.RFC3339)}}); err != nil {
 		t.Error(err)
 	}
 
-	if tr[0] != t0 && tr[1] != t1 {
+	if tr[0] != t0 || tr[1] != t1 {
 		t.Errorf("timeRange time values incorrect, expected: %s-%s but observed %s-%s", t0, t1, tr[0], tr[1])
 	}
 
-	// no startDate but an endDate should use the default startDate
-	if tr, err = parseTimeRange(url.Values{"endDate": {t1.Format(time.RFC3339)}, "resolution": {"minute"}}); err != nil {
+	// no startDate but an endDate should use the default startDate (endDate - tDiff)
+	if tr, err = parseTimeRange(url.Values{"endDate": {t1.Format(time.RFC3339)}}); err != nil {
 		t.Error(err)
 	}
 
-	newT0 := t1.Add(time.Hour * -12)
-	if tr[0] != newT0 || tr[1] != t1 {
+	newT0 := time.Now().UTC().Add(time.Hour * -12)
+	if tr[0].Sub(newT0) > time.Second || tr[1].Sub(t1) > time.Second {
 		t.Errorf("timeRange time values incorrect, \nexpected: \n%s - %s \nobserved: \n%s - %s", newT0, t1, tr[0], tr[1])
 	}
 
@@ -483,7 +484,7 @@ func TestParseTimeRange(t *testing.T) {
 		t.Error(err)
 	}
 
-	if tr[0] != t0 && tr[1] != time.Now().UTC() {
+	if tr[0].Sub(t0) > time.Second && tr[1].Sub(time.Now().UTC()) > time.Second {
 		t.Errorf("timeRange time values incorrect, \nexpected: \n%s - %s \nobserved: \n%s - %s", t0, t1, tr[0], tr[1])
 	}
 }

@@ -265,8 +265,13 @@ func fieldMetricProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 		return weft.InternalServerError(err)
 	}
 
+	var timeRange []time.Time
+	if timeRange, err = parseTimeRange(v); err != nil {
+		return weft.InternalServerError(err)
+	}
+
 	var rows *sql.Rows
-	rows, err = queryMetricRows(devicePK, typePK, resolution, nil)
+	rows, err = queryMetricRows(devicePK, typePK, resolution, timeRange)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -386,7 +391,12 @@ func (f fieldMetric) plot(deviceID, typeID, resolution string, plotter ts.SVGPlo
 		return weft.BadRequest("invalid resolution")
 	}
 
-	rows, err = queryMetricRows(devicePK, typePK, resolution, nil)
+	var timeRange []time.Time
+	if timeRange, err = defaultTimeRange(resolution); err != nil {
+		return weft.InternalServerError(err)
+	}
+
+	rows, err = queryMetricRows(devicePK, typePK, resolution, timeRange)
 	if err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -475,12 +485,6 @@ func (f fieldMetric) spark(deviceID, typeID string, b *bytes.Buffer) *weft.Resul
 func queryMetricRows(devicePK, typePK int, resolution string, timeRange []time.Time) (*sql.Rows, error) {
 	var err error
 	var rows *sql.Rows
-
-	if timeRange == nil {
-		if timeRange, err = defaultTimeRange(resolution); err != nil {
-			weft.InternalServerError(err)
-		}
-	}
 
 	switch resolution {
 	case "minute":
