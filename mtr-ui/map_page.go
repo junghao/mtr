@@ -10,11 +10,10 @@ import (
 
 type mapPage struct {
 	page
-	ActiveTab   string
-	MtrApiUrl   string
-	TypeID      string
-	MapApiUrl   string
-	Interactive bool
+	ActiveTab string
+	MtrApiUrl string
+	TypeID    string
+	MapApiUrl string
 }
 
 func mapPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {

@@ -9,11 +9,10 @@ import (
 
 type tagPage struct {
 	page
-	ActiveTab   string
-	Path        string
-	TagTabs     []string
-	Tags        []string
-	Interactive bool
+	ActiveTab string
+	Path      string
+	TagTabs   []string
+	Tags      []string
 }
 
 var tagGrouper = []string{"ABC", "DEF", "GHI", "JKL", "MNO", "POR", "STU", "VWXYZ", "0123456789"}
