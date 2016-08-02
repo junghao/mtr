@@ -244,11 +244,17 @@ func (p *mtrUiPage) getFieldMetricsPanel() (err error) {
 
 	// Update header part of panel
 	for _, r := range p.Panels {
-		l := p.appendPageParam("/field/devices?modelID=" + r.ID)
-		m := idCount{Count: len(r.devices), ID: "Devices", Link: l}
+		var dl, ml string
+		if p.TypeID != "" {
+			dl = p.appendPageParam("/field/devices?modelID=" + r.ID)
+			ml = p.appendPageParam("/field/metrics?modelID=" + r.ID)
+		} else {
+			dl = p.appendPageParam("/field/devices?typeID=" + r.ID)
+			ml = p.appendPageParam("/field/metrics?typeID=" + r.ID)
+		}
+		m := idCount{Count: len(r.devices), ID: "Devices", Link: dl}
 		r.Values["devices"] = m
-		l = p.appendPageParam("/field/metrics?modelID=" + r.ID)
-		m = idCount{Count: r.Values["total"].Count, ID: "Metrics", Link: l}
+		m = idCount{Count: r.Values["total"].Count, ID: "Metrics", Link: ml}
 		r.Values["metrics"] = m
 	}
 	sort.Sort(panels(p.Panels))
