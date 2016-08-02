@@ -13,7 +13,7 @@ func fieldTypeProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT typeID FROM field.type ORDER BY typeID ASC`); err != nil {
+	if rows, err = dbR.Query(`SELECT typeID, display FROM field.type ORDER BY typeID ASC`); err != nil {
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
@@ -23,7 +23,7 @@ func fieldTypeProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	for rows.Next() {
 		var ft mtrpb.FieldType
 
-		if err = rows.Scan(&ft.TypeID); err != nil {
+		if err = rows.Scan(&ft.TypeID, &ft.Display); err != nil {
 			return weft.InternalServerError(err)
 		}
 

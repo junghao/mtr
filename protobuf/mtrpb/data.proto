@@ -23,6 +23,8 @@ message DataLatencySummary {
     int32 upper = 7;
     // The lower threshold for the metric to be good.
     int32 lower = 8;
+    // the scale factor to apply to the threshold values
+    double scale = 9;
 }
 
 message DataLatencySummaryResult {
@@ -64,6 +66,8 @@ message DataLatencyThreshold {
     int32 lower = 3;
     // The upper threshold for the latency to be good.
     int32 upper = 4;
+    // the scale factor to apply to the threshold values
+    double scale = 5;
 
 }
 
@@ -74,6 +78,8 @@ message DataLatencyThresholdResult {
 message DataType {
     // The TypeID in the table data.type
     string type_iD = 1;
+    // The display field in the table data.type (the y label for plotting)
+    string display = 2;
 }
 
 message DataTypeResult {
@@ -104,6 +110,8 @@ message DataLatencyResult {
     int32 lower = 4;
 
     repeated DataLatency result = 5;
+    // the scale factor to apply to the threshold values
+    double scale = 6;
 }
 
 // DataCompletenessSummary is metrics to let us determine if all the data had arrived.

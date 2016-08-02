@@ -279,18 +279,17 @@ func dataLatencyProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 	}
 
 	var typePK int
+	var dlr mtrpb.DataLatencyResult
+	dlr.SiteID = siteID
+	dlr.TypeID = typeID
 
-	if err = dbR.QueryRow(`SELECT typePK FROM data.type WHERE typeID = $1`,
-		typeID).Scan(&typePK); err != nil {
+	if err = dbR.QueryRow(`SELECT typePK, scale FROM data.type WHERE typeID = $1`,
+		typeID).Scan(&typePK, &dlr.Scale); err != nil {
 		if err == sql.ErrNoRows {
 			return &weft.NotFound
 		}
 		return weft.InternalServerError(err)
 	}
-
-	var dlr mtrpb.DataLatencyResult
-	dlr.SiteID = siteID
-	dlr.TypeID = typeID
 
 	if err := dbR.QueryRow(`SELECT lower,upper FROM data.latency_threshold
 		WHERE sitePK = $1 AND typePK = $2`,

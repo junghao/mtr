@@ -29,14 +29,14 @@ func fieldLatestProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 
 	switch typeID {
 	case "":
-		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value, lower, upper
+		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value, lower, upper, scale
 		FROM field.metric_summary
 		JOIN field.device using (devicePK)
 		JOIN field.model using (modelPK)
 		JOIN field.threshold using (devicePK, typePK)
 		JOIN field.type using (typePK)`)
 	default:
-		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value, lower, upper
+		rows, err = dbR.Query(`select deviceID, modelID, typeid, time, value, lower, upper, scale
 		FROM field.metric_summary
 		JOIN field.device using (devicePK)
 		JOIN field.model using (modelPK)
@@ -57,7 +57,7 @@ func fieldLatestProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 		var fmr mtrpb.FieldMetricSummary
 
 		if err = rows.Scan(&fmr.DeviceID, &fmr.ModelID, &fmr.TypeID, &t, &fmr.Value,
-			&fmr.Lower, &fmr.Upper); err != nil {
+			&fmr.Lower, &fmr.Upper, &fmr.Scale); err != nil {
 			return weft.InternalServerError(err)
 		}
 

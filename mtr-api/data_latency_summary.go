@@ -23,13 +23,13 @@ func dataLatencySummaryProto(r *http.Request, h http.Header, b *bytes.Buffer) *w
 
 	switch typeID {
 	case "":
-		rows, err = dbR.Query(`SELECT siteID, typeID, time, mean, fifty, ninety, lower, upper
+		rows, err = dbR.Query(`SELECT siteID, typeID, time, mean, fifty, ninety, lower, upper, scale
 		FROM data.latency_summary
 		JOIN data.site USING (sitePK)
 		JOIN data.latency_threshold USING (sitePK, typePK)
 		JOIN data.type USING (typePK)`)
 	default:
-		rows, err = dbR.Query(`SELECT siteID, typeID, time, mean, fifty, ninety, lower, upper
+		rows, err = dbR.Query(`SELECT siteID, typeID, time, mean, fifty, ninety, lower, upper, scale
 		FROM data.latency_summary
 		JOIN data.site USING (sitePK)
 		JOIN data.latency_threshold USING (sitePK, typePK)
@@ -50,7 +50,7 @@ func dataLatencySummaryProto(r *http.Request, h http.Header, b *bytes.Buffer) *w
 		var dls mtrpb.DataLatencySummary
 
 		if err = rows.Scan(&dls.SiteID, &dls.TypeID, &t, &dls.Mean, &dls.Fifty, &dls.Ninety,
-			&dls.Lower, &dls.Upper); err != nil {
+			&dls.Lower, &dls.Upper, &dls.Scale); err != nil {
 			return weft.InternalServerError(err)
 		}
 

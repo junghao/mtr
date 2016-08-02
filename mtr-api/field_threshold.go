@@ -91,7 +91,7 @@ func fieldThresholdProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT deviceID, typeID, lower, upper
+	if rows, err = dbR.Query(`SELECT deviceID, typeID, lower, upper, scale
 		FROM
 		field.threshold JOIN field.device USING (devicepk)
 		JOIN field.type USING (typepk)`); err != nil {
@@ -103,7 +103,7 @@ func fieldThresholdProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 	for rows.Next() {
 		var t mtrpb.FieldMetricThreshold
 
-		if err = rows.Scan(&t.DeviceID, &t.TypeID, &t.Lower, &t.Upper); err != nil {
+		if err = rows.Scan(&t.DeviceID, &t.TypeID, &t.Lower, &t.Upper, &t.Scale); err != nil {
 			return weft.InternalServerError(err)
 		}
 

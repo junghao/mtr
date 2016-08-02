@@ -13,7 +13,7 @@ func dataTypeProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result
 	var err error
 	var rows *sql.Rows
 
-	if rows, err = dbR.Query(`SELECT typeID FROM data.type ORDER BY typeID ASC`); err != nil {
+	if rows, err = dbR.Query(`SELECT typeID, display FROM data.type ORDER BY typeID ASC`); err != nil {
 		return weft.InternalServerError(err)
 	}
 	defer rows.Close()
@@ -23,7 +23,7 @@ func dataTypeProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result
 	for rows.Next() {
 		var ft mtrpb.DataType
 
-		if err = rows.Scan(&ft.TypeID); err != nil {
+		if err = rows.Scan(&ft.TypeID, &ft.Display); err != nil {
 			return weft.InternalServerError(err)
 		}
 
