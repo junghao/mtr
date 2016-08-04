@@ -117,7 +117,7 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 	for i, d := range allData {
 		points := d.Series.Points
 		for _, point := range points {
-			if values[point.DateTime] == nil {
+			if _, ok := values[point.DateTime]; ok == false {
 				values[point.DateTime] = map[string]float64{labels[i].Label: point.Value}
 				ts = append(ts, point.DateTime)
 			} else {
@@ -137,7 +137,9 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 
 		// CSV headers
 		if i == 0 {
-			w.Write(headers)
+			if err = w.Write(headers); err != nil {
+				return weft.InternalServerError(err)
+			}
 		}
 
 		fields := []string{t.Format(DYGRAPH_TIME_FORMAT)}
@@ -155,7 +157,9 @@ func appMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 			}
 		}
 
-		w.Write(fields)
+		if err = w.Write(fields); err != nil {
+			return weft.InternalServerError(err)
+		}
 	}
 
 	w.Flush()

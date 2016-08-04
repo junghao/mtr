@@ -164,10 +164,10 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 	}
 
 	deviceID := v.Get("deviceID")
-	typeID := v.Get("typeID")
-	var err error
+	typeIDs := v["typeID"]
 
 	var timeRange []time.Time
+	var err error
 	if timeRange, err = parseTimeRange(v); err != nil {
 		return weft.InternalServerError(err)
 	}
@@ -181,39 +181,74 @@ func fieldMetricCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		return weft.InternalServerError(err)
 	}
 
-	var typePK int
-	var scale float64
-	if err = dbR.QueryRow(`SELECT typePK, scale FROM field.type WHERE typeID = $1`,
-		typeID).Scan(&typePK, &scale); err != nil {
+	// use a map to merge all typeID metrics that share the same timestamp onto a single row in the CSV
+	values := make(map[time.Time]map[string]float64)
+	// maintaining an ordered and unique list of times in the map
+	ts := times{}
+
+	for _, typeID := range typeIDs {
+		err = func() error {
+			var typePK int
+			var scale float64
+			if err = dbR.QueryRow(`SELECT typePK, scale FROM field.type WHERE typeID = $1`,
+				typeID).Scan(&typePK, &scale); err != nil {
+				return err
+			}
+
+			var rows *sql.Rows
+			if rows, err = queryMetricRows(devicePK, typePK, resolution, timeRange); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			var t time.Time
+			var val float64
+			for rows.Next() {
+
+				if err = rows.Scan(&t, &val); err != nil {
+					return err
+				}
+
+				if _, ok := values[t]; ok == true {
+					values[t][typeID] = val * scale
+				} else {
+					values[t] = map[string]float64{typeID: val * scale}
+					ts = append(ts, t)
+				}
+			}
+
+			return nil
+		}()
+
 		if err == sql.ErrNoRows {
 			return &weft.NotFound
-		}
-		return weft.InternalServerError(err)
-	}
-
-	var rows *sql.Rows
-	rows, err = queryMetricRows(devicePK, typePK, resolution, timeRange)
-	if err != nil {
-		return weft.InternalServerError(err)
-	}
-	defer rows.Close()
-
-	w := csv.NewWriter(b)
-	i := 0
-	for rows.Next() {
-
-		if i == 0 {
-			w.Write([]string{"time", "value"})
-		}
-
-		var val float64
-		var t time.Time
-		if err = rows.Scan(&t, &val); err != nil {
+		} else if err != nil {
 			return weft.InternalServerError(err)
 		}
+	}
 
-		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", val*scale)})
-		i++
+	w := csv.NewWriter(b)
+	for i, t := range ts {
+
+		if i == 0 {
+			headers := append([]string{"time"}, typeIDs...)
+			if err = w.Write(headers); err != nil {
+				return weft.InternalServerError(err)
+			}
+		}
+
+		outStrings := []string{t.Format(DYGRAPH_TIME_FORMAT)}
+		for _, hdr := range typeIDs {
+			if val, ok := values[t][hdr]; ok == true {
+				outStrings = append(outStrings, fmt.Sprintf("%.2f", val))
+			} else {
+				outStrings = append(outStrings, "")
+			}
+		}
+
+		if err = w.Write(outStrings); err != nil {
+			return weft.InternalServerError(err)
+		}
 	}
 
 	w.Flush()
