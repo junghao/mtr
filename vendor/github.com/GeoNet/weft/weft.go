@@ -1,5 +1,9 @@
 /*
 weft helps with web applications.
+
+There are build tags to give extra log output in devmode e.g.,
+
+go build -tags devmode ...
 */
 package weft
 
