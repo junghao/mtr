@@ -286,8 +286,8 @@ func fieldMetricProto(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Res
 
 	var typePK int
 
-	if err = dbR.QueryRow(`SELECT typePK FROM field.type WHERE typeID = $1`,
-		typeID).Scan(&typePK); err != nil {
+	if err = dbR.QueryRow(`SELECT typePK, scale FROM field.type WHERE typeID = $1`,
+		typeID).Scan(&typePK, &fmr.Scale); err != nil {
 		if err == sql.ErrNoRows {
 			return &weft.NotFound
 		}

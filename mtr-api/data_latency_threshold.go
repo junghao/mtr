@@ -94,7 +94,7 @@ func dataLatencyThresholdProto(r *http.Request, h http.Header, b *bytes.Buffer) 
 	siteID := v.Get("siteID")
 
 	args := []interface{}{} // empty SQL query args
-	sqlQuery := `SELECT siteID, typeID, lower, upper
+	sqlQuery := `SELECT siteID, typeID, lower, upper, scale
 		FROM data.latency_threshold
 		JOIN data.site USING (sitepk)
 		JOIN data.type USING (typepk)`
@@ -120,7 +120,7 @@ func dataLatencyThresholdProto(r *http.Request, h http.Header, b *bytes.Buffer) 
 	for rows.Next() {
 		var t mtrpb.DataLatencyThreshold
 
-		if err = rows.Scan(&t.SiteID, &t.TypeID, &t.Lower, &t.Upper); err != nil {
+		if err = rows.Scan(&t.SiteID, &t.TypeID, &t.Lower, &t.Upper, &t.Scale); err != nil {
 			return weft.InternalServerError(err)
 		}
 

@@ -491,6 +491,10 @@ func TestFieldMetricHistoryLog(t *testing.T) {
 		t.Errorf("expected 12000 got %d", f.Lower)
 	}
 
+	if f.Scale != 0.001 {
+		t.Errorf("expected 12000 got %f", f.Scale)
+	}
+
 	// Not testing number of latency log
 }
 
@@ -520,7 +524,7 @@ func TestFieldMetricTag(t *testing.T) {
 	}
 
 	if tr.Result == nil {
-		t.Errorf("got nil for /field/metric/tag protobuf")
+		t.Error("got nil for /field/metric/tag protobuf")
 	}
 
 	if len(tr.Result) != 1 {
@@ -546,7 +550,7 @@ func TestFieldMetricTag(t *testing.T) {
 	}
 
 	if tr.Result == nil {
-		t.Errorf("got nil for /field/metric/tag protobuf")
+		t.Error("got nil for /field/metric/tag protobuf")
 	}
 
 	if len(tr.Result) != 1 {
@@ -592,19 +596,19 @@ func TestTag(t *testing.T) {
 	}
 
 	if tr.FieldMetric == nil {
-		t.Errorf("Got nil FieldMetric")
+		t.Error("Got nil FieldMetric")
 	}
 
 	if tr.DataLatency == nil {
-		t.Errorf("Got nil DataLatency")
+		t.Error("Got nil DataLatency")
 	}
 
 	if tr.FieldState == nil {
-		t.Errorf("Got nil FieldState")
+		t.Error("Got nil FieldState")
 	}
 
 	if tr.DataCompleteness == nil {
-		t.Errorf("Got nil DataCompleteness")
+		t.Error("Got nil DataCompleteness")
 	}
 
 	if tr.FieldMetric[0].DeviceID != "gps-taupoairport" {
@@ -684,7 +688,7 @@ func TestDataLatencySummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -710,7 +714,7 @@ func TestDataLatencySummary(t *testing.T) {
 	}
 
 	if d.Seconds == 0 {
-		t.Errorf("unexpected zero seconds")
+		t.Error("unexpected zero seconds")
 	}
 
 	if d.Upper != 15000 {
@@ -719,6 +723,10 @@ func TestDataLatencySummary(t *testing.T) {
 
 	if d.Lower != 12000 {
 		t.Errorf("expected 12000 got %d", d.Lower)
+	}
+
+	if d.Scale != 1.0 {
+		t.Errorf("expected 1.0 got %f", d.Scale)
 	}
 
 	r.URL = "/data/latency/summary?typeID=latency.strong"
@@ -734,7 +742,7 @@ func TestDataLatencySummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 }
 
@@ -779,6 +787,9 @@ func TestDataLatencyHistoryLog(t *testing.T) {
 		t.Errorf("expected 12000 got %d", f.Lower)
 	}
 
+	if f.Scale != 1.0 {
+		t.Errorf("expected 1.0 got %f", f.Scale)
+	}
 	// Not testing number of latency log
 }
 
@@ -808,7 +819,7 @@ func TestDataCompletenessSummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -822,7 +833,7 @@ func TestDataCompletenessSummary(t *testing.T) {
 	}
 
 	if d.Seconds == 0 {
-		t.Errorf("unexpected zero seconds")
+		t.Error("unexpected zero seconds")
 	}
 
 	r.URL = "/data/completeness/summary?typeID=gnss.1hz"
@@ -868,7 +879,7 @@ func TestFieldMetricsSummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -890,7 +901,7 @@ func TestFieldMetricsSummary(t *testing.T) {
 	}
 
 	if d.Seconds == 0 {
-		t.Errorf("unexpected zero seconds")
+		t.Error("unexpected zero seconds")
 	}
 
 	if d.Upper != 45000 {
@@ -899,6 +910,10 @@ func TestFieldMetricsSummary(t *testing.T) {
 
 	if d.Lower != 12000 {
 		t.Errorf("expected 12000 got %d", d.Lower)
+	}
+
+	if d.Scale != 0.001 {
+		t.Errorf("expected 0.001 got %f", d.Scale)
 	}
 
 	// should be no errors and empty result for typeID=conn
@@ -915,7 +930,7 @@ func TestFieldMetricsSummary(t *testing.T) {
 	}
 
 	if len(f.Result) != 0 {
-		t.Errorf("expected 0 results.")
+		t.Error("expected 0 results.")
 	}
 }
 
@@ -945,11 +960,11 @@ func TestFieldMetricsThreshold(t *testing.T) {
 	}
 
 	if f.Result == nil {
-		t.Errorf("got nil for /field/metric/threshold protobuf")
+		t.Error("got nil for /field/metric/threshold protobuf")
 	}
 
 	if len(f.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -968,6 +983,10 @@ func TestFieldMetricsThreshold(t *testing.T) {
 
 	if d.Lower != 12000 {
 		t.Errorf("expected 12000 got %d", d.Lower)
+	}
+
+	if d.Scale != 0.001 {
+		t.Errorf("expected 0.001 got %f", d.Scale)
 	}
 }
 
@@ -997,11 +1016,11 @@ func TestDataSites(t *testing.T) {
 	}
 
 	if f.Result == nil {
-		t.Errorf("got nil for /data/site protobuf")
+		t.Error("got nil for /data/site protobuf")
 	}
 
 	if len(f.Result) != 2 {
-		t.Errorf("expected 2 results.")
+		t.Error("expected 2 results.")
 	}
 
 	var found bool
@@ -1021,7 +1040,7 @@ func TestDataSites(t *testing.T) {
 	}
 
 	if !found {
-		t.Errorf("Didn't find site TAUP")
+		t.Error("Didn't find site TAUP")
 	}
 }
 
@@ -1051,7 +1070,7 @@ func TestDataLatencyTag(t *testing.T) {
 	}
 
 	if tr.Result == nil {
-		t.Errorf("got nil for /data/latency/tag protobuf")
+		t.Error("got nil for /data/latency/tag protobuf")
 	}
 
 	if len(tr.Result) != 3 {
@@ -1077,7 +1096,7 @@ func TestDataLatencyTag(t *testing.T) {
 	}
 
 	if tr.Result == nil {
-		t.Errorf("got nil for /data/latency/tag protobuf")
+		t.Error("got nil for /data/latency/tag protobuf")
 	}
 
 	if len(tr.Result) != 3 {
@@ -1123,11 +1142,11 @@ func TestDataLatencyThreshold(t *testing.T) {
 	}
 
 	if f.Result == nil {
-		t.Errorf("got nil for /data/latency/threshold protobuf")
+		t.Error("got nil for /data/latency/threshold protobuf")
 	}
 
 	if len(f.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 
 	d := f.Result[0]
@@ -1148,6 +1167,10 @@ func TestDataLatencyThreshold(t *testing.T) {
 		t.Errorf("expected 12000 got %d", d.Lower)
 	}
 
+	if d.Scale != 1.0 {
+		t.Errorf("expected 1.0 got %f", d.Scale)
+	}
+
 	// test again with siteID and typeID
 	r = wt.Request{ID: wt.L(), URL: "/data/latency/threshold?typeID=latency.strong&siteID=TAUP", Accept: "application/x-protobuf"}
 	if b, err = r.Do(testServer.URL); err != nil {
@@ -1159,7 +1182,7 @@ func TestDataLatencyThreshold(t *testing.T) {
 	}
 
 	if len(f.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 
 	d = f.Result[0]
@@ -1178,6 +1201,10 @@ func TestDataLatencyThreshold(t *testing.T) {
 
 	if d.Lower != 12000 {
 		t.Errorf("expected 12000 got %d", d.Lower)
+	}
+
+	if d.Scale != 1.0 {
+		t.Errorf("expected 1.0 got %f", d.Scale)
 	}
 }
 
@@ -1208,11 +1235,11 @@ func TestFieldModel(t *testing.T) {
 
 	// ftr.Result should be a slice of struct pointers
 	if ftr.Result == nil {
-		t.Errorf("got nil for /field/model protobuf")
+		t.Error("got nil for /field/model protobuf")
 	}
 
 	if len(ftr.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 
 	m := ftr.Result[0]
@@ -1249,11 +1276,11 @@ func TestFieldDevice(t *testing.T) {
 
 	// ftr.Result should be a slice of struct pointers
 	if fdr.Result == nil {
-		t.Errorf("got nil for /field/device protobuf")
+		t.Error("got nil for /field/device protobuf")
 	}
 
 	if len(fdr.Result) != 1 {
-		t.Errorf("expected 1 result.")
+		t.Error("expected 1 result.")
 	}
 
 	d := fdr.Result[0]
@@ -1302,15 +1329,19 @@ func TestFieldType(t *testing.T) {
 
 	// ftr.Result should be a slice of struct pointers
 	if ftr.Result == nil {
-		t.Errorf("got nil for /field/type protobuf")
+		t.Error("got nil for /field/type protobuf")
 	}
 
 	if len(ftr.Result) != 12 {
-		t.Errorf("expected 12 results.")
+		t.Error("expected 12 results.")
 	}
 
 	if ftr.Result[0].TypeID != "centre" {
 		t.Errorf("expected centre got %s", ftr.Result[0].TypeID)
+	}
+
+	if ftr.Result[0].Display != "mV" {
+		t.Errorf("expected mV got %s", ftr.Result[0].Display)
 	}
 }
 
@@ -1339,7 +1370,7 @@ func TestDataTypes(t *testing.T) {
 	}
 
 	if dtr.Result == nil {
-		t.Errorf("got nil for /data/type protobuf")
+		t.Error("got nil for /data/type protobuf")
 	}
 
 	if len(dtr.Result) != 4 {
@@ -1348,6 +1379,10 @@ func TestDataTypes(t *testing.T) {
 
 	if dtr.Result[0].TypeID != "latency.gnss.1hz" {
 		t.Errorf("expected latency.gnss.1hz got %s", dtr.Result[0].TypeID)
+	}
+
+	if dtr.Result[0].Display != "ms" {
+		t.Errorf("expected ms got %s", dtr.Result[0].Display)
 	}
 }
 
@@ -1377,7 +1412,7 @@ func TestAppIDs(t *testing.T) {
 	}
 
 	if dtr.Result == nil {
-		t.Errorf("got nil for /app protobuf")
+		t.Error("got nil for /app protobuf")
 	}
 
 	if len(dtr.Result) != 1 {
@@ -1416,7 +1451,7 @@ func TestFieldState(t *testing.T) {
 	}
 
 	if dtr.Result == nil {
-		t.Fatalf("got nil for /field/state protobuf")
+		t.Fatal("got nil for /field/state protobuf")
 	}
 
 	if len(dtr.Result) != 1 {
@@ -1469,7 +1504,7 @@ func TestFieldStateTag(t *testing.T) {
 	}
 
 	if tr.Result == nil {
-		t.Fatalf("got nil for /field/state protobuf")
+		t.Fatal("got nil for /field/state protobuf")
 	}
 
 	if len(tr.Result) != 1 {

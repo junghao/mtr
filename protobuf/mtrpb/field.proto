@@ -20,6 +20,8 @@ message FieldMetricSummary {
     int32 lower = 6;
     // the modelID for the device e.g., "Trimble NetR9"
     string model_iD = 7;
+    // the scale factor to apply to the threshold values
+    double scale = 8;
 }
 
 message FieldMetricSummaryResult {
@@ -48,6 +50,8 @@ message FieldMetricThreshold {
     int32 lower = 3;
     // The upper threshold for the metric to be good.
     int32 upper = 4;
+    // The scale to multiply the thresholds by
+    double scale = 5;
 
 }
 
@@ -81,6 +85,8 @@ message FieldDeviceResult {
 message FieldType {
     // The TypeID in the table field.type
     string type_iD = 1;
+    // display in the table field.type, the units to display when plotting
+    string display = 2;
 }
 
 message FieldTypeResult {
@@ -137,4 +143,7 @@ message FieldMetricResult {
     int32 lower = 6;
 
     repeated FieldMetric result = 7;
+
+    // the scale factor to multiply the threshold values by
+    double scale = 8;
 }
