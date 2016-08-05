@@ -79,4 +79,24 @@ func TestFieldMetricCsv(t *testing.T) {
 		{testData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testData[0].value*scale)},
 	}
 	compareCsvData(b, expectedSubset, t)
+
+	// test multiple typeIDs in a single call (using voltage twice since we only have a single metric), needed for plotting N different series on one graph.
+	r = wt.Request{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=voltage&typeID=voltage&resolution=full", Method: "GET", Accept: "text/csv"}
+
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
+	expectedOutput := [][]string{
+		{""}, // header line, ignored in test.  Should be time, voltage, voltage
+		{testData[0].time.Format(DYGRAPH_TIME_FORMAT), fmt.Sprintf("%.2f", testData[0].value*scale), fmt.Sprintf("%.2f", testData[0].value*scale)},
+	}
+	compareCsvData(b, expectedOutput, t)
+
+	// an invalid typeID should get a 404
+	r = wt.Request{ID: wt.L(), URL: "/field/metric?deviceID=gps-taupoairport&typeID=notAValidTypeID&resolution=full", Method: "GET", Accept: "text/csv", Status: http.StatusNotFound}
+	if b, err = r.Do(testServer.URL); err != nil {
+		t.Error(err)
+	}
+
 }

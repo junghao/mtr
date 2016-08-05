@@ -226,7 +226,9 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 
 		// CSV headers
 		if i == 0 {
-			w.Write([]string{"time", "mean", "fifty", "ninety"})
+			if err = w.Write([]string{"time", "mean", "fifty", "ninety"}); err != nil {
+				return weft.InternalServerError(err)
+			}
 		}
 
 		// CSV data
@@ -236,10 +238,13 @@ func dataLatencyCsv(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Resul
 		if err != nil {
 			return weft.InternalServerError(err)
 		}
-		w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT),
+
+		if err = w.Write([]string{t.Format(DYGRAPH_TIME_FORMAT),
 			fmt.Sprintf("%.2f", float64(dl.Mean)),
 			fmt.Sprintf("%.2f", float64(dl.Fifty)),
-			fmt.Sprintf("%.2f", float64(dl.Ninety))})
+			fmt.Sprintf("%.2f", float64(dl.Ninety))}); err != nil {
+			return weft.InternalServerError(err)
+		}
 		i++
 	}
 	rows.Close()
