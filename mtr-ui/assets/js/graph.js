@@ -191,24 +191,20 @@ function getCache(cache, res, t0, t1) {
     return null;
 }
 
-var isUpdating = false;
-
 // Callback used to download, cache, and display higher resolution data than default
 function progressiveZoom(graph, minDate, maxDate, csvUrl, data, cache) {
     var res = getResolution(minDate, maxDate);
 
     var cached = getCache(cache, res, minDate, maxDate);
     if (cached) {
-        isUpdating = true;
         data = mergeData(data, cached, minDate, maxDate);
         graph.updateOptions({'file': data.data});
-        isUpdating = false;
         return;
     }
 
     // JS dates are in local timezone so convert to UTC
-    var startDate = new Date(minDate- new Date().getTimezoneOffset()*60*1000).toISOString();
-    var endDate = new Date(maxDate- new Date().getTimezoneOffset()*60*1000).toISOString();
+    var startDate = new Date(minDate - new Date().getTimezoneOffset()*60*1000).toISOString();
+    var endDate = new Date(maxDate - new Date().getTimezoneOffset()*60*1000).toISOString();
 
     var request = new XMLHttpRequest();
     request.open('GET', csvUrl+"&resolution="+res+"&startDate="+startDate+"&endDate="+endDate, true);
@@ -219,19 +215,15 @@ function progressiveZoom(graph, minDate, maxDate, csvUrl, data, cache) {
             var newData;
             // Success but check for null data.  If error we keep original data
             if (request.response) {
-                isUpdating = true;
                 newData = parseCsv(request.response);
                 setCache(cache, res, newData);
                 data = mergeData(data, newData, minDate, maxDate);
                 graph.updateOptions({'file': data.data});
-                isUpdating = false;
             }
         }
     };
 
     request.send();
-
-    isUpdating = false;
 }
 
 function downloadCsv(csvUrl, res, div, graphOptions, thresholds) {
