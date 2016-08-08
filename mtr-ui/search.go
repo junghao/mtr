@@ -16,7 +16,6 @@ type searchPage struct {
 	MtrApiUrl       *url.URL
 	TagName         string
 	MatchingMetrics matchingMetrics
-	Interactive     bool
 }
 
 type matchingMetrics []metricInfo
