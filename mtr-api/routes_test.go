@@ -828,7 +828,7 @@ func TestDataCompletenessSummary(t *testing.T) {
 		t.Errorf("expected TAUP got %s", d.SiteID)
 	}
 
-	if d.TypeID != "gnss.1hz" {
+	if d.TypeID != "completeness.gnss.1hz" {
 		t.Errorf("expected gnss.1hz got %s", d.TypeID)
 	}
 
@@ -1373,12 +1373,12 @@ func TestDataTypes(t *testing.T) {
 		t.Error("got nil for /data/type protobuf")
 	}
 
-	if len(dtr.Result) != 4 {
-		t.Errorf("expected 4 results, got %d.", len(dtr.Result))
+	if len(dtr.Result) != 5 {
+		t.Errorf("expected 5 results, got %d.", len(dtr.Result))
 	}
 
-	if dtr.Result[0].TypeID != "latency.gnss.1hz" {
-		t.Errorf("expected latency.gnss.1hz got %s", dtr.Result[0].TypeID)
+	if dtr.Result[0].TypeID != "latency.files.gnss" {
+		t.Errorf("expected latency.files.gnss got %s", dtr.Result[0].TypeID)
 	}
 
 	if dtr.Result[0].Display != "ms" {
