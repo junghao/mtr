@@ -36,6 +36,7 @@ INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(
 INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(2, 'latency.weak', 'latency weak motion data', 'ms', 1.0, 'ms');
 INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(3, 'latency.gnss.1hz', 'latency GNSS 1Hz data', 'ms', 1.0, 'ms');
 INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(4, 'latency.tsunami', 'latency tsunami data', 'ms', 1.0, 'ms');
+INSERT INTO data.type(typePK, typeID, description, unit, scale, display) VALUES(5, 'latency.files.gnss', 'latency files data', 'ms', 1.0, 'ms');
 
 CREATE TABLE data.latency (
   sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
@@ -86,7 +87,7 @@ CREATE TABLE data.completeness_type (
   expected INTEGER NOT NULL
 );
 
-INSERT INTO data.completeness_type(typePK, typeID, expected) VALUES(100, 'gnss.1hz', 86400);
+INSERT INTO data.completeness_type(typePK, typeID, expected) VALUES(100, 'completeness.gnss.1hz', 86400);
 
 CREATE TABLE data.completeness (
   sitePK INTEGER REFERENCES data.site(sitePK) ON DELETE CASCADE NOT NULL,
