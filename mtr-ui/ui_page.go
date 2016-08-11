@@ -21,7 +21,7 @@ type mtrUiPage struct {
 	Status        string
 	MtrApiUrl     string
 	Resolution    string
-	Thresholds    []int32
+	Plt           plotInfo
 	Tags          []string
 	fieldResult   []*mtrpb.FieldMetricSummary
 	dataResult    []*mtrpb.DataLatencySummary
@@ -62,6 +62,11 @@ type idCount struct {
 
 type app struct {
 	ID string
+}
+
+type plotInfo struct {
+	Thresholds []float64
+	Ylabel     string
 }
 
 type panels []panel
