@@ -256,9 +256,9 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/latency/threshold?typeID=latency.strong&siteID=TAUP&typeID=latency.strong", Accept: "application/x-protobuf"},
 
 	// Delete data.completeness
-	{ID: wt.L(), URL: "/data/completeness?siteID=WGTN&typeID=gnss.1hz&time=2015-05-14T23:40:30Z&count=300", Method: "PUT"},
-	{ID: wt.L(), URL: "/data/completeness?siteID=WGTN&typeID=gnss.1hz", Method: "DELETE"},
-	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&time=2015-05-14T23:40:30Z&count=300", Method: "PUT"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=WGTN&typeID=completeness.gnss.1hz&time=2015-05-14T23:40:30Z&count=300", Method: "PUT"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=WGTN&typeID=completeness.gnss.1hz", Method: "DELETE"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=completeness.gnss.1hz&time=2015-05-14T23:40:30Z&count=300", Method: "PUT"},
 
 	// Tags
 	{ID: wt.L(), URL: "/tag/FRED", Method: "DELETE"},
@@ -277,7 +277,7 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/latency/tag?siteID=TAUP&typeID=latency.strong&tag=TAUP", Method: "PUT"},
 
 	// Create a tag on a completeness
-	{ID: wt.L(), URL: "/data/completeness/tag?siteID=TAUP&typeID=gnss.1hz&tag=TAUP", Method: "PUT"},
+	{ID: wt.L(), URL: "/data/completeness/tag?siteID=TAUP&typeID=completeness.gnss.1hz&tag=TAUP", Method: "PUT"},
 
 	// protobuf of all tagged data latencies
 	{ID: wt.L(), URL: "/data/latency/tag", Accept: "application/x-protobuf"},
@@ -304,11 +304,11 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/latency?siteID=TAUP&typeID=latency.strong&resolution=hour", Accept: "application/x-protobuf"},
 
 	// Completeness plots.
-	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=five_minutes"},
-	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=hour"},
-	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=twelve_hours"},
-	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&plot=spark"},
-	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=gnss.1hz&resolution=five_minutes&plot=scatter"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=completeness.gnss.1hz&resolution=five_minutes"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=completeness.gnss.1hz&resolution=hour"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=completeness.gnss.1hz&resolution=twelve_hours"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=completeness.gnss.1hz&plot=spark"},
+	{ID: wt.L(), URL: "/data/completeness?siteID=TAUP&typeID=completeness.gnss.1hz&resolution=five_minutes&plot=scatter"},
 
 	// Tags
 	{ID: wt.L(), URL: "/tag/LINZ", Method: "DELETE"},
@@ -441,7 +441,7 @@ func TestPlotData(t *testing.T) {
 			}
 		}
 
-		r.URL = fmt.Sprintf("/data/completeness?siteID=TAUP&typeID=gnss.1hz&time=%s&count=%d",
+		r.URL = fmt.Sprintf("/data/completeness?siteID=TAUP&typeID=completeness.gnss.1hz&time=%s&count=%d",
 			now.Add(time.Duration(i)*time.Minute).Format(time.RFC3339), v)
 
 		if _, err = r.Do(testServer.URL); err != nil {
@@ -836,7 +836,7 @@ func TestDataCompletenessSummary(t *testing.T) {
 		t.Error("unexpected zero seconds")
 	}
 
-	r.URL = "/data/completeness/summary?typeID=gnss.1hz"
+	r.URL = "/data/completeness/summary?typeID=completeness.gnss.1hz"
 
 	if b, err = r.Do(testServer.URL); err != nil {
 		t.Error(err)
