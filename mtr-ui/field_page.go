@@ -141,6 +141,10 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 		return weft.InternalServerError(err)
 	}
 
+	if err := p.getFieldYLabel(); err != nil {
+		return weft.InternalServerError(err)
+	}
+
 	// Set thresholds on plot by drawing a box in dygraph.  Protobuf contains all thresholds, so select ours
 	u := *mtrApiUrl
 	u.Path = "/field/metric/threshold"
@@ -445,6 +449,30 @@ func (p *mtrUiPage) getFieldHistoryLog() (err error) {
 	}
 
 	p.FieldLog = &f
+	return
+}
+
+func (p *mtrUiPage) getFieldYLabel() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/field/type"
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var f mtrpb.FieldTypeResult
+
+	if err = proto.Unmarshal(b, &f); err != nil {
+		return
+	}
+
+	for _, val := range f.Result {
+		if val.TypeID == p.TypeID {
+			p.Plt.Ylabel = val.Display
+			return
+		}
+	}
+
 	return
 }
 

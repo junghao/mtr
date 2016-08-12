@@ -144,6 +144,10 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		return weft.InternalServerError(err)
 	}
 
+	if err := p.getDataYLabel(); err != nil {
+		return weft.InternalServerError(err)
+	}
+
 	// Set thresholds on plot by drawing a box in dygraph.  Protobuf contains all thresholds, so select ours
 	u := *mtrApiUrl
 	u.Path = "/data/latency/threshold"
@@ -436,6 +440,30 @@ func (p *mtrUiPage) getLatencyHistoryLog() (err error) {
 	}
 
 	p.LatencyLog = &f
+	return
+}
+
+func (p *mtrUiPage) getDataYLabel() (err error) {
+	u := *mtrApiUrl
+	u.Path = "/data/type"
+	var b []byte
+	if b, err = getBytes(u.String(), "application/x-protobuf"); err != nil {
+		return
+	}
+
+	var r mtrpb.DataTypeResult
+
+	if err = proto.Unmarshal(b, &r); err != nil {
+		return
+	}
+
+	for _, val := range r.Result {
+		if val.TypeID == p.TypeID {
+			p.Plt.Ylabel = val.Display
+			return
+		}
+	}
+
 	return
 }
 

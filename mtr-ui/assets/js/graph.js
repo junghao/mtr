@@ -264,11 +264,10 @@ function downloadCsv(csvUrl, res, div, graphOptions, thresholds) {
 function showGraph(csvUrl, res, graphOptions, thresholds) {
     var graphElement = document.getElementById('graphdiv');
     var div = document.createElement('div');
-    div.style.width = '90vw'; // use 90% of the available width (scales with changing width)
-    //div.style.height = '40vh'; // using vh for height causes redraw issues on mobile when using the "roll period" option
+    div.style.width = '92vw'; // use X% of the available width (scales with changing width)
+    div.style.marginLeft = '3vw';
     div.style.height = '400px';
     div.style.display = 'inline-block';
-    div.style.margin = '4px';
     // appending to parent div lets us plots as many graphs as we like
     graphElement.appendChild(div);
 
