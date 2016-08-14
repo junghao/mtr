@@ -31,10 +31,10 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/metrics?typeID=latency.gnss.1hz&status=good"},
 	{ID: wt.L(), URL: "/data/metrics?&status=good"},
 	// data completeness
-	{ID: wt.L(), URL: "/data/completeness/plot?typeID=gnss.1hz&siteID=TAUP"},
-	{ID: wt.L(), URL: "/data/completeness/plot?typeID=gnss.1hz&siteID=TAUP&resolution=five_minutes"},
-	{ID: wt.L(), URL: "/data/completeness/plot?typeID=gnss.1hz&siteID=TAUP&resolution=hour"},
-	{ID: wt.L(), URL: "/data/completeness/plot?typeID=gnss.1hz&siteID=TAUP&resolution=twelve_hours"},
+	{ID: wt.L(), URL: "/data/completeness/plot?typeID=completeness.gnss.1hz&siteID=TAUP"},
+	{ID: wt.L(), URL: "/data/completeness/plot?typeID=completeness.gnss.1hz&siteID=TAUP&resolution=five_minutes"},
+	{ID: wt.L(), URL: "/data/completeness/plot?typeID=completeness.gnss.1hz&siteID=TAUP&resolution=hour"},
+	{ID: wt.L(), URL: "/data/completeness/plot?typeID=completeness.gnss.1hz&siteID=TAUP&resolution=twelve_hours"},
 
 	// field pages
 	{ID: wt.L(), URL: "/field/"},
