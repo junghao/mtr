@@ -164,7 +164,7 @@
                          title: 'Field Metrics (deviceID: {{urlquery .DeviceID}}, typeID: {{urlquery .TypeID}})',
                          //connectSeparatedPoints: true,
                          xlabel: 'Date (UTC)',
-                         ylabel: 'Latency (ms)',
+                         ylabel: 'Units: {{.Plt.Ylabel}}, {{if .Plt.Thresholds}} thresholds: [{{index .Plt.Thresholds 0}} - {{index .Plt.Thresholds 1}}]{{end}}',
                          drawPoints: true,
                          pointSize: 2,
                          rollPeriod: 1,
@@ -172,10 +172,17 @@
                          strokeWidth: 2,
                     };
 
-                    showGraph("/p/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}",
+                    // Hack to combine the rt signal and noise series onto a single plot.  See GeoNet/mtr#168.
+                    var typeID = {{urlquery .TypeID}};
+                    var typeIDParams = "&typeID=" + typeID;
+                    if (typeID == "rf.signal" || typeID == "rf.noise") {
+                        typeIDParams = "&typeID=rf.signal&typeID=rf.noise";
+                    }
+
+                    showGraph("/p/field/metric?deviceID={{urlquery .DeviceID}}" + typeIDParams,
                                 {{urlquery .Resolution}},
                                 graphOptions,
-                                {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
+                                {{if .Plt.Thresholds}}[{{index .Plt.Thresholds 0}}, {{index .Plt.Thresholds 1}}]{{else}}null{{end}});
                 });
             </script>
         </div>
@@ -208,7 +215,7 @@
                  title: 'Data Latency (siteID: {{urlquery .SiteID}}, typeID: {{urlquery .TypeID}})',
                  //connectSeparatedPoints: true,
                  xlabel: 'Date (UTC)',
-                 ylabel: 'Latency (ms)',
+                 ylabel: 'Units: {{.Plt.Ylabel}}, {{if .Plt.Thresholds}}Thresholds: [{{index .Plt.Thresholds 0}}, {{index .Plt.Thresholds 1}}]{{end}}',
                  drawPoints: true,
                  pointSize: 2,
                  rollPeriod: 1, // the number of points "rolled" or averaged into one, can modify interactively
@@ -220,7 +227,7 @@
             showGraph(csvUrl,
                     {{urlquery .Resolution}},
                     graphOptions,
-                    {{if .Thresholds}}[{{index .Thresholds 0}}, {{index .Thresholds 1}}]{{else}}null{{end}});
+                    {{if .Plt.Thresholds}}[{{index .Plt.Thresholds 0}}, {{index .Plt.Thresholds 1}}]{{else}}null{{end}});
         });
     </script>
 </div>
