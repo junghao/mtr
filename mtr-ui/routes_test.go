@@ -26,6 +26,7 @@ var routes = wt.Requests{
 	{ID: wt.L(), URL: "/data/plot?siteID=CHTI&typeID=latency.gnss.1hz&resolution=minute"},
 	{ID: wt.L(), URL: "/data/plot?siteID=CHTI&typeID=latency.gnss.1hz&resolution=five_minutes"},
 	{ID: wt.L(), URL: "/data/plot?siteID=CHTI&typeID=latency.gnss.1hz&resolution=hour"},
+	{ID: wt.L(), URL: "/data/plot?siteID=CHTI&typeID=latency.gnss.1hz&interactive=true"},
 	{ID: wt.L(), URL: "/data/metrics"},
 	{ID: wt.L(), URL: "/data/metrics?typeID=latency.gnss.1hz"},
 	{ID: wt.L(), URL: "/data/metrics?typeID=latency.gnss.1hz&status=good"},

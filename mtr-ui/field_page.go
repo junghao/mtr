@@ -119,7 +119,7 @@ func fieldDevicesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *w
 }
 
 func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{"deviceID", "typeID"}, []string{"resolution", "interactive"}); !res.Ok {
 		return res
 	}
 	p := mtrUiPage{}
@@ -133,8 +133,9 @@ func fieldPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 		return weft.InternalServerError(err)
 	}
 
-	if p.Resolution == "" {
-		p.Resolution = "hour"
+	// Resolution not required if we're in "interactive" mode otherwise default is minute
+	if p.Resolution == "" && !p.Interactive {
+		p.Resolution = "minute"
 	}
 
 	if err := p.getFieldHistoryLog(); err != nil {

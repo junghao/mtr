@@ -4,6 +4,7 @@
 
 <div class="row">
     <div class="col-xs-12 col-md-12">
+        {{if .Interactive}}
         <div id="graphdiv" class="graph">
             <script>
                 $(document).ready(function () {
@@ -102,6 +103,24 @@
 
             </script>
         </div>
+        {{template "app_plot_res" .}}
+
+        {{else}}
+        <img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=counters&resolution={{.Resolution}}" />
+        {{template "app_plot_res" .}}
+        <br>
+        <img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=timers&resolution={{.Resolution}}" />
+        {{template "app_plot_res" .}}
+        <br>
+        <img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=memory&resolution={{.Resolution}}" />
+        {{template "app_plot_res" .}}
+        <br>
+        <img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=routines&resolution={{.Resolution}}" />
+        {{template "app_plot_res" .}}
+        <br>
+        <img src="{{.MtrApiUrl}}/app/metric?applicationID={{.ApplicationID}}&group=objects&resolution={{.Resolution}}" />
+        {{template "app_plot_res" .}}
+        {{end}}
     </div>
 </div>
 {{end}}

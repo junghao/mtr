@@ -23,6 +23,7 @@ type mtrUiPage struct {
 	Resolution    string
 	Plt           plotInfo
 	Tags          []string
+	Interactive   bool
 	fieldResult   []*mtrpb.FieldMetricSummary
 	dataResult    []*mtrpb.DataLatencySummary
 	FieldLog      *mtrpb.FieldMetricResult
@@ -131,6 +132,7 @@ func (p *mtrUiPage) pageParam(q url.Values) int {
 
 	p.Resolution = q.Get("resolution")
 
+	p.Interactive = q.Get("interactive") == "true"
 	return n
 }
 

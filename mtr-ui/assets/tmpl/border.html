@@ -10,9 +10,11 @@
     <link rel="stylesheet" href="//static.geonet.org.nz/bootstrap/3.3.6/css/bootstrap.min.css">
     <link rel="stylesheet" href="//static.geonet.org.nz/leaflet/0.7.7/leaflet.css">
 
+    {{ if .Interactive }}
     <script src="//static.geonet.org.nz/jquery/js/jquery-1.11.3.min.js"></script>
     <script src="//static.geonet.org.nz/dygraph/1.1.1/dygraph-combined.js"></script>
     <script src="/js/graph.js"></script>
+    {{end}}
 
     <style>
 		.footer {

@@ -118,7 +118,7 @@ func dataSitesPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft
 }
 
 func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result {
-	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution"}); !res.Ok {
+	if res := weft.CheckQuery(r, []string{"siteID", "typeID"}, []string{"resolution", "interactive"}); !res.Ok {
 		return res
 	}
 
@@ -136,8 +136,9 @@ func dataPlotPageHandler(r *http.Request, h http.Header, b *bytes.Buffer) *weft.
 		return weft.InternalServerError(err)
 	}
 
-	if p.Resolution == "" {
-		p.Resolution = "hour"
+	// Resolution not required if we're in "interactive" mode otherwise default is minute
+	if p.Resolution == "" && !p.Interactive {
+		p.Resolution = "minute"
 	}
 
 	if err := p.getLatencyHistoryLog(); err != nil {
