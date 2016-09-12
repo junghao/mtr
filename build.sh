@@ -65,6 +65,8 @@ do
 		echo "CMD [\"/${i}\"]" >> docker-build-tmp/Dockerfile
 
 		docker build -t quay.io/geonet/${i}:$VERSION -f docker-build-tmp/Dockerfile docker-build-tmp
+		# tag latest.  Makes it easier to test with compose. 
+		docker tag quay.io/geonet/${i}:$VERSION quay.io/geonet/${i}:latest
 
 		rm -f $DOCKER_TMP/$i
 done
