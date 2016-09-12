@@ -10,10 +10,14 @@
     <link rel="stylesheet" href="//static.geonet.org.nz/bootstrap/3.3.6/css/bootstrap.min.css">
     <link rel="stylesheet" href="//static.geonet.org.nz/leaflet/0.7.7/leaflet.css">
 
-    {{ if .Interactive }}
+    <!--jquery needed by many js libs so load synchronously. Defer attr loads at end and maintains order, async does not-->
     <script src="//static.geonet.org.nz/jquery/js/jquery-1.11.3.min.js"></script>
-    <script src="//static.geonet.org.nz/dygraph/1.1.1/dygraph-combined.js"></script>
-    <script src="/js/graph.js"></script>
+    <script defer src="//static.geonet.org.nz/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script defer src="//static.geonet.org.nz/leaflet/0.7.7/leaflet.js"></script>
+    <script defer src="/js/leaflet-patch180.js"></script>
+    {{ if .Interactive }}
+    <script defer src="//static.geonet.org.nz/dygraph/1.1.1/dygraph-combined.js"></script>
+    <script defer src="/js/graph.js"></script>
     {{end}}
 
     <style>
@@ -214,9 +218,6 @@
 
         </div>
     </div>
-    <script src="//static.geonet.org.nz/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-    <script src="//static.geonet.org.nz/leaflet/0.7.7/leaflet.js"></script>
-    <script src="/js/leaflet-patch180.js"></script>
     <script type="text/javascript">
         $(document).keypress(function(e) {
             if(!$('#search_query').is(':focus')) {

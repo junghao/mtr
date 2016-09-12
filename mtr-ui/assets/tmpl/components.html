@@ -190,7 +190,7 @@
         {{else}}
         <img src="{{.MtrApiUrl}}/field/metric?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/>
 
-        {{if .FieldLog}}
+        {{if and .FieldLog (not .Interactive)}}
         <div class="row">
             <div class="col-xs-12 col-md-12">
                 {{$upper:=.FieldLog.Upper}}
@@ -218,14 +218,7 @@
             <li role="presentation" {{if and (eq .Resolution "minute") (not .Interactive)}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
             <li role="presentation" {{if and (eq .Resolution "five_minutes") (not .Interactive)}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
             <li role="presentation" {{if and (eq .Resolution "hour") (not .Interactive)}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
-        </ul>
-    </div>
-    <div class="col-xs-12 col-md-12">
-        <ul class="nav nav-pills">
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "minute")}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=minute">Interactive 12 Hours</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "five_minutes")}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=five_minutes">48 Hours</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "hour")}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=hour">28 Days</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "full")}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=full">All Data</a></li>
+            <li role="presentation" {{if .Interactive}}class="active"{{end}}><a href="/field/plot?deviceID={{urlquery .DeviceID}}&typeID={{urlquery .TypeID}}&interactive=true">Interactive</a></li>
         </ul>
     </div>
 </div>
@@ -239,14 +232,7 @@
             <li role="presentation" {{if and (eq .Resolution "minute") (not .Interactive)}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=minute">SVG 12 Hours</a></li>
             <li role="presentation" {{if and (eq .Resolution "five_minutes") (not .Interactive)}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=five_minutes">48 Hours</a></li>
             <li role="presentation" {{if and (eq .Resolution "hour") (not .Interactive)}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&resolution=hour">28 Days</a></li>
-        </ul>
-    </div>
-    <div class="col-xs-12 col-md-12">
-        <ul class="nav nav-pills">
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "minute")}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true&resolution=minute">Interactive 12 Hours</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "five_minutes")}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true&resolution=five_minutes">48 Hours</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "hour")}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true&resolution=hour">28 Days</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "full")}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true&resolution=full">All Data</a></li>
+            <li role="presentation" {{if .Interactive}}class="active"{{end}}><a href="/app/plot?applicationID={{.ApplicationID}}&interactive=true">Interactive</a></li>
         </ul>
     </div>
 </div>
@@ -300,7 +286,7 @@
 
     <div class="col-xs-12 col-md-12"><img src="{{.MtrApiUrl}}/data/latency?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution={{.Resolution}}"/></div>
 
-    {{if .LatencyLog}}
+    {{if and .LatencyLog (not .Interactive)}}
     <div class="row">
         <div class="col-xs-12 col-md-12">
             {{$upper:=.LatencyLog.Upper}}
@@ -329,14 +315,7 @@
             <li role="presentation" {{if and (eq .Resolution "minute") (not .Interactive)}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=minute">12 Hours</a></li>
             <li role="presentation" {{if and (eq .Resolution "five_minutes") (not .Interactive)}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=five_minutes">48 Hours</a></li>
             <li role="presentation" {{if and (eq .Resolution "hour") (not .Interactive)}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&resolution=hour">28 Days</a></li>
-        </ul>
-    </div>
-    <div class="col-xs-12 col-md-12">
-        <ul class="nav nav-pills">
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "minute")}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=minute">Interactive 12 Hours</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "five_minutes")}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=five_minutes">48 Hours</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "hour")}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=hour">28 Days</a></li>
-            <li role="presentation" {{if and (.Interactive) (eq .Resolution "full")}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true&resolution=full">All Data</a></li>
+            <li role="presentation" {{if .Interactive}}class="active"{{end}}><a href="/data/plot?siteID={{urlquery .SiteID}}&typeID={{urlquery .TypeID}}&interactive=true">Interactive</a></li>
         </ul>
     </div>
 </div>

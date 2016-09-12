@@ -1,3 +1,5 @@
+"use strict";
+
 function utcToLocal(x) {
 	return Date.parse(x) - new Date().getTimezoneOffset()*60*1000;
 }
