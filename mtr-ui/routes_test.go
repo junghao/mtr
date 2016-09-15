@@ -68,6 +68,10 @@ var routes = wt.Requests{
 	// search
 	{ID: wt.L(), URL: "/search?tagQuery=TAKP"},
 	{ID: wt.L(), URL: "/search?tagQuery=TAKP&page=1"},
+
+	// soh routes
+	{ID: wt.L(), URL: "/soh"},
+	{ID: wt.L(), URL: "/soh/up"},
 }
 
 func setup() {

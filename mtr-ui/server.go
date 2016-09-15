@@ -72,9 +72,51 @@ func init() {
 	mux.HandleFunc("/app", weft.MakeHandlerPage(appPageHandler))
 	mux.HandleFunc("/app/", weft.MakeHandlerPage(appPageHandler))
 	mux.HandleFunc("/app/plot", weft.MakeHandlerPage(appPlotPageHandler))
+
+	// routes for balancers and probes.
+	mux.HandleFunc("/soh/up", http.HandlerFunc(up))
+	mux.HandleFunc("/soh", http.HandlerFunc(soh))
 }
 
 func main() {
 	log.Println("starting mtr-ui server")
 	log.Fatal(http.ListenAndServe(":"+webServerPort, mux))
+}
+
+// up is for testing that the app has started e.g., for with load balancers.
+// It indicates the app is started.  It may still be serving errors.
+// Not useful for inclusion in app metrics so weft not used.
+func up(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		w.Header().Set("Surrogate-Control", "max-age=86400")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Surrogate-Control", "max-age=10")
+
+	w.Write([]byte("<html><head></head><body>up</body></html>"))
+	log.Print("up ok")
+}
+
+// soh is for external service probes.
+// writes a service unavailable error to w if the service is not working.
+// Not useful for inclusion in app metrics so weft not used.
+func soh(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		w.Header().Set("Surrogate-Control", "max-age=86400")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// is there anything meaningful to test in the API here?
+
+	w.Header().Set("Surrogate-Control", "max-age=10")
+
+	w.Write([]byte("<html><head></head><body>ok</body></html>"))
+	log.Print("soh ok")
 }
