@@ -31,6 +31,10 @@ var keyW = os.Getenv("MTR_KEY")
 func init() {
 	mux.HandleFunc("/", weft.MakeHandlerAPI(home))
 	mux.HandleFunc("/health", health)
+
+	// routes for balancers and probes.
+	mux.HandleFunc("/soh/up", http.HandlerFunc(up))
+	mux.HandleFunc("/soh", http.HandlerFunc(soh))
 }
 
 func main() {
@@ -154,4 +158,49 @@ func deleteMetrics() {
 			}
 		}
 	}
+}
+
+// up is for testing that the app has started e.g., for with load balancers.
+// It indicates the app is started.  It may still be serving errors.
+// Not useful for inclusion in app metrics so weft not used.
+func up(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		w.Header().Set("Surrogate-Control", "max-age=86400")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Surrogate-Control", "max-age=10")
+
+	w.Write([]byte("<html><head></head><body>up</body></html>"))
+	log.Print("up ok")
+}
+
+// soh is for external service probes.
+// writes a service unavailable error to w if the service is not working.
+// Not useful for inclusion in app metrics so weft not used.
+func soh(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	if res := weft.CheckQuery(r, []string{}, []string{}); !res.Ok {
+		w.Header().Set("Surrogate-Control", "max-age=86400")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var c int
+
+	if err := db.QueryRow("SELECT 1").Scan(&c); err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte("<html><head></head><body>service error</body></html>"))
+		log.Printf("ERROR: soh service error %s", err)
+		return
+	}
+
+	w.Header().Set("Surrogate-Control", "max-age=10")
+
+	w.Write([]byte("<html><head></head><body>ok</body></html>"))
+	log.Print("soh ok")
 }
