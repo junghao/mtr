@@ -325,6 +325,10 @@ var routes = wt.Requests{
 
 	// Delete a tag on a metric
 	{ID: wt.L(), URL: "/field/metric/tag?deviceID=gps-taupoairport&typeID=voltage&tag=LINZ", Method: "DELETE"},
+
+	// soh routes
+	{ID: wt.L(), URL: "/soh"},
+	{ID: wt.L(), URL: "/soh/up"},
 }
 
 // Test all routes give the expected response.  Also check with
