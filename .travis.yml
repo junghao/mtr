@@ -8,7 +8,10 @@ services:
   - docker
 
 before_deploy:
-  - docker login --email="." --username="geonet+dockerbuild" --password="$docker_password" quay.io
+  - docker --version
+  - pip install --user awscli
+  - export PATH=$PATH:$HOME/.local/bin
+  - eval $(aws ecr get-login --region ap-southeast-2) #needs AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY envvars
 
 # also trying to fix postgis bug
 before_install:
@@ -43,4 +46,5 @@ deploy:
   
 env:
     global:
-        - secure: "EcXIys90oK49nM8ImtxORtU3PdhuJWg3LijCcAm3Kr/v5LvYZ8aBavRGh15/e1cryFyMG237C0MPDqrKsGex4UOW9JkN/v9sLR7YnM9jjB6ZbEnGkNj6PrKcGPS7wKeBP/BA5DlozpYiD1qt5AJ1pCgibz9VBQ8CaDbuXJHeUUoqjgUitoNqyGLEgRqAhGnR+WtJP0TA2FCVtgPyJtaYDqtaeCpI8GmQcFs99zflTVXshrdjkV5LSYOfwyeAUezuL+23VQz1mQ99Dkgm2SH17UJjTeXeH/CWLttppJNIf8dum2QkIxKiakeB413Ph6Ksu/u2XJEpW+q+iOtQLWnX42o2TpLpNZJGS/ZsV65ooieG4FhZMOkU2Cjw77N3cuwkoYUtdef6DFK1FOATp0GU8eBSjGh5tjlmWkL+gsrx8c182CT1N2RCtQ9Vq1+tY6dYSXfldu0HB6qc0JVr9gS/1Ey9qakXYN8b5RRlMsz0ce6DOvph7/YipbyyRrYoF3nGfb3HNcwMNEzfJ6pyDHaG+ocwgl7R8/RMhYzAxEEivKy1AILOvHz/f3ZSDlr2pnoZ57XvJZd1XlgpAWOeyJQAt57sY6fPZy7NnztT++g+i9f+E7FzQO78MhKVoyD42vd9HJTpFzF7eQBGX24w+DhHEnlQjkdr9l5BP4NtMiH9toI="
+        - secure: "Kglouv0hLBTIAv3M3TEt3uhATvPVOZI/VmDZeyzBO0SndGpSI6D5CRmlv9WGRjpnJnMx7Fm385GvcAQvdfr3OOFzEwCBqjaFQJnUIiXYAhwHf2K3AJ8sEW2iBkRM648w797yNAYhZ705ahelq3ZrLJPW2NpGErKNlK/uxTzO1UcS5Xs2rhuu48XCgPgLTA7C3U903tvAwXueK2E9IJTBNXVidYG1T4cq1Pwa6cmCISzat/YSbAdavR11t28B4xPCThYCiGGi8hTzNQOktbyCK8cRqzt9+Gcxg919EaGywn+Rony1AAlGqn+BK5QCXgXJqTclxZYt/aIE1L46OO3ZMe1xqfZxKyTzXXWXRKTp6qYxWuKTs/rCwvww1Bt5Xz4t048d7FqhVTgx9lz7XtCiOC9bPx3gG37Dby72UEfxXa0wqqzwyJbr4cUcypa3D6QbVv6iTMEvxlM81SHvkTj2z+pLdLl1XeZb+orjdUG/mOEvzQH7tr/7B4qBbgXpktH9lgvEwMnArH5UQABk+J4PTRBFmZ7SBdrk3LyIAN3f7Cg3EJKQp5jLYPP7X0iaBD3GzFzQhXGDL/mntjzy5zCLxVILTyl01B+205A3uSIAUtWUrLMviBgdrmKci0L4BrRHeFuMrj7LYlQ0ZOQvOw3E3AXSGU7I08mkp888JBgUkB4="
+        - secure: "oTFd0+fMR7HJ6gSAbXYMzciFxhrIaQdSeN4LgnR4jOO5QrupfqBEI2T3gqVDP3PvD3sjDCyktHxlZ+7ouELKHpaYgtFdTxcem7cWG1KoXbYTKIlhh4dORKuDcmO1GcCQbofnokB2QvU4oV+GCdG5kdNcy8f6vqTwNM2iHv4Uuq1W/t5iuV/KWbghiGo/ydTzfwpVjcEclsgXdyS6r3eQzwLVXSA0bAP9VEyEYPbsDO55hK+MPQ0UQN73+VYY4+u4Fc7E+rYpM5vqqAWHVys9QsTXfA3Jl6hC6yAoKhHXV/soavdb6pfdPHnj83xZQXOMRoAy1jI9MGyLXFUxuh7BwAnSjk8MA05VqKXOs3fvQlJ7iosdqsdTnYLrJfyir+cUUYvY2sVOPln2cveFBwvlK9fyzK5MH7yb3GSJuoW2UrSFG1yn2RoIKHG95stUCOBNScL2TjwxVSAZS5B+m+KNC2ZE64Vniuf9LuGb1ur9Z4jDr7OHHL0oczXuqsP5seRAqslhy2iN1RPBayH/2XzVjpT65+CDHzk6SL9tLWexB6GPcrpX1SzuNt0+riwCaY0Ve6awa+zqnnpT8gsK6rKeny+t1FPtLxnpRRmkWLZtzEPmnFqAlHinJEmAserAUi7LStnqyfNg6dTVhZroK+3NsGzj4U90dgRO5b4dNCES38s="
