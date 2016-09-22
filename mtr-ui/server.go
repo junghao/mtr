@@ -1,10 +1,6 @@
 package main
 
-// The server for the mtr-ui, starting as simple as possible.
-// TODO: keep 12 factor app principles in mind, use logentries, env vars instead of json config, etc.
-
 import (
-	_ "github.com/GeoNet/log/logentries"
 	"github.com/GeoNet/weft"
 	"log"
 	"net/http"
@@ -79,7 +75,7 @@ func init() {
 }
 
 func main() {
-	log.Println("starting mtr-ui server")
+	log.Println("starting server")
 	log.Fatal(http.ListenAndServe(":"+webServerPort, mux))
 }
 
