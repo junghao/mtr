@@ -175,7 +175,6 @@ func up(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Surrogate-Control", "max-age=10")
 
 	w.Write([]byte("<html><head></head><body>up</body></html>"))
-	log.Print("up ok")
 }
 
 // soh is for external service probes.
@@ -202,5 +201,4 @@ func soh(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Surrogate-Control", "max-age=10")
 
 	w.Write([]byte("<html><head></head><body>ok</body></html>"))
-	log.Print("soh ok")
 }
