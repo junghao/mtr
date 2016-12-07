@@ -187,7 +187,7 @@ func appMetricSvg(r *http.Request, h http.Header, b *bytes.Buffer) *weft.Result 
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-12), time.Now().UTC())
 		p.SetXLabel("12 hours")
 	case "five_minutes":
-		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*3), time.Now().UTC())
+		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*2), time.Now().UTC())
 		p.SetXLabel("48 hours")
 	case "hour":
 		p.SetXAxis(time.Now().UTC().Add(time.Hour*-24*28), time.Now().UTC())
